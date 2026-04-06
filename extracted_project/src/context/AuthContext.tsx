@@ -124,11 +124,28 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
         if (data.user) {
           // Fetch user profile
-          const { data: profile } = await supabase
+          let { data: profile } = await supabase
             .from('profiles')
             .select('*')
             .eq('id', data.user.id)
             .single();
+
+          // إذا لم يكن الـ profile موجوداً، أنشئه تلقائياً
+          if (!profile) {
+            const { data: newProfile } = await (supabase as any)
+              .from('profiles')
+              .upsert({
+                id: data.user.id,
+                email: data.user.email || email,
+                name: data.user.user_metadata?.name || email.split('@')[0],
+                role: 'customer',
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+              })
+              .select()
+              .single();
+            profile = newProfile;
+          }
 
           if (profile) {
             const userData = profileToUser(profile);
@@ -140,26 +157,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
       } catch (e) {
         console.error('Error during Supabase login:', e);
+        setIsLoading(false);
+        return false;
       }
     }
 
-    // Fall back to demo login (for demo mode)
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
-    // For demo, accept any email with password "demo123"
-    let foundUser = mockUsers.find(u => u.email === email);
-
-    if (!foundUser && password === 'demo123') {
-      // Create demo customer user
-      foundUser = {
-        id: `user-${Date.now()}`,
-        email,
-        name: email.split('@')[0],
-        role: 'customer' as UserRole,
-        created_at: new Date().toISOString(),
-      };
-    }
-
+    // Fallback demo login
+    await new Promise(resolve => setTimeout(resolve, 500));
+    const foundUser = mockUsers.find(u => u.email === email);
     if (foundUser && password === 'demo123') {
       setUser(foundUser);
       localStorage.setItem('fashionHubUser', JSON.stringify(foundUser));
