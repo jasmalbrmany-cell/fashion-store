@@ -36,7 +36,8 @@ const LoginPage: React.FC = () => {
       if (loggedInUser.role === 'admin' || loggedInUser.role === 'editor' || loggedInUser.role === 'viewer') {
         navigate('/admin', { replace: true });
       } else {
-        navigate(from, { replace: true });
+        // Change: Redirect customers to their profile/orders dashboard instead of homepage
+        navigate('/my-orders', { replace: true });
       }
     } else {
       setError('البريد الإلكتروني أو كلمة المرور غير صحيحة');

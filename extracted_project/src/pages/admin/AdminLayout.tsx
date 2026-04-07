@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -23,8 +23,30 @@ import { useAuth } from '@/context/AuthContext';
 const AdminLayout: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, logout, canManageUsers, canManageProducts, canManageOrders } = useAuth();
+  const { user, isLoading, logout, canManageUsers, canManageProducts, canManageOrders } = useAuth();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  useEffect(() => {
+    if (!isLoading) {
+      if (!user) {
+        navigate('/login', { state: { from: location } });
+      } else if (user.role === 'customer') {
+        navigate('/');
+      }
+    }
+  }, [user, isLoading, navigate, location]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+        <div className="w-8 h-8 border-4 border-gray-900 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
+  if (!user || user.role === 'customer') {
+    return null;
+  }
 
   const handleLogout = () => {
     logout();

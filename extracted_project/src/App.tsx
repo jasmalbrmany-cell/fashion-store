@@ -11,8 +11,11 @@ import ProductDetailPage from '@/pages/ProductDetailPage';
 import CartPage from '@/pages/CartPage';
 import CheckoutPage from '@/pages/CheckoutPage';
 import LoginPage from '@/pages/LoginPage';
+import RegisterPage from '@/pages/RegisterPage';
 import OrderSuccessPage from '@/pages/OrderSuccessPage';
 import TrackOrderPage from '@/pages/TrackOrderPage';
+
+import MyOrdersPage from '@/pages/MyOrdersPage';
 
 // Admin Pages
 import { AdminLayout, DashboardPage, AdminProductsPage, ImportProductPage, AdminOrdersPage, UsersPage, ActivityPage, SettingsPage, AdsPage, CitiesPage, CurrenciesPage } from '@/pages/admin';
@@ -34,7 +37,9 @@ function App() {
                 <Route path="checkout" element={<CheckoutPage />} />
                 <Route path="order-success" element={<OrderSuccessPage />} />
                 <Route path="track-order" element={<TrackOrderPage />} />
+                <Route path="my-orders" element={<MyOrdersPage />} />
                 <Route path="login" element={<LoginPage />} />
+                <Route path="register" element={<RegisterPage />} />
               </Route>
 
               {/* صفحات لوحة التحكم */}
