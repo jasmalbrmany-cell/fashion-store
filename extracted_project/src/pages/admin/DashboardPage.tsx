@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
+import { useLanguage } from '@/context/LanguageContext';
 import { mockProducts, mockOrders, mockActivityLogs, mockUsers } from '@/data/mockData';
 
 interface DashboardStats {
@@ -22,6 +23,7 @@ interface DashboardStats {
 
 const DashboardPage: React.FC = () => {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const [stats, setStats] = useState<DashboardStats>({
     totalProducts: 0, visibleProducts: 0,
     totalOrders: 0, pendingOrders: 0,
@@ -109,28 +111,28 @@ const DashboardPage: React.FC = () => {
   const statCards = [
     {
       icon: Package, iconBg: 'bg-blue-100', iconColor: 'text-blue-600',
-      label: 'المنتجات', value: stats.totalProducts,
-      sub: `${stats.visibleProducts} مرئي`, trend: '+', trendColor: 'text-green-500',
+      label: t.adminProducts, value: stats.totalProducts,
+      sub: `${stats.visibleProducts}`, trend: '+', trendColor: 'text-green-500',
       link: '/admin/products',
     },
     {
       icon: ShoppingCart, iconBg: 'bg-amber-100', iconColor: 'text-amber-600',
-      label: 'الطلبات', value: stats.totalOrders,
-      sub: stats.pendingOrders > 0 ? `${stats.pendingOrders} معلق ⚠️` : 'لا توجد طلبات معلقة',
+      label: t.adminOrders, value: stats.totalOrders,
+      sub: stats.pendingOrders > 0 ? `${stats.pendingOrders} ⚠️` : '',
       subColor: stats.pendingOrders > 0 ? 'text-amber-600 font-medium' : 'text-gray-400',
       link: '/admin/orders',
     },
     {
       icon: Users, iconBg: 'bg-purple-100', iconColor: 'text-purple-600',
-      label: 'العملاء', value: stats.totalCustomers,
-      sub: stats.newCustomersToday > 0 ? `+${stats.newCustomersToday} اليوم 🆕` : 'لا توجد تسجيلات جديدة',
+      label: t.adminUsers, value: stats.totalCustomers,
+      sub: stats.newCustomersToday > 0 ? `+${stats.newCustomersToday} 🆕` : '',
       subColor: stats.newCustomersToday > 0 ? 'text-green-600 font-medium' : 'text-gray-400',
       link: '/admin/users',
     },
     {
       icon: DollarSign, iconBg: 'bg-green-100', iconColor: 'text-green-600',
-      label: 'الإيرادات', value: stats.totalRevenue.toLocaleString('ar-SA'),
-      sub: `هذا الشهر: ${stats.monthRevenue.toLocaleString('ar-SA')} ر.ي`,
+      label: t.totalRevenue, value: stats.totalRevenue.toLocaleString('ar-SA'),
+      sub: `${stats.monthRevenue.toLocaleString('ar-SA')} ${t.rial}`,
       link: '/admin/orders',
     },
   ];
@@ -140,7 +142,7 @@ const DashboardPage: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">لوحة التحكم</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t.adminDashboard}</h1>
           <p className="text-gray-500 mt-1">
             مرحباً، <span className="font-medium text-gray-700">{user?.name}</span> 👋
           </p>
@@ -197,7 +199,7 @@ const DashboardPage: React.FC = () => {
           <div className="px-6 py-4 border-b flex items-center justify-between">
             <div className="flex items-center gap-2">
               <ShoppingBag className="w-5 h-5 text-gray-600" />
-              <h2 className="font-semibold text-gray-900">آخر الطلبات</h2>
+              <h2 className="font-semibold text-gray-900">{t.latestOrders}</h2>
             </div>
             <Link to="/admin/orders" className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1">
               <Eye className="w-4 h-4" />
@@ -231,7 +233,7 @@ const DashboardPage: React.FC = () => {
                 )) : (
                   <tr>
                     <td colSpan={4} className="px-4 py-8 text-center text-gray-400 text-sm">
-                      لا توجد طلبات بعد
+                      {t.noOrdersYet}
                     </td>
                   </tr>
                 )}
@@ -245,7 +247,7 @@ const DashboardPage: React.FC = () => {
           <div className="px-6 py-4 border-b flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Activity className="w-5 h-5 text-gray-600" />
-              <h2 className="font-semibold text-gray-900">النشاطات الأخيرة</h2>
+              <h2 className="font-semibold text-gray-900">{t.recentActivities}</h2>
             </div>
             <Link to="/admin/activity" className="text-sm text-blue-600 hover:text-blue-700">
               الكل

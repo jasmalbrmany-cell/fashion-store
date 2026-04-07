@@ -84,6 +84,32 @@ interface Translations {
   saveProduct: string;
   cancel: string;
 
+  // لوحة التحكم الأساسية
+  adminDashboard: string;
+  adminProducts: string;
+  adminOrders: string;
+  adminUsers: string;
+  adminCities: string;
+  adminCurrencies: string;
+  adminAds: string;
+  adminActivity: string;
+  adminSettings: string;
+  adminRole: string;
+  editorRole: string;
+  viewerRole: string;
+  
+  // شاشة Dashboard
+  overview: string;
+  totalProducts: string;
+  totalOrders: string;
+  todayOrders: string;
+  totalRevenue: string;
+  registeredCustomers: string;
+  recentActivities: string;
+  latestOrders: string;
+  noActivitiesYet: string;
+  noOrdersYet: string;
+
   // عام
   currency: string;
   rial: string;
@@ -167,6 +193,30 @@ const translations: Record<Language, Translations> = {
     saveProduct: 'حفظ المنتج',
     cancel: 'إلغاء',
 
+    adminDashboard: 'لوحة التحكم',
+    adminProducts: 'المنتجات',
+    adminOrders: 'الطلبات',
+    adminUsers: 'المستخدمين',
+    adminCities: 'المدن والشحن',
+    adminCurrencies: 'العملات',
+    adminAds: 'الإعلانات',
+    adminActivity: 'سجل النشاطات',
+    adminSettings: 'الإعدادات',
+    adminRole: 'مدير',
+    editorRole: 'محرر',
+    viewerRole: 'مشاهد',
+
+    overview: 'نظرة عامة',
+    totalProducts: 'إجمالي المنتجات',
+    totalOrders: 'إجمالي الطلبات',
+    todayOrders: 'طلبات اليوم',
+    totalRevenue: 'إجمالي الإيرادات',
+    registeredCustomers: 'العملاء المسجلين',
+    recentActivities: 'النشاطات الأخيرة',
+    latestOrders: 'أحدث الطلبات',
+    noActivitiesYet: 'لم يتم تسجيل أي نشاطات بعد',
+    noOrdersYet: 'لا توجد طلبات جديدة',
+
     currency: 'YER',
     rial: 'ر.ي',
   },
@@ -246,6 +296,30 @@ const translations: Record<Language, Translations> = {
     addColor: 'Add Color',
     saveProduct: 'Save Product',
     cancel: 'Cancel',
+
+    adminDashboard: 'Dashboard',
+    adminProducts: 'Products',
+    adminOrders: 'Orders',
+    adminUsers: 'Users',
+    adminCities: 'Cities & Shipping',
+    adminCurrencies: 'Currencies',
+    adminAds: 'Advertisements',
+    adminActivity: 'Activity Logs',
+    adminSettings: 'Settings',
+    adminRole: 'Admin',
+    editorRole: 'Editor',
+    viewerRole: 'Viewer',
+
+    overview: 'Overview',
+    totalProducts: 'Total Products',
+    totalOrders: 'Total Orders',
+    todayOrders: 'Today\'s Orders',
+    totalRevenue: 'Total Revenue',
+    registeredCustomers: 'Registered Customers',
+    recentActivities: 'Recent Activities',
+    latestOrders: 'Latest Orders',
+    noActivitiesYet: 'No activities yet',
+    noOrdersYet: 'No recent orders',
 
     currency: 'YER',
     rial: 'YER',

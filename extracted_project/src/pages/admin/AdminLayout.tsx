@@ -19,11 +19,13 @@ import {
   DollarSign,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { useLanguage } from '@/context/LanguageContext';
 
 const AdminLayout: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, isLoading, logout, canManageUsers, canManageProducts, canManageOrders } = useAuth();
+  const { t, language } = useLanguage();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   useEffect(() => {
@@ -54,15 +56,15 @@ const AdminLayout: React.FC = () => {
   };
 
   const menuItems = [
-    { path: '/admin', icon: <LayoutDashboard className="w-5 h-5" />, label: 'لوحة التحكم', exact: true },
-    { path: '/admin/products', icon: <Package className="w-5 h-5" />, label: 'المنتجات', show: canManageProducts },
-    { path: '/admin/orders', icon: <ShoppingCart className="w-5 h-5" />, label: 'الطلبات', show: canManageOrders },
-    { path: '/admin/users', icon: <Users className="w-5 h-5" />, label: 'المستخدمين', show: canManageUsers },
-    { path: '/admin/cities', icon: <Globe className="w-5 h-5" />, label: 'المدن والشحن', show: canManageProducts },
-    { path: '/admin/currencies', icon: <DollarSign className="w-5 h-5" />, label: 'العملات', show: canManageProducts },
-    { path: '/admin/ads', icon: <Megaphone className="w-5 h-5" />, label: 'الإعلانات', show: canManageProducts },
-    { path: '/admin/activity', icon: <Activity className="w-5 h-5" />, label: 'سجل النشاطات', show: true },
-    { path: '/admin/settings', icon: <Settings className="w-5 h-5" />, label: 'الإعدادات', show: canManageUsers },
+    { path: '/admin', icon: <LayoutDashboard className="w-5 h-5" />, label: t.adminDashboard, exact: true },
+    { path: '/admin/products', icon: <Package className="w-5 h-5" />, label: t.adminProducts, show: canManageProducts },
+    { path: '/admin/orders', icon: <ShoppingCart className="w-5 h-5" />, label: t.adminOrders, show: canManageOrders },
+    { path: '/admin/users', icon: <Users className="w-5 h-5" />, label: t.adminUsers, show: canManageUsers },
+    { path: '/admin/cities', icon: <Globe className="w-5 h-5" />, label: t.adminCities, show: canManageProducts },
+    { path: '/admin/currencies', icon: <DollarSign className="w-5 h-5" />, label: t.adminCurrencies, show: canManageProducts },
+    { path: '/admin/ads', icon: <Megaphone className="w-5 h-5" />, label: t.adminAds, show: canManageProducts },
+    { path: '/admin/activity', icon: <Activity className="w-5 h-5" />, label: t.adminActivity, show: true },
+    { path: '/admin/settings', icon: <Settings className="w-5 h-5" />, label: t.adminSettings, show: canManageUsers },
   ].filter(item => item.show !== false);
 
   const isActive = (path: string, exact = false) => {
@@ -103,7 +105,7 @@ const AdminLayout: React.FC = () => {
           <p className="font-medium text-gray-900">{user?.name}</p>
           <p className="text-sm text-gray-500">{user?.email}</p>
           <span className="inline-block mt-1 text-xs px-2 py-0.5 bg-primary-100 text-primary-700 rounded">
-            {user?.role === 'admin' ? 'مدير' : user?.role === 'editor' ? 'محرر' : 'مشاهد'}
+            {user?.role === 'admin' ? t.adminRole : user?.role === 'editor' ? t.editorRole : t.viewerRole}
           </span>
         </div>
 
@@ -135,14 +137,14 @@ const AdminLayout: React.FC = () => {
             className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600 hover:bg-gray-100 mb-2"
           >
             <Store className="w-5 h-5" />
-            <span>العودة للمتجر</span>
+            <span>{t.backToStore}</span>
           </Link>
           <button
             onClick={handleLogout}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-red-600 hover:bg-red-50"
           >
             <LogOut className="w-5 h-5" />
-            <span>تسجيل الخروج</span>
+            <span>{t.logout}</span>
           </button>
         </div>
       </aside>
@@ -191,14 +193,14 @@ const AdminLayout: React.FC = () => {
                 className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600 hover:bg-gray-100 mb-2"
               >
                 <Store className="w-5 h-5" />
-                <span>العودة للمتجر</span>
+                <span>{t.backToStore}</span>
               </Link>
               <button
                 onClick={handleLogout}
                 className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-red-600 hover:bg-red-50"
               >
                 <LogOut className="w-5 h-5" />
-                <span>تسجيل الخروج</span>
+                <span>{t.logout}</span>
               </button>
             </div>
           </div>
