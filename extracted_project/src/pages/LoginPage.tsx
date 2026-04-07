@@ -125,12 +125,18 @@ const LoginPage: React.FC = () => {
             </button>
           </form>
 
-          {/* العودة للمتجر */}
-          <p className="mt-6 text-center text-gray-500 text-sm">
-            <Link to="/" className="text-black font-medium hover:underline">
+          {/* روابط سفلية */}
+          <div className="mt-6 flex flex-col gap-3 text-center text-sm">
+            <p className="text-gray-500">
+              ليس لديك حساب؟{' '}
+              <Link to="/register" className="text-black font-bold hover:underline">
+                إنشاء حساب جديد
+              </Link>
+            </p>
+            <Link to="/" className="text-gray-500 hover:text-black font-medium transition">
               العودة للمتجر
             </Link>
-          </p>
+          </div>
         </div>
       </div>
     </div>
