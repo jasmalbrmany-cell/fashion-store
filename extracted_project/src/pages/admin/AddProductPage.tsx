@@ -7,6 +7,7 @@ import {
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { categoriesService, productsService } from '@/services';
 import { Category } from '@/types';
+import { compressImage } from '@/lib/imageCompression';
 
 const AddProductPage: React.FC = () => {
   const navigate = useNavigate();
@@ -54,8 +55,11 @@ const AddProductPage: React.FC = () => {
     try {
       const uploadedUrls: { id: string; url: string; isPrimary: boolean }[] = [];
 
-      for (const file of Array.from(files)) {
-        if (!file.type.startsWith('image/')) continue;
+      for (const originalFile of Array.from(files)) {
+        if (!originalFile.type.startsWith('image/')) continue;
+
+        // ضغط الصورة وتصغير حجمها (أقصى عرض 800 بكسل، جودة 80%)
+        const file = await compressImage(originalFile, 800, 0.8);
 
         const fileExt = file.name.split('.').pop();
         const fileName = `products/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;

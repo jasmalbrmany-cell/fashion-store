@@ -110,6 +110,41 @@ interface Translations {
   noActivitiesYet: string;
   noOrdersYet: string;
 
+  // الصفحات الداخلية المنتجات
+  productCount: string;
+  allCategories: string;
+  moreFilters: string;
+  dateAdded: string;
+  status: string;
+  actions: string;
+  source: string;
+  units: string;
+  show: string;
+  viewProduct: string;
+  edit: string;
+  delete: string;
+  noProducts: string;
+  confirmDeleteProduct: string;
+
+  // الصفحات الداخلية الطلبات
+  ordersCount: string;
+  searchOrders: string;
+  searchProducts: string;
+  allStatuses: string;
+  orderNumber: string;
+  customer: string;
+  date: string;
+  orderDetails: string;
+  contactWhatsApp: string;
+  generateInvoice: string;
+  downloadInvoice: string;
+  contactCustomer: string;
+  customerInfo: string;
+  address: string;
+  subtotal: string;
+  shippingCost: string;
+  orderTotal: string;
+
   // عام
   currency: string;
   rial: string;
@@ -217,6 +252,41 @@ const translations: Record<Language, Translations> = {
     noActivitiesYet: 'لم يتم تسجيل أي نشاطات بعد',
     noOrdersYet: 'لا توجد طلبات جديدة',
 
+    // الصفحات الداخلية المنتجات
+    productCount: 'منتج',
+    allCategories: 'جميع الأقسام',
+    moreFilters: 'المزيد',
+    dateAdded: 'تاريخ الإضافة',
+    status: 'الحالة',
+    actions: 'إجراءات',
+    source: 'المصدر',
+    units: 'وحدة',
+    show: 'إظهار',
+    viewProduct: 'عرض المنتج',
+    edit: 'تعديل',
+    delete: 'حذف',
+    noProducts: 'لا توجد منتجات',
+    confirmDeleteProduct: 'هل أنت متأكد من حذف هذا المنتج؟',
+
+    // الصفحات الداخلية الطلبات
+    ordersCount: 'طلب',
+    searchOrders: 'ابحث برقم الطلب أو اسم العميل أو الجوال...',
+    searchProducts: 'ابحث عن منتج...',
+    allStatuses: 'جميع الحالات',
+    orderNumber: 'رقم الطلب',
+    customer: 'العميل',
+    date: 'التاريخ',
+    orderDetails: 'تفاصيل الطلب',
+    contactWhatsApp: 'تواصل واتساب',
+    generateInvoice: 'إنشاء فاتورة',
+    downloadInvoice: 'تحميل الفاتورة',
+    contactCustomer: 'تواصل مع العميل',
+    customerInfo: 'معلومات العميل',
+    address: 'العنوان',
+    subtotal: 'المجموع الفرعي',
+    shippingCost: 'تكلفة الشحن',
+    orderTotal: 'الإجمالي النهائي',
+
     currency: 'YER',
     rial: 'ر.ي',
   },
@@ -320,6 +390,41 @@ const translations: Record<Language, Translations> = {
     latestOrders: 'Latest Orders',
     noActivitiesYet: 'No activities yet',
     noOrdersYet: 'No recent orders',
+
+    // الصفحات الداخلية المنتجات
+    productCount: 'Product(s)',
+    allCategories: 'All Categories',
+    moreFilters: 'More',
+    dateAdded: 'Date Added',
+    status: 'Status',
+    actions: 'Actions',
+    source: 'Source',
+    units: 'Unit(s)',
+    show: 'Show',
+    viewProduct: 'View Product',
+    edit: 'Edit',
+    delete: 'Delete',
+    noProducts: 'No products found',
+    confirmDeleteProduct: 'Are you sure you want to delete this product?',
+
+    // الصفحات الداخلية الطلبات
+    ordersCount: 'Order(s)',
+    searchOrders: 'Search by Order No, Customer, or Phone...',
+    searchProducts: 'Search products...',
+    allStatuses: 'All Statuses',
+    orderNumber: 'Order Number',
+    customer: 'Customer',
+    date: 'Date',
+    orderDetails: 'Order Details',
+    contactWhatsApp: 'Contact WhatsApp',
+    generateInvoice: 'Generate Invoice',
+    downloadInvoice: 'Download Invoice',
+    contactCustomer: 'Contact Customer',
+    customerInfo: 'Customer Info',
+    address: 'Address',
+    subtotal: 'Subtotal',
+    shippingCost: 'Shipping',
+    orderTotal: 'Total',
 
     currency: 'YER',
     rial: 'YER',

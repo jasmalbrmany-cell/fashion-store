@@ -15,8 +15,10 @@ import {
 } from 'lucide-react';
 import { mockProducts, mockCategories } from '@/data/mockData';
 import { Product } from '@/types';
+import { useLanguage } from '@/context/LanguageContext';
 
 const AdminProductsPage: React.FC = () => {
+  const { t, language } = useLanguage();
   const [products, setProducts] = useState<Product[]>(mockProducts);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
@@ -38,18 +40,18 @@ const AdminProductsPage: React.FC = () => {
   };
 
   const deleteProduct = (productId: string) => {
-    if (confirm('هل أنت متأكد من حذف هذا المنتج؟')) {
+    if (confirm(t.confirmDeleteProduct)) {
       setProducts(prev => prev.filter(p => p.id !== productId));
     }
     setMenuOpen(null);
   };
 
   const formatPrice = (price: number) => {
-    return price.toLocaleString('ar-SA');
+    return price.toLocaleString(language === 'ar' ? 'ar-SA' : 'en-US');
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('ar-SA');
+    return new Date(dateString).toLocaleDateString(language === 'ar' ? 'ar-SA' : 'en-US');
   };
 
   return (
@@ -57,23 +59,23 @@ const AdminProductsPage: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">المنتجات</h1>
-          <p className="text-gray-500">{products.length} منتج</p>
+          <h1 className="text-2xl font-bold text-gray-900">{t.adminProducts}</h1>
+          <p className="text-gray-500">{products.length} {t.productCount}</p>
         </div>
         <div className="flex gap-3">
           <Link
             to="/admin/products/import"
-            className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700"
           >
             <Upload className="w-5 h-5" />
-            استيراد من رابط
+            {t.importFromUrl}
           </Link>
           <Link
             to="/admin/products/add"
             className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
           >
             <Plus className="w-5 h-5" />
-            إضافة منتج
+            {t.addProduct}
           </Link>
         </div>
       </div>
@@ -83,13 +85,13 @@ const AdminProductsPage: React.FC = () => {
         <div className="flex flex-col md:flex-row gap-4">
           {/* Search */}
           <div className="flex-1 relative">
-            <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <Search className="absolute ltr:left-3 rtl:right-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
             <input
               type="text"
-              placeholder="ابحث عن منتج..."
+              placeholder={t.searchProducts}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pr-10 pl-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              className="w-full ltr:pl-10 ltr:pr-4 rtl:pr-10 rtl:pl-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             />
           </div>
 
@@ -99,7 +101,7 @@ const AdminProductsPage: React.FC = () => {
             onChange={(e) => setSelectedCategory(e.target.value)}
             className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
           >
-            <option value="">جميع الأقسام</option>
+            <option value="">{t.allCategories}</option>
             {mockCategories.map(category => (
               <option key={category.id} value={category.id}>
                 {category.name}
@@ -112,7 +114,7 @@ const AdminProductsPage: React.FC = () => {
             className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
           >
             <Filter className="w-5 h-5" />
-            المزيد
+            {t.moreFilters}
           </button>
         </div>
       </div>
@@ -123,13 +125,13 @@ const AdminProductsPage: React.FC = () => {
           <table className="w-full">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">المنتج</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">القسم</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">السعر</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">المخزون</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">تاريخ الإضافة</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">الحالة</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">إجراءات</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">{t.adminProducts}</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">{t.category}</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">{t.price}</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">{t.stockQuantity}</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">{t.dateAdded}</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">{t.status}</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">{t.actions}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
@@ -154,7 +156,7 @@ const AdminProductsPage: React.FC = () => {
                               className="text-xs text-blue-600 hover:underline flex items-center gap-1"
                             >
                               <ExternalLink className="w-3 h-3" />
-                              المصدر
+                              {t.source}
                             </a>
                           )}
                         </div>
@@ -164,14 +166,14 @@ const AdminProductsPage: React.FC = () => {
                       {category?.name}
                     </td>
                     <td className="px-6 py-4 text-sm font-medium text-gray-900">
-                      {formatPrice(product.price)} ر.ي
+                      {formatPrice(product.price)} {t.rial}
                     </td>
                     <td className="px-6 py-4">
                       <span className={`text-sm ${
                         product.stock > 10 ? 'text-green-600' :
                         product.stock > 0 ? 'text-orange-600' : 'text-red-600'
                       }`}>
-                        {product.stock} وحدة
+                        {product.stock} {t.units}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-500">
@@ -183,7 +185,7 @@ const AdminProductsPage: React.FC = () => {
                           ? 'bg-green-100 text-green-700'
                           : 'bg-gray-100 text-gray-600'
                       }`}>
-                        {product.isVisible ? 'ظاهر' : 'مخفي'}
+                        {product.isVisible ? t.visible : t.hidden}
                       </span>
                     </td>
                     <td className="px-6 py-4">
@@ -201,44 +203,44 @@ const AdminProductsPage: React.FC = () => {
                               className="fixed inset-0 z-10"
                               onClick={() => setMenuOpen(null)}
                             />
-                            <div className="absolute left-0 mt-2 w-48 bg-white rounded-lg shadow-lg border z-20">
+                            <div className="absolute ltr:right-0 rtl:left-0 mt-2 w-48 bg-white rounded-lg shadow-lg border z-20">
                               <Link
                                 to={`/admin/products/edit/${product.id}`}
-                                className="flex items-center gap-2 px-4 py-2 hover:bg-gray-100"
+                                className="flex items-center gap-2 px-4 py-2 hover:bg-gray-100 text-gray-700"
                               >
                                 <Edit className="w-4 h-4" />
-                                تعديل
+                                {t.edit}
                               </Link>
                               <button
                                 onClick={() => toggleVisibility(product.id)}
-                                className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-100"
+                                className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-100 text-gray-700"
                               >
                                 {product.isVisible ? (
                                   <>
                                     <EyeOff className="w-4 h-4" />
-                                    إخفاء
+                                    {t.hidden}
                                   </>
                                 ) : (
                                   <>
                                     <Eye className="w-4 h-4" />
-                                    إظهار
+                                    {t.show}
                                   </>
                                 )}
                               </button>
                               <Link
                                 to={`/product/${product.id}`}
                                 target="_blank"
-                                className="flex items-center gap-2 px-4 py-2 hover:bg-gray-100"
+                                className="flex items-center gap-2 px-4 py-2 hover:bg-gray-100 text-gray-700"
                               >
                                 <ExternalLink className="w-4 h-4" />
-                                عرض المنتج
+                                {t.viewProduct}
                               </Link>
                               <button
                                 onClick={() => deleteProduct(product.id)}
                                 className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-100 text-red-600"
                               >
                                 <Trash2 className="w-4 h-4" />
-                                حذف
+                                {t.delete}
                               </button>
                             </div>
                           </>
@@ -254,7 +256,7 @@ const AdminProductsPage: React.FC = () => {
 
         {filteredProducts.length === 0 && (
           <div className="p-12 text-center">
-            <p className="text-gray-500">لا توجد منتجات</p>
+            <p className="text-gray-500">{t.noProducts}</p>
           </div>
         )}
       </div>

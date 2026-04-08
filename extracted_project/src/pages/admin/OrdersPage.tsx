@@ -16,8 +16,10 @@ import {
 import { mockOrders } from '@/data/mockData';
 import { Order, OrderStatus } from '@/types';
 import { mockStoreSettings } from '@/data/mockData';
+import { useLanguage } from '@/context/LanguageContext';
 
 const AdminOrdersPage: React.FC = () => {
+  const { t, language } = useLanguage();
   const [searchParams, setSearchParams] = useSearchParams();
   const [orders, setOrders] = useState<Order[]>(mockOrders);
   const [searchQuery, setSearchQuery] = useState('');
@@ -36,12 +38,12 @@ const AdminOrdersPage: React.FC = () => {
 
   const getStatusBadge = (status: OrderStatus) => {
     const statusMap: Record<OrderStatus, { label: string; color: string; bgColor: string }> = {
-      pending: { label: 'قيد الانتظار', color: 'text-yellow-700', bgColor: 'bg-yellow-100' },
-      waiting_payment: { label: 'بانتظار الدفع', color: 'text-orange-700', bgColor: 'bg-orange-100' },
-      paid: { label: 'تم الدفع', color: 'text-blue-700', bgColor: 'bg-blue-100' },
-      approved: { label: 'تمت الموافقة', color: 'text-green-700', bgColor: 'bg-green-100' },
-      completed: { label: 'مكتمل', color: 'text-green-800', bgColor: 'bg-green-200' },
-      cancelled: { label: 'ملغي', color: 'text-red-700', bgColor: 'bg-red-100' },
+      pending: { label: language === 'ar' ? 'قيد الانتظار' : 'Pending', color: 'text-yellow-700', bgColor: 'bg-yellow-100' },
+      waiting_payment: { label: language === 'ar' ? 'بانتظار الدفع' : 'Waiting Payment', color: 'text-orange-700', bgColor: 'bg-orange-100' },
+      paid: { label: language === 'ar' ? 'تم الدفع' : 'Paid', color: 'text-blue-700', bgColor: 'bg-blue-100' },
+      approved: { label: language === 'ar' ? 'تمت الموافقة' : 'Approved', color: 'text-green-700', bgColor: 'bg-green-100' },
+      completed: { label: language === 'ar' ? 'مكتمل' : 'Completed', color: 'text-green-800', bgColor: 'bg-green-200' },
+      cancelled: { label: language === 'ar' ? 'ملغي' : 'Cancelled', color: 'text-red-700', bgColor: 'bg-red-100' },
     };
     return statusMap[status];
   };
@@ -58,7 +60,7 @@ const AdminOrdersPage: React.FC = () => {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('ar-SA', {
+    return new Date(dateString).toLocaleDateString(language === 'ar' ? 'ar-SA' : 'en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
@@ -68,17 +70,18 @@ const AdminOrdersPage: React.FC = () => {
   };
 
   const formatPrice = (price: number) => {
-    return price.toLocaleString('ar-SA');
+    return price.toLocaleString(language === 'ar' ? 'ar-SA' : 'en-US');
   };
 
   const handleWhatsAppContact = (phone: string, orderNumber: string) => {
-    const message = `مرحباً، بخصوص طلبك ${orderNumber}. نحن بصدد مراجعة طلبك. هل يمكنك تأكيد طريقة الدفع المناسبة لك؟`;
+    const message = language === 'ar' 
+      ? `مرحباً، بخصوص طلبك ${orderNumber}. نحن بصدد مراجعة طلبك. هل يمكنك تأكيد طريقة الدفع المناسبة لك؟`
+      : `Hello, regarding your order ${orderNumber}. We are processing it. Could you confirm your payment method?`;
     window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
   };
 
   const handleGenerateInvoice = (order: Order) => {
-    // In a real app, this would generate a PDF
-    alert(`تم إنشاء فاتورة للطلب ${order.orderNumber}`);
+    alert(language === 'ar' ? `تم إنشاء فاتورة للطلب ${order.orderNumber}` : `Invoice generated for order ${order.orderNumber}`);
     setSelectedOrder(null);
   };
 
@@ -86,8 +89,8 @@ const AdminOrdersPage: React.FC = () => {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">الطلبات</h1>
-        <p className="text-gray-500">{orders.length} طلب</p>
+        <h1 className="text-2xl font-bold text-gray-900">{t.adminOrders}</h1>
+        <p className="text-gray-500">{orders.length} {t.ordersCount}</p>
       </div>
 
       {/* Filters */}
@@ -95,13 +98,13 @@ const AdminOrdersPage: React.FC = () => {
         <div className="flex flex-col md:flex-row gap-4">
           {/* Search */}
           <div className="flex-1 relative">
-            <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <Search className="absolute ltr:left-3 rtl:right-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
             <input
               type="text"
-              placeholder="ابحث برقم الطلب أو اسم العميل أو الجوال..."
+              placeholder={t.searchOrders}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pr-10 pl-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+              className="w-full ltr:pl-10 ltr:pr-4 rtl:pr-10 rtl:pl-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
             />
           </div>
 
@@ -111,13 +114,13 @@ const AdminOrdersPage: React.FC = () => {
             onChange={(e) => setStatusFilter(e.target.value)}
             className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
           >
-            <option value="">جميع الحالات</option>
-            <option value="pending">قيد الانتظار</option>
-            <option value="waiting_payment">بانتظار الدفع</option>
-            <option value="paid">تم الدفع</option>
-            <option value="approved">تمت الموافقة</option>
-            <option value="completed">مكتمل</option>
-            <option value="cancelled">ملغي</option>
+            <option value="">{t.allStatuses}</option>
+            <option value="pending">{language === 'ar' ? 'قيد الانتظار' : 'Pending'}</option>
+            <option value="waiting_payment">{language === 'ar' ? 'بانتظار الدفع' : 'Waiting Payment'}</option>
+            <option value="paid">{language === 'ar' ? 'تم الدفع' : 'Paid'}</option>
+            <option value="approved">{language === 'ar' ? 'تمت الموافقة' : 'Approved'}</option>
+            <option value="completed">{language === 'ar' ? 'مكتمل' : 'Completed'}</option>
+            <option value="cancelled">{language === 'ar' ? 'ملغي' : 'Cancelled'}</option>
           </select>
         </div>
       </div>
@@ -128,13 +131,13 @@ const AdminOrdersPage: React.FC = () => {
           <table className="w-full">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">رقم الطلب</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">العميل</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">المنتجات</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">الإجمالي</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">التاريخ</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">الحالة</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">إجراءات</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">{t.orderNumber}</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">{t.customer}</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">{t.adminProducts}</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">{t.orderTotal}</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">{t.date}</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">{t.status}</th>
+                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">{t.actions}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
@@ -151,12 +154,12 @@ const AdminOrdersPage: React.FC = () => {
                   </td>
                   <td className="px-6 py-4">
                     <span className="text-sm text-gray-600">
-                      {order.items.length} منتج
+                      {order.items.length} {t.productCount}
                     </span>
                   </td>
                   <td className="px-6 py-4">
                     <span className="font-medium text-gray-900">
-                      {formatPrice(order.total)} ر.ي
+                      {formatPrice(order.total)} {t.rial}
                     </span>
                   </td>
                   <td className="px-6 py-4">
@@ -174,14 +177,14 @@ const AdminOrdersPage: React.FC = () => {
                       <button
                         onClick={() => setSelectedOrder(order)}
                         className="p-2 hover:bg-gray-100 rounded-lg text-gray-600"
-                        title="عرض التفاصيل"
+                        title={t.orderDetails}
                       >
                         <Eye className="w-5 h-5" />
                       </button>
                       <button
                         onClick={() => handleWhatsAppContact(order.customerPhone, order.orderNumber)}
                         className="p-2 hover:bg-green-50 rounded-lg text-green-600"
-                        title="تواصل واتساب"
+                        title={t.contactWhatsApp}
                       >
                         <MessageCircle className="w-5 h-5" />
                       </button>
@@ -199,7 +202,7 @@ const AdminOrdersPage: React.FC = () => {
                               className="fixed inset-0 z-10"
                               onClick={() => setMenuOpen(null)}
                             />
-                            <div className="absolute left-0 mt-2 w-48 bg-white rounded-lg shadow-lg border z-20">
+                            <div className="absolute ltr:right-0 rtl:left-0 mt-2 w-48 bg-white rounded-lg shadow-lg border z-20">
                               {order.status === 'pending' && (
                                 <>
                                   <button
@@ -207,14 +210,14 @@ const AdminOrdersPage: React.FC = () => {
                                     className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-100 text-orange-600"
                                   >
                                     <Clock className="w-4 h-4" />
-                                    بانتظار الدفع
+                                    {language === 'ar' ? 'بانتظار الدفع' : 'Waiting Payment'}
                                   </button>
                                   <button
                                     onClick={() => updateOrderStatus(order.id, 'cancelled')}
                                     className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-100 text-red-600"
                                   >
                                     <XCircle className="w-4 h-4" />
-                                    إلغاء الطلب
+                                    {language === 'ar' ? 'إلغاء الطلب' : 'Cancel Order'}
                                   </button>
                                 </>
                               )}
@@ -225,14 +228,14 @@ const AdminOrdersPage: React.FC = () => {
                                     className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-100 text-blue-600"
                                   >
                                     <CheckCircle className="w-4 h-4" />
-                                    تم الدفع
+                                    {language === 'ar' ? 'تم الدفع' : 'Paid'}
                                   </button>
                                   <button
                                     onClick={() => updateOrderStatus(order.id, 'cancelled')}
                                     className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-100 text-red-600"
                                   >
                                     <XCircle className="w-4 h-4" />
-                                    إلغاء الطلب
+                                    {language === 'ar' ? 'إلغاء الطلب' : 'Cancel Order'}
                                   </button>
                                 </>
                               )}
@@ -242,7 +245,7 @@ const AdminOrdersPage: React.FC = () => {
                                   className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-100 text-green-600"
                                 >
                                   <CheckCircle className="w-4 h-4" />
-                                  موافقة على الطلب
+                                  {language === 'ar' ? 'موافقة على الطلب' : 'Approve Order'}
                                 </button>
                               )}
                               {order.status === 'approved' && (
@@ -251,15 +254,15 @@ const AdminOrdersPage: React.FC = () => {
                                   className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-100 text-green-600"
                                 >
                                   <CheckCircle className="w-4 h-4" />
-                                  تسليم الطلب
+                                  {language === 'ar' ? 'تسليم الطلب' : 'Complete Order'}
                                 </button>
                               )}
                               <button
                                 onClick={() => handleGenerateInvoice(order)}
-                                className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-100"
+                                className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-100 text-gray-700"
                               >
                                 <FileText className="w-4 h-4" />
-                                إنشاء فاتورة
+                                {t.generateInvoice}
                               </button>
                             </div>
                           </>
@@ -275,7 +278,7 @@ const AdminOrdersPage: React.FC = () => {
 
         {filteredOrders.length === 0 && (
           <div className="p-12 text-center">
-            <p className="text-gray-500">لا توجد طلبات</p>
+            <p className="text-gray-500">{t.noOrdersYet}</p>
           </div>
         )}
       </div>
@@ -302,7 +305,7 @@ const AdminOrdersPage: React.FC = () => {
             <div className="p-6 space-y-6">
               {/* Status */}
               <div className="flex items-center justify-between">
-                <span className="text-gray-600">الحالة:</span>
+                <span className="text-gray-600">{t.status}:</span>
                 <span className={`px-4 py-2 rounded-full text-sm font-medium ${getStatusBadge(selectedOrder.status).bgColor} ${getStatusBadge(selectedOrder.status).color}`}>
                   {getStatusBadge(selectedOrder.status).label}
                 </span>
@@ -310,23 +313,23 @@ const AdminOrdersPage: React.FC = () => {
 
               {/* Customer Info */}
               <div className="bg-gray-50 rounded-lg p-4">
-                <h3 className="font-semibold text-gray-900 mb-3">معلومات العميل</h3>
+                <h3 className="font-semibold text-gray-900 mb-3">{t.customerInfo}</h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <p className="text-sm text-gray-500">الاسم</p>
+                    <p className="text-sm text-gray-500">{t.customer}</p>
                     <p className="font-medium">{selectedOrder.customerName}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500">الجوال</p>
+                    <p className="text-sm text-gray-500">{language === 'ar' ? 'الجوال' : 'Phone'}</p>
                     <p className="font-medium" dir="ltr">{selectedOrder.customerPhone}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500">المدينة</p>
+                    <p className="text-sm text-gray-500">{language === 'ar' ? 'المدينة' : 'City'}</p>
                     <p className="font-medium">{selectedOrder.city}</p>
                   </div>
                   {selectedOrder.address && (
                     <div>
-                      <p className="text-sm text-gray-500">العنوان</p>
+                      <p className="text-sm text-gray-500">{t.address}</p>
                       <p className="font-medium">{selectedOrder.address}</p>
                     </div>
                   )}
@@ -335,7 +338,7 @@ const AdminOrdersPage: React.FC = () => {
 
               {/* Items */}
               <div>
-                <h3 className="font-semibold text-gray-900 mb-3">المنتجات</h3>
+                <h3 className="font-semibold text-gray-900 mb-3">{t.adminProducts}</h3>
                 <div className="space-y-4">
                   {selectedOrder.items.map((item) => (
                     <div key={item.id} className="flex gap-4">
@@ -347,13 +350,13 @@ const AdminOrdersPage: React.FC = () => {
                       <div className="flex-1">
                         <p className="font-medium text-gray-900">{item.productName}</p>
                         <p className="text-sm text-gray-500">
-                          {item.size && `المقاس: ${item.size}`}
+                          {item.size && `${t.size}: ${item.size}`}
                           {item.size && item.color && ' / '}
-                          {item.color && `اللون: ${item.color}`}
+                          {item.color && `${t.color}: ${item.color}`}
                         </p>
-                        <p className="text-sm text-gray-500">الكمية: {item.quantity}</p>
+                        <p className="text-sm text-gray-500">{language === 'ar' ? 'الكمية:' : 'Qty:'} {item.quantity}</p>
                         <p className="font-semibold text-primary-600">
-                          {formatPrice(item.price * item.quantity)} ر.ي
+                          {formatPrice(item.price * item.quantity)} {t.rial}
                         </p>
                         {item.sourceUrl && (
                           <a
@@ -362,7 +365,7 @@ const AdminOrdersPage: React.FC = () => {
                             rel="noopener noreferrer"
                             className="text-xs text-blue-600 hover:underline"
                           >
-                            المصدر
+                            {t.source}
                           </a>
                         )}
                       </div>
@@ -374,16 +377,16 @@ const AdminOrdersPage: React.FC = () => {
               {/* Totals */}
               <div className="border-t pt-4 space-y-2">
                 <div className="flex justify-between">
-                  <span className="text-gray-600">المجموع الفرعي</span>
-                  <span>{formatPrice(selectedOrder.subtotal)} ر.ي</span>
+                  <span className="text-gray-600">{t.subtotal}</span>
+                  <span>{formatPrice(selectedOrder.subtotal)} {t.rial}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">الشحن</span>
-                  <span>{formatPrice(selectedOrder.shippingCost)} ر.ي</span>
+                  <span className="text-gray-600">{t.shippingCost}</span>
+                  <span>{formatPrice(selectedOrder.shippingCost)} {t.rial}</span>
                 </div>
                 <div className="flex justify-between text-lg font-bold border-t pt-2">
-                  <span>الإجمالي</span>
-                  <span className="text-primary-600">{formatPrice(selectedOrder.total)} ر.ي</span>
+                  <span>{t.orderTotal}</span>
+                  <span className="text-primary-600">{formatPrice(selectedOrder.total)} {t.rial}</span>
                 </div>
               </div>
             </div>
@@ -395,14 +398,14 @@ const AdminOrdersPage: React.FC = () => {
                 className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
               >
                 <Download className="w-5 h-5" />
-                تحميل الفاتورة
+                {t.downloadInvoice}
               </button>
               <button
                 onClick={() => handleWhatsAppContact(selectedOrder.customerPhone, selectedOrder.orderNumber)}
                 className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
               >
                 <MessageCircle className="w-5 h-5" />
-                تواصل مع العميل
+                {t.contactCustomer}
               </button>
             </div>
           </div>
