@@ -8,8 +8,8 @@ const LoginPage: React.FC = () => {
   const location = useLocation();
   const { login, isLoading } = useAuth();
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState('daoodalhashdi@gmail.com');
+  const [password, setPassword] = useState('Aa123456');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
 
