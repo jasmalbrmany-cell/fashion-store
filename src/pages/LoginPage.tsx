@@ -31,18 +31,25 @@ const LoginPage: React.FC = () => {
       return;
     }
 
-    const success = await login(email, password);
+    const result = await login(email, password);
 
-    if (success) {
+    if (result.success) {
       const loggedInUser = JSON.parse(localStorage.getItem('fashionHubUser') || '{}');
       if (loggedInUser.role === 'admin' || loggedInUser.role === 'editor' || loggedInUser.role === 'viewer') {
         navigate('/admin', { replace: true });
       } else {
-        // Change: Redirect customers to their profile/orders dashboard instead of homepage
         navigate('/my-orders', { replace: true });
       }
     } else {
-      setError(t.invalidCredentials);
+      if (result.error === 'email_not_confirmed') {
+        setError(
+          language === 'ar'
+            ? 'البريد الإلكتروني غير مؤكد. يرجى مراجعة بريدك وتأكيد الحساب أولاً'
+            : 'Email not confirmed. Please check your inbox and confirm your account first'
+        );
+      } else {
+        setError(t.invalidCredentials);
+      }
     }
   };
 

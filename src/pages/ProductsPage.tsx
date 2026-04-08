@@ -4,7 +4,7 @@ import { Filter, Grid, List, Search, X } from 'lucide-react';
 import { ProductCard } from '@/components/Product';
 import { mockProducts, mockCategories } from '@/data/mockData';
 import { Product } from '@/types';
-import { useLanguage } from '@/context/LanguageContext';
+import { useLanguage, categoryNames } from '@/context/LanguageContext';
 
 const ProductsPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -102,7 +102,9 @@ const ProductsPage: React.FC = () => {
     setSearchParams({});
   };
 
-  const selectedCategoryName = mockCategories.find(c => c.id === selectedCategory)?.name || t.allProducts;
+  const selectedCategoryName = selectedCategory
+    ? (categoryNames[selectedCategory]?.[language] || mockCategories.find(c => c.id === selectedCategory)?.name || t.allProducts)
+    : t.allProducts;
 
   return (
     <div className="bg-gray-50 min-h-screen py-8">
@@ -211,7 +213,7 @@ const ProductsPage: React.FC = () => {
                         selectedCategory === category.id ? 'bg-primary-100 text-primary-700' : 'text-gray-600 hover:bg-gray-100'
                       }`}
                     >
-                      {category.name}
+                      {categoryNames[category.id]?.[language] || category.name}
                     </button>
                   ))}
                 </div>
@@ -299,7 +301,7 @@ const ProductsPage: React.FC = () => {
                       onClick={() => { handleCategoryChange(category.id); setShowFilters(false); }}
                       className={`w-full text-right py-2 px-3 rounded ${selectedCategory === category.id ? 'bg-primary-100 text-primary-700' : 'text-gray-600'}`}
                     >
-                      {category.name}
+                      {categoryNames[category.id]?.[language] || category.name}
                     </button>
                   ))}
                 </div>

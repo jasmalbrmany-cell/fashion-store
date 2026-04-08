@@ -55,7 +55,7 @@ const CartPage: React.FC = () => {
   // --- حالة: السلة فارغة ---
   if (items.length === 0) {
     return (
-      <div className="min-h-screen bg-gray-50" dir="rtl">
+      <div className="min-h-screen bg-gray-50" dir={language === 'ar' ? 'rtl' : 'ltr'}>
         {/* رأس الصفحة */}
         <div className="bg-white border-b px-4 py-4">
           <h1 className="text-xl font-bold text-gray-900 text-center">{t.cartTitle}</h1>
@@ -158,7 +158,7 @@ const CartPage: React.FC = () => {
 
   // --- حالة: السلة بها منتجات ---
   return (
-    <div className="bg-gray-50 min-h-screen py-8" dir="rtl">
+    <div className="bg-gray-50 min-h-screen py-8" dir={language === 'ar' ? 'rtl' : 'ltr'}>
       <div className="container mx-auto px-4">
         <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-8">{t.cartTitle}</h1>
 

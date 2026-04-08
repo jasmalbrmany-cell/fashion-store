@@ -431,6 +431,16 @@ const translations: Record<Language, Translations> = {
   },
 };
 
+// Category names map for bilingual support
+export const categoryNames: Record<string, Record<'ar' | 'en', string>> = {
+  'cat-1': { ar: 'ملابس نسائية', en: "Women's Clothes" },
+  'cat-2': { ar: 'ملابس رجالية', en: "Men's Clothes" },
+  'cat-3': { ar: 'أحذية', en: 'Shoes' },
+  'cat-4': { ar: 'إكسسوارات', en: 'Accessories' },
+  'cat-5': { ar: 'حقائب', en: 'Bags' },
+  'cat-6': { ar: 'عطور', en: 'Perfumes' },
+};
+
 interface LanguageContextType {
   language: Language;
   setLanguage: (lang: Language) => void;

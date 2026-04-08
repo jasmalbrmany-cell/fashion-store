@@ -22,7 +22,7 @@ interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<boolean>;
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   isAdmin: boolean;
   isEditor: boolean;
@@ -105,21 +105,28 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, []);
 
-  const login = async (email: string, password: string): Promise<boolean> => {
+  const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
     setIsLoading(true);
 
     // Try Supabase authentication first
     if (isSupabaseConfigured()) {
       try {
         const { data, error } = await supabase.auth.signInWithPassword({
-          email,
+          email: email.trim().toLowerCase(),
           password,
         });
 
         if (error) {
           console.error('Supabase login error:', error);
           setIsLoading(false);
-          return false;
+          // Return specific error messages
+          if (error.message.includes('Email not confirmed') || error.message.includes('email_not_confirmed')) {
+            return { success: false, error: 'email_not_confirmed' };
+          }
+          if (error.message.includes('Invalid login credentials')) {
+            return { success: false, error: 'invalid_credentials' };
+          }
+          return { success: false, error: error.message };
         }
 
         if (data.user) {
@@ -130,15 +137,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             .eq('id', data.user.id)
             .single();
 
-          // إذا لم يكن الـ profile موجوداً، أنشئه تلقائياً
+          // If no profile, create one with role from metadata
           if (!profile) {
+            const metaRole =
+              data.user.app_metadata?.role ||
+              data.user.user_metadata?.role ||
+              'customer';
             const { data: newProfile } = await (supabase as any)
               .from('profiles')
               .upsert({
                 id: data.user.id,
                 email: data.user.email || email,
-                name: data.user.user_metadata?.name || email.split('@')[0],
-                role: 'customer',
+                name: data.user.user_metadata?.name || data.user.user_metadata?.full_name || email.split('@')[0],
+                role: metaRole,
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString(),
               })
@@ -147,18 +158,34 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             profile = newProfile;
           }
 
+          // If profile exists but role might need update from metadata
+          if (profile && (profile as any).role === 'customer') {
+            const metaRole =
+              data.user.app_metadata?.role ||
+              data.user.user_metadata?.role;
+            if (metaRole && metaRole !== 'customer') {
+              const { data: updatedProfile } = await (supabase as any)
+                .from('profiles')
+                .update({ role: metaRole })
+                .eq('id', data.user.id)
+                .select()
+                .single();
+              if (updatedProfile) profile = updatedProfile;
+            }
+          }
+
           if (profile) {
             const userData = profileToUser(profile);
             setUser(userData);
             localStorage.setItem('fashionHubUser', JSON.stringify(userData));
             setIsLoading(false);
-            return true;
+            return { success: true };
           }
         }
       } catch (e) {
         console.error('Error during Supabase login:', e);
         setIsLoading(false);
-        return false;
+        return { success: false, error: 'unknown' };
       }
     }
 
@@ -169,11 +196,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setUser(foundUser);
       localStorage.setItem('fashionHubUser', JSON.stringify(foundUser));
       setIsLoading(false);
-      return true;
+      return { success: true };
     }
 
     setIsLoading(false);
-    return false;
+    return { success: false, error: 'invalid_credentials' };
   };
 
   const logout = async () => {
