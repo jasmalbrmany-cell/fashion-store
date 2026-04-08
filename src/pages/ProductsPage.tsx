@@ -4,9 +4,11 @@ import { Filter, Grid, List, Search, X } from 'lucide-react';
 import { ProductCard } from '@/components/Product';
 import { mockProducts, mockCategories } from '@/data/mockData';
 import { Product } from '@/types';
+import { useLanguage } from '@/context/LanguageContext';
 
 const ProductsPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const { t, language } = useLanguage();
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -100,7 +102,7 @@ const ProductsPage: React.FC = () => {
     setSearchParams({});
   };
 
-  const selectedCategoryName = mockCategories.find(c => c.id === selectedCategory)?.name || 'جميع المنتجات';
+  const selectedCategoryName = mockCategories.find(c => c.id === selectedCategory)?.name || t.allProducts;
 
   return (
     <div className="bg-gray-50 min-h-screen py-8">
@@ -108,10 +110,10 @@ const ProductsPage: React.FC = () => {
         {/* Page Header */}
         <div className="mb-8">
           <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
-            {selectedCategory ? selectedCategoryName : 'جميع المنتجات'}
+            {selectedCategory ? selectedCategoryName : t.allProducts}
           </h1>
           <p className="text-gray-500">
-            {filteredProducts.length} منتج
+            {filteredProducts.length} {t.productCount}
           </p>
         </div>
 
@@ -123,7 +125,7 @@ const ProductsPage: React.FC = () => {
               <div className="relative">
                 <input
                   type="text"
-                  placeholder="ابحث عن منتجات..."
+                  placeholder={t.searchPlaceholder}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full px-4 py-2 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
@@ -140,10 +142,10 @@ const ProductsPage: React.FC = () => {
               onChange={(e) => setSortBy(e.target.value)}
               className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             >
-              <option value="newest">الأحدث</option>
-              <option value="price-low">السعر: من الأقل للأعلى</option>
-              <option value="price-high">السعر: من الأعلى للأقل</option>
-              <option value="name">الاسم: أ-ي</option>
+              <option value="newest">{language === 'ar' ? 'الأحدث' : 'Newest'}</option>
+              <option value="price-low">{language === 'ar' ? 'السعر: من الأقل للأعلى' : 'Price: Low to High'}</option>
+              <option value="price-high">{language === 'ar' ? 'السعر: من الأعلى للأقل' : 'Price: High to Low'}</option>
+              <option value="name">{language === 'ar' ? 'الاسم: أ-ي' : 'Name: A-Z'}</option>
             </select>
 
             {/* View Mode */}
@@ -168,7 +170,7 @@ const ProductsPage: React.FC = () => {
               className="md:hidden flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg"
             >
               <Filter className="w-5 h-5" />
-              الفلاتر
+              {language === 'ar' ? 'الفلاتر' : 'Filters'}
             </button>
           </div>
         </div>
@@ -178,20 +180,20 @@ const ProductsPage: React.FC = () => {
           <aside className="hidden md:block w-64 flex-shrink-0">
             <div className="bg-white rounded-lg shadow-sm p-6 sticky top-24">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="font-semibold text-gray-900">الفلاتر</h3>
+                <h3 className="font-semibold text-gray-900">{language === 'ar' ? 'الفلاتر' : 'Filters'}</h3>
                 {(selectedCategory || searchQuery) && (
                   <button
                     onClick={clearFilters}
                     className="text-sm text-primary-600 hover:text-primary-700"
                   >
-                    مسح الكل
+                    {language === 'ar' ? 'مسح الكل' : 'Clear All'}
                   </button>
                 )}
               </div>
 
               {/* Categories */}
               <div className="mb-6">
-                <h4 className="font-medium text-gray-900 mb-3">الأقسام</h4>
+                <h4 className="font-medium text-gray-900 mb-3">{language === 'ar' ? 'الأقسام' : 'Categories'}</h4>
                 <div className="space-y-2">
                   <button
                     onClick={() => handleCategoryChange('')}
@@ -199,7 +201,7 @@ const ProductsPage: React.FC = () => {
                       !selectedCategory ? 'bg-primary-100 text-primary-700' : 'text-gray-600 hover:bg-gray-100'
                     }`}
                   >
-                    جميع المنتجات
+                    {t.allProducts}
                   </button>
                   {mockCategories.map((category) => (
                     <button
@@ -217,11 +219,11 @@ const ProductsPage: React.FC = () => {
 
               {/* Price Range */}
               <div className="mb-6">
-                <h4 className="font-medium text-gray-900 mb-3">نطاق السعر</h4>
+                <h4 className="font-medium text-gray-900 mb-3">{language === 'ar' ? 'نطاق السعر' : 'Price Range'}</h4>
                 <div className="flex items-center gap-2">
                   <input
                     type="number"
-                    placeholder="من"
+                    placeholder={language === 'ar' ? 'من' : 'Min'}
                     value={priceRange.min}
                     onChange={(e) => setPriceRange({ ...priceRange, min: Number(e.target.value) })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
@@ -229,7 +231,7 @@ const ProductsPage: React.FC = () => {
                   <span className="text-gray-400">-</span>
                   <input
                     type="number"
-                    placeholder="إلى"
+                    placeholder={language === 'ar' ? 'إلى' : 'Max'}
                     value={priceRange.max}
                     onChange={(e) => setPriceRange({ ...priceRange, max: Number(e.target.value) })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
@@ -256,13 +258,13 @@ const ProductsPage: React.FC = () => {
                 <div className="w-24 h-24 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
                   <Search className="w-12 h-12 text-gray-400" />
                 </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">لا توجد منتجات</h3>
-                <p className="text-gray-500 mb-4">جرب تغيير الفلاتر أو البحث بكلمات مختلفة</p>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">{t.noProducts}</h3>
+                <p className="text-gray-500 mb-4">{language === 'ar' ? 'جرب تغيير الفلاتر أو البحث بكلمات مختلفة' : 'Try changing filters or search with different keywords'}</p>
                 <button
                   onClick={clearFilters}
                   className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
                 >
-                  مسح الفلاتر
+                  {language === 'ar' ? 'مسح الفلاتر' : 'Clear Filters'}
                 </button>
               </div>
             )}
@@ -275,7 +277,7 @@ const ProductsPage: React.FC = () => {
         <div className="fixed inset-0 bg-black/50 z-50 md:hidden">
           <div className="bg-white h-full w-80 overflow-y-auto">
             <div className="p-4 border-b flex items-center justify-between">
-              <h3 className="font-semibold text-gray-900">الفلاتر</h3>
+              <h3 className="font-semibold text-gray-900">{language === 'ar' ? 'الفلاتر' : 'Filters'}</h3>
               <button onClick={() => setShowFilters(false)}>
                 <X className="w-6 h-6" />
               </button>
@@ -283,13 +285,13 @@ const ProductsPage: React.FC = () => {
             <div className="p-4">
               {/* Categories */}
               <div className="mb-6">
-                <h4 className="font-medium text-gray-900 mb-3">الأقسام</h4>
+                <h4 className="font-medium text-gray-900 mb-3">{language === 'ar' ? 'الأقسام' : 'Categories'}</h4>
                 <div className="space-y-2">
                   <button
                     onClick={() => { handleCategoryChange(''); setShowFilters(false); }}
                     className={`w-full text-right py-2 px-3 rounded ${!selectedCategory ? 'bg-primary-100 text-primary-700' : 'text-gray-600'}`}
                   >
-                    جميع المنتجات
+                    {t.allProducts}
                   </button>
                   {mockCategories.map((category) => (
                     <button
@@ -305,11 +307,11 @@ const ProductsPage: React.FC = () => {
 
               {/* Price Range */}
               <div className="mb-6">
-                <h4 className="font-medium text-gray-900 mb-3">نطاق السعر</h4>
+                <h4 className="font-medium text-gray-900 mb-3">{language === 'ar' ? 'نطاق السعر' : 'Price Range'}</h4>
                 <div className="flex items-center gap-2">
                   <input
                     type="number"
-                    placeholder="من"
+                    placeholder={language === 'ar' ? 'من' : 'Min'}
                     value={priceRange.min}
                     onChange={(e) => setPriceRange({ ...priceRange, min: Number(e.target.value) })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg"
@@ -317,7 +319,7 @@ const ProductsPage: React.FC = () => {
                   <span className="text-gray-400">-</span>
                   <input
                     type="number"
-                    placeholder="إلى"
+                    placeholder={language === 'ar' ? 'إلى' : 'Max'}
                     value={priceRange.max}
                     onChange={(e) => setPriceRange({ ...priceRange, max: Number(e.target.value) })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg"
@@ -329,7 +331,7 @@ const ProductsPage: React.FC = () => {
                 onClick={() => setShowFilters(false)}
                 className="w-full py-3 bg-primary-600 text-white rounded-lg"
               >
-                تطبيق الفلاتر
+                {language === 'ar' ? 'تطبيق الفلاتر' : 'Apply Filters'}
               </button>
             </div>
           </div>
