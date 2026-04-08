@@ -2,11 +2,13 @@ import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { useLanguage } from '@/context/LanguageContext';
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { login, isLoading } = useAuth();
+  const { t, language } = useLanguage();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -20,12 +22,12 @@ const LoginPage: React.FC = () => {
     setError('');
 
     if (!email.trim()) {
-      setError('يرجى إدخال البريد الإلكتروني');
+      setError(t.enterEmail);
       return;
     }
 
     if (!password.trim()) {
-      setError('يرجى إدخال كلمة المرور');
+      setError(t.enterPassword);
       return;
     }
 
@@ -40,7 +42,7 @@ const LoginPage: React.FC = () => {
         navigate('/my-orders', { replace: true });
       }
     } else {
-      setError('البريد الإلكتروني أو كلمة المرور غير صحيحة');
+      setError(t.invalidCredentials);
     }
   };
 
@@ -53,8 +55,8 @@ const LoginPage: React.FC = () => {
             <Link to="/" className="inline-block mb-4">
               <img src="/logo.jpg" alt="Fashion Hub" className="h-16 mx-auto" />
             </Link>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">تسجيل الدخول</h1>
-            <p className="text-gray-500">مرحباً بعودتك! سجل دخولك للمتابعة</p>
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">{t.loginTitle}</h1>
+            <p className="text-gray-500">{t.loginWelcome}</p>
           </div>
 
           {/* رسالة الخطأ */}
@@ -71,7 +73,7 @@ const LoginPage: React.FC = () => {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 <Mail className="w-4 h-4 inline ml-1" />
-                البريد الإلكتروني
+                {t.email}
               </label>
               <input
                 type="email"
@@ -87,7 +89,7 @@ const LoginPage: React.FC = () => {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 <Lock className="w-4 h-4 inline ml-1" />
-                كلمة المرور
+                {t.password}
               </label>
               <div className="relative">
                 <input
@@ -117,10 +119,10 @@ const LoginPage: React.FC = () => {
               {isLoading ? (
                 <>
                   <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  جاري التحميل...
+                  {t.loading}
                 </>
               ) : (
-                'تسجيل الدخول'
+                t.loginButton
               )}
             </button>
           </form>
@@ -128,13 +130,13 @@ const LoginPage: React.FC = () => {
           {/* روابط سفلية */}
           <div className="mt-6 flex flex-col gap-3 text-center text-sm">
             <p className="text-gray-500">
-              ليس لديك حساب؟{' '}
+              {language === 'ar' ? 'ليس لديك حساب؟' : "Don't have an account?"}{' '}
               <Link to="/register" className="text-black font-bold hover:underline">
-                إنشاء حساب جديد
+                {language === 'ar' ? 'إنشاء حساب جديد' : 'Create Account'}
               </Link>
             </p>
             <Link to="/" className="text-gray-500 hover:text-black font-medium transition">
-              العودة للمتجر
+              {t.backToStore}
             </Link>
           </div>
         </div>

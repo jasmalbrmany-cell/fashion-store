@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Minus, Plus, Trash2, ShoppingBag, ArrowLeft, MessageCircle, User, LogIn, Flame, Star } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
+import { useLanguage } from '@/context/LanguageContext';
 import { mockStoreSettings } from '@/data/mockData';
 import { productsService } from '@/services';
 import { Product } from '@/types';
@@ -11,6 +12,7 @@ const CartPage: React.FC = () => {
   const navigate = useNavigate();
   const { items, updateQuantity, removeItem, getSubtotal, clearCart } = useCart();
   const { isAuthenticated } = useAuth();
+  const { t, language } = useLanguage();
   const [suggestedProducts, setSuggestedProducts] = useState<Product[]>([]);
 
   const subtotal = getSubtotal();
@@ -48,7 +50,7 @@ const CartPage: React.FC = () => {
     );
   };
 
-  const formatPrice = (price: number) => price.toLocaleString('ar-SA');
+  const formatPrice = (price: number) => price.toLocaleString(language === 'ar' ? 'ar-SA' : 'en-US');
 
   // --- حالة: السلة فارغة ---
   if (items.length === 0) {
@@ -56,7 +58,7 @@ const CartPage: React.FC = () => {
       <div className="min-h-screen bg-gray-50" dir="rtl">
         {/* رأس الصفحة */}
         <div className="bg-white border-b px-4 py-4">
-          <h1 className="text-xl font-bold text-gray-900 text-center">حقيبة التسوق</h1>
+          <h1 className="text-xl font-bold text-gray-900 text-center">{t.cartTitle}</h1>
         </div>
 
         {/* منطقة السلة الفارغة */}
@@ -64,11 +66,11 @@ const CartPage: React.FC = () => {
           <div className="w-20 h-20 mx-auto mb-4 flex items-center justify-center">
             <ShoppingBag className="w-16 h-16 text-gray-300" strokeWidth={1} />
           </div>
-          <h2 className="text-xl font-bold text-gray-900 mb-1">عربة التسوق فارغة</h2>
+          <h2 className="text-xl font-bold text-gray-900 mb-1">{t.emptyCart}</h2>
           <p className="text-gray-500 text-sm mb-6">
             {isAuthenticated
-              ? 'لم تضف أي منتجات للسلة بعد'
-              : 'تسجيل الدخول لرؤية عربة التسوق'}
+              ? t.emptyCartNote
+              : t.loginToSeeCart}
           </p>
 
           {/* أزرار تسجيل الدخول / التسوق */}
@@ -80,13 +82,13 @@ const CartPage: React.FC = () => {
                   className="flex-1 max-w-[180px] py-3 bg-black text-white rounded-xl font-semibold text-center hover:bg-gray-800 transition flex items-center justify-center gap-2"
                 >
                   <User className="w-4 h-4" />
-                  حسابي / تسجيل
+                  {t.loginRegister}
                 </Link>
                 <Link
                   to="/products"
                   className="flex-1 max-w-[180px] py-3 border-2 border-gray-300 text-gray-700 rounded-xl font-semibold text-center hover:bg-gray-50 transition"
                 >
-                  تسوق حسب الفئات
+                  {t.shopByCategory}
                 </Link>
               </>
             ) : (
@@ -94,7 +96,7 @@ const CartPage: React.FC = () => {
                 to="/products"
                 className="px-8 py-3 bg-black text-white rounded-xl font-semibold hover:bg-gray-800 transition"
               >
-                تصفح المنتجات
+                {language === 'ar' ? 'تصفح المنتجات' : 'Browse Products'}
               </Link>
             )}
           </div>
@@ -105,22 +107,22 @@ const CartPage: React.FC = () => {
           <div className="mt-6 px-4 pb-10">
             <div className="flex items-center gap-2 mb-4">
               <span className="text-yellow-500">✦</span>
-              <h3 className="font-bold text-gray-900">قد يعجبك أيضاً</h3>
+              <h3 className="font-bold text-gray-900">{t.youMightLike}</h3>
               <span className="text-yellow-500">✦</span>
             </div>
 
             {/* فلاتر */}
             <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
               <button className="flex-shrink-0 px-4 py-1.5 bg-black text-white rounded-full text-sm font-medium">
-                الكل
+                {t.all}
               </button>
               <button className="flex-shrink-0 px-4 py-1.5 bg-white border border-gray-200 text-gray-700 rounded-full text-sm flex items-center gap-1 hover:bg-gray-50">
                 <Flame className="w-3.5 h-3.5 text-orange-500" />
-                الأكثر مبيعاً
+                {t.mostSold}
               </button>
               <button className="flex-shrink-0 px-4 py-1.5 bg-white border border-gray-200 text-gray-700 rounded-full text-sm flex items-center gap-1 hover:bg-gray-50">
                 <Star className="w-3.5 h-3.5 text-yellow-500" />
-                الأفضل تقييماً
+                {t.topRated}
               </button>
             </div>
 
@@ -158,7 +160,7 @@ const CartPage: React.FC = () => {
   return (
     <div className="bg-gray-50 min-h-screen py-8" dir="rtl">
       <div className="container mx-auto px-4">
-        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-8">سلة التسوق</h1>
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-8">{t.cartTitle}</h1>
 
         <div className="grid lg:grid-cols-3 gap-8">
           {/* قائمة المنتجات */}
@@ -185,10 +187,10 @@ const CartPage: React.FC = () => {
                     </div>
 
                     <div className="flex gap-4 mt-2 text-sm text-gray-500">
-                      {item.size && <span>المقاس: {item.size.name}</span>}
+                      {item.size && <span>{t.size}: {item.size.name}</span>}
                       {item.color && (
                         <span className="flex items-center gap-1">
-                          اللون:
+                          {t.color}:
                           <span className="w-4 h-4 rounded-full border" style={{ backgroundColor: item.color.hex }} />
                           {item.color.name}
                         </span>
@@ -211,7 +213,7 @@ const CartPage: React.FC = () => {
                           {formatPrice(item.price * item.quantity)} {currencySymbol}
                         </p>
                         {item.quantity > 1 && (
-                          <p className="text-sm text-gray-500">{formatPrice(item.price)} {currencySymbol} للواحد</p>
+                          <p className="text-sm text-gray-500">{formatPrice(item.price)} {currencySymbol} {t.pricePerItem}</p>
                         )}
                       </div>
                     </div>
@@ -222,11 +224,11 @@ const CartPage: React.FC = () => {
 
             <div className="flex justify-between items-center bg-white rounded-xl shadow-sm p-4">
               <button onClick={clearCart} className="text-red-600 hover:text-red-700 font-medium">
-                إفراغ السلة
+                {language === 'ar' ? 'إفراغ السلة' : 'Clear Cart'}
               </button>
               <Link to="/products" className="text-gray-700 hover:text-black font-medium flex items-center gap-1">
                 <ArrowLeft className="w-4 h-4" />
-                متابعة التسوق
+                {t.continueShopping}
               </Link>
             </div>
           </div>
@@ -234,20 +236,20 @@ const CartPage: React.FC = () => {
           {/* ملخص الطلب */}
           <div className="lg:col-span-1">
             <div className="bg-white rounded-xl shadow-sm p-6 sticky top-24">
-              <h2 className="text-lg font-bold text-gray-900 mb-6">ملخص الطلب</h2>
+              <h2 className="text-lg font-bold text-gray-900 mb-6">{t.orderSummary}</h2>
 
               <div className="space-y-4">
                 <div className="flex justify-between">
-                  <span className="text-gray-600">المنتجات ({items.length})</span>
+                  <span className="text-gray-600">{t.products} ({items.length})</span>
                   <span className="font-medium">{formatPrice(subtotal)} {currencySymbol}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">الشحن</span>
-                  <span className="text-sm text-gray-500">يُحسب عند الإتمام</span>
+                  <span className="text-gray-600">{t.shipping}</span>
+                  <span className="text-sm text-gray-500">{t.calculatedAtCheckout}</span>
                 </div>
                 <hr />
                 <div className="flex justify-between text-lg font-bold">
-                  <span>الإجمالي</span>
+                  <span>{t.total}</span>
                   <span>{formatPrice(subtotal)} {currencySymbol}</span>
                 </div>
               </div>
@@ -257,19 +259,19 @@ const CartPage: React.FC = () => {
                   onClick={handleCheckout}
                   className="w-full py-3 bg-black text-white rounded-xl font-semibold hover:bg-gray-800 transition"
                 >
-                  إتمام الطلب
+                  {t.completeOrder}
                 </button>
                 <button
                   onClick={handleWhatsAppOrder}
                   className="w-full py-3 bg-green-500 text-white rounded-xl font-semibold hover:bg-green-600 transition flex items-center justify-center gap-2"
                 >
                   <MessageCircle className="w-5 h-5" />
-                  طلب عبر واتساب
+                  {t.whatsappOrder}
                 </button>
               </div>
 
               <p className="mt-4 text-sm text-gray-500 text-center">
-                سيتم التواصل معك عبر واتساب لتأكيد الطلب
+                {language === 'ar' ? 'سيتم التواصل معك عبر واتساب لتأكيد الطلب' : 'We will contact you via WhatsApp to confirm your order'}
               </p>
             </div>
           </div>
