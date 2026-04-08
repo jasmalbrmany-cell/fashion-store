@@ -159,11 +159,11 @@ const Header: React.FC = () => {
                 )}
               </div>
             ) : (
-              <Link to="/login" className="flex flex-col items-center text-gray-700 hover:text-black transition">
+              <Link to="/register" className="flex flex-col items-center text-gray-700 hover:text-black transition">
                 <div className="w-7 h-7 bg-gray-200 rounded-full flex items-center justify-center">
                   <User className="w-4 h-4" />
                 </div>
-                <span className="text-xs mt-0.5 hidden md:block">حسابي</span>
+                <span className="text-xs mt-0.5 hidden md:block">إنشاء حساب</span>
               </Link>
             )}
 
