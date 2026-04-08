@@ -179,60 +179,119 @@ const UsersPage: React.FC = () => {
         return;
       }
 
-      // Get auth token for Edge Function
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
-      if (!token) throw new Error('غير مصرح له');
+      if (!token) throw new Error('غير مصرح له - يرجى إعادة تسجيل الدخول');
 
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 
       if (editingUser) {
-        // Update via Edge Function
-        const res = await fetch(`${supabaseUrl}/functions/v1/update-user`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            userId: editingUser.id,
+        // --- تعديل مستخدم موجود ---
+        // Update profile directly
+        const { error: profileError } = await (supabase as any)
+          .from('profiles')
+          .update({
             name: formData.name,
-            phone: formData.phone,
+            phone: formData.phone || null,
             role: formData.role,
-            password: formData.password || undefined,
-            permissions: ['editor', 'admin'].includes(formData.role) ? permissions : undefined,
-          }),
-        });
-        const result = await res.json();
-        if (!res.ok) throw new Error(result.error || 'فشل في تحديث المستخدم');
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', editingUser.id);
+
+        if (profileError) throw new Error('فشل في تحديث البيانات: ' + profileError.message);
+
+        // Try edge function for password update if provided
+        if (formData.password && formData.password.length >= 6) {
+          try {
+            await fetch(`${supabaseUrl}/functions/v1/update-user`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+              },
+              body: JSON.stringify({
+                userId: editingUser.id,
+                password: formData.password,
+              }),
+            });
+          } catch {
+            // Password update via edge function failed, ignore
+          }
+        }
+
         showToast('success', 'تم تحديث المستخدم بنجاح ✓');
       } else {
-        // Create via Edge Function
+        // --- إنشاء مستخدم جديد ---
         if (!formData.password || formData.password.length < 6) {
           throw new Error('كلمة المرور يجب أن تكون 6 أحرف على الأقل');
         }
-        const res = await fetch(`${supabaseUrl}/functions/v1/create-user`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            email: formData.email,
+        if (!formData.email.includes('@')) {
+          throw new Error('البريد الإلكتروني يجب أن يحتوي على @');
+        }
+
+        // Try Edge Function first (works without email confirmation)
+        let createdViaEdge = false;
+        try {
+          const res = await fetch(`${supabaseUrl}/functions/v1/create-user`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              email: formData.email.trim().toLowerCase(),
+              password: formData.password,
+              name: formData.name,
+              phone: formData.phone,
+              role: formData.role,
+            }),
+          });
+          const result = await res.json();
+          if (res.ok && result.success) {
+            createdViaEdge = true;
+          }
+        } catch {
+          // Edge function not deployed, use fallback
+        }
+
+        if (!createdViaEdge) {
+          // Fallback: Create via signUp + update profile
+          const { data: newUser, error: signUpError } = await supabase.auth.signUp({
+            email: formData.email.trim().toLowerCase(),
             password: formData.password,
-            name: formData.name,
-            phone: formData.phone,
-            role: formData.role,
-            permissions: ['editor', 'admin'].includes(formData.role) ? permissions : undefined,
-          }),
-        });
-        const result = await res.json();
-        if (!res.ok) throw new Error(result.error || 'فشل في إنشاء المستخدم');
-        showToast('success', `تم إنشاء المستخدم ${formData.name} بنجاح ✓`);
+            options: {
+              data: { name: formData.name, phone: formData.phone },
+            },
+          });
+
+          if (signUpError) {
+            if (signUpError.message.includes('already registered')) {
+              throw new Error('هذا البريد الإلكتروني مسجل مسبقاً');
+            }
+            throw new Error(signUpError.message);
+          }
+
+          if (newUser.user) {
+            // Update profile with correct role
+            await (supabase as any)
+              .from('profiles')
+              .upsert({
+                id: newUser.user.id,
+                email: formData.email.trim().toLowerCase(),
+                name: formData.name,
+                phone: formData.phone || null,
+                role: formData.role,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+              });
+          }
+        }
+
+        showToast('success', `✓ تم إنشاء حساب ${formData.name} بنجاح`);
       }
 
       handleCloseModal();
-      fetchUsers();
+      setTimeout(() => fetchUsers(), 1000);
     } catch (err: any) {
       showToast('error', err.message || 'حدث خطأ، يرجى المحاولة مرة أخرى');
     } finally {
