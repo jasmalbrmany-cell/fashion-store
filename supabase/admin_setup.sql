@@ -1,58 +1,104 @@
 -- ======================================================
--- Fashion Hub - Admin Setup Script for Supabase
--- Run this in Supabase SQL Editor to fix admin login
+-- Fashion Hub - Complete Admin Auto-Setup
+-- Run ALL of this in Supabase SQL Editor
 -- ======================================================
 
--- 1. Disable email confirmation requirement (run in Supabase Dashboard > Auth > Settings)
--- OR use this approach: confirm email for a specific user
+-- STEP 1: Confirm the admin email and set role
+-- (Run this first)
+UPDATE auth.users
+SET 
+  email_confirmed_at = NOW(),
+  confirmed_at = NOW()
+WHERE email = 'daoodalhashdi@gmail.com';
 
--- 2. Update user role in profiles table
--- Replace 'YOUR_ADMIN_EMAIL@example.com' with the actual admin email
-UPDATE public.profiles 
-SET role = 'admin'
-WHERE email = 'YOUR_ADMIN_EMAIL@example.com';
-
--- 3. If profile doesn't exist for the user, create it manually
--- First get the user id from auth.users, then insert:
+-- STEP 2: Create or update admin profile
 INSERT INTO public.profiles (id, email, name, role, created_at, updated_at)
 SELECT 
   id,
   email,
-  COALESCE(raw_user_meta_data->>'name', split_part(email, '@', 1)) as name,
+  COALESCE(raw_user_meta_data->>'name', 'داود الهاشدي') as name,
   'admin' as role,
-  now(),
-  now()
+  NOW(),
+  NOW()
 FROM auth.users
-WHERE email = 'YOUR_ADMIN_EMAIL@example.com'
-ON CONFLICT (id) DO UPDATE SET role = 'admin', updated_at = now();
+WHERE email = 'daoodalhashdi@gmail.com'
+ON CONFLICT (id) DO UPDATE 
+SET 
+  role = 'admin',
+  updated_at = NOW();
 
--- 4. Confirm email for admin user (bypass email confirmation)
-UPDATE auth.users
-SET email_confirmed_at = now(), confirmed_at = now()
-WHERE email = 'YOUR_ADMIN_EMAIL@example.com';
-
--- 5. Verify the setup
-SELECT u.email, u.email_confirmed_at, p.role, p.name
-FROM auth.users u
-LEFT JOIN public.profiles p ON u.id = p.id
-WHERE u.email = 'YOUR_ADMIN_EMAIL@example.com';
-
--- ======================================================
--- Auto-confirm trigger: run once to auto-confirm all new users
--- (Optional: removes need for email confirmation)
--- ======================================================
-CREATE OR REPLACE FUNCTION public.auto_confirm_user()
-RETURNS trigger AS $$
+-- STEP 3: Create trigger to auto-create profile for ANY new user
+-- (so every new user gets a profile automatically)
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+DECLARE
+  user_role TEXT;
 BEGIN
+  -- Get role from metadata if set, otherwise 'customer'
+  user_role := COALESCE(
+    NEW.raw_app_meta_data->>'role',
+    NEW.raw_user_meta_data->>'role',
+    'customer'
+  );
+
+  -- Insert profile
+  INSERT INTO public.profiles (id, email, name, role, phone, created_at, updated_at)
+  VALUES (
+    NEW.id,
+    NEW.email,
+    COALESCE(NEW.raw_user_meta_data->>'name', NEW.raw_user_meta_data->>'full_name', split_part(NEW.email, '@', 1)),
+    user_role,
+    NEW.raw_user_meta_data->>'phone',
+    NOW(),
+    NOW()
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    email = EXCLUDED.email,
+    updated_at = NOW();
+
+  -- Auto-confirm email
   UPDATE auth.users
   SET email_confirmed_at = NOW(), confirmed_at = NOW()
   WHERE id = NEW.id AND email_confirmed_at IS NULL;
+
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Create trigger if not exists
-DROP TRIGGER IF EXISTS auto_confirm_on_signup ON auth.users;
-CREATE TRIGGER auto_confirm_on_signup
+-- Drop old trigger if exists then recreate
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
-  FOR EACH ROW EXECUTE FUNCTION public.auto_confirm_user();
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- STEP 4: Confirm ALL existing unconfirmed users
+UPDATE auth.users
+SET email_confirmed_at = NOW(), confirmed_at = NOW()
+WHERE email_confirmed_at IS NULL;
+
+-- STEP 5: Create profiles for ALL existing auth users who don't have a profile
+INSERT INTO public.profiles (id, email, name, role, created_at, updated_at)
+SELECT 
+  u.id,
+  u.email,
+  COALESCE(u.raw_user_meta_data->>'name', split_part(u.email, '@', 1)) as name,
+  CASE 
+    WHEN u.email = 'daoodalhashdi@gmail.com' THEN 'admin'
+    ELSE COALESCE(u.raw_app_meta_data->>'role', u.raw_user_meta_data->>'role', 'customer')
+  END as role,
+  NOW(),
+  NOW()
+FROM auth.users u
+LEFT JOIN public.profiles p ON u.id = p.id
+WHERE p.id IS NULL
+ON CONFLICT (id) DO NOTHING;
+
+-- STEP 6: Verify everything is correct
+SELECT 
+  u.email,
+  u.email_confirmed_at IS NOT NULL as "Email Confirmed",
+  p.name,
+  p.role
+FROM auth.users u
+LEFT JOIN public.profiles p ON u.id = p.id
+ORDER BY u.created_at DESC;
