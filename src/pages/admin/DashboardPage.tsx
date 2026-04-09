@@ -156,8 +156,8 @@ const DashboardPage: React.FC = () => {
           <div className="lg:col-span-2 bg-white rounded-3xl border-2 border-gray-100 p-8 shadow-sm space-y-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-xl font-black text-gray-900 tracking-tighter">{t.salesOverview || (isRTL ? 'نظرة عامة على المبيعات' : 'Sales Overview')}</h2>
-                  <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">{t.last7Days || (isRTL ? 'آخر 7 أيام' : 'Last 7 Days')}</p>
+                  <h2 className="text-xl font-black text-gray-900 tracking-tighter">{t.salesOverview}</h2>
+                  <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">{t.last7Days}</p>
                 </div>
                 <div className="flex items-center gap-2 text-green-500 bg-green-50 px-3 py-1 rounded-full border border-green-100">
                     <TrendingUp className="w-4 h-4" />

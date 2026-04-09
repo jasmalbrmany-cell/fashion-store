@@ -71,7 +71,7 @@ const ActivityPage: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">{t.activityHistory}</h1>
-          <p className="text-gray-500">{activities.length} {t.adsCount}</p>
+          <p className="text-gray-500">{activities.length} {t.adminActivity}</p>
         </div>
         <div className="flex gap-2">
             <button
@@ -155,7 +155,7 @@ const ActivityPage: React.FC = () => {
             {filteredActivities.length === 0 && (
                 <div className="p-20 text-center opacity-40">
                 <Clock className="w-12 h-12 mx-auto mb-4" />
-                <p className="font-black uppercase tracking-widest text-xs">{isRTL ? 'لا توجد نشاطات' : 'No activities found'}</p>
+                <p className="font-black uppercase tracking-widest text-xs">{t.noActivitiesFound}</p>
                 </div>
             )}
             </div>

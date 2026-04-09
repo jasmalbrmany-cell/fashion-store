@@ -94,14 +94,12 @@ const AdminOrdersPage: React.FC = () => {
   };
 
   const handleWhatsAppContact = (phone: string, orderNumber: string) => {
-    const message = language === 'ar' 
-      ? `مرحباً، بخصوص طلبك ${orderNumber}. نحن بصدد مراجعة طلبك. هل يمكنك تأكيد طريقة الدفع المناسبة لك؟`
-      : `Hello, regarding your order ${orderNumber}. We are processing it. Could you confirm your payment method?`;
+    const message = t.whatsappMessageTemplate.replace('{orderNumber}', orderNumber);
     window.open(`https://wa.me/${phone.replace(/\+/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
   };
 
   const handleGenerateInvoice = (order: Order) => {
-    alert(isRTL ? `تم إنشاء فاتورة للطلب ${order.orderNumber}` : `Invoice generated for order ${order.orderNumber}`);
+    alert(t.invoiceGenerated.replace('{orderNumber}', order.orderNumber));
     setSelectedOrder(null);
   };
 
@@ -284,7 +282,7 @@ const AdminOrdersPage: React.FC = () => {
              <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto text-gray-300">
                 <Package className="w-10 h-10" />
              </div>
-             <p className="text-gray-400 font-bold">{t.noOrdersYet}</p>
+             <p className="text-gray-400 font-bold">{t.noOrdersMatching}</p>
           </div>
         )}
       </div>
@@ -330,7 +328,7 @@ const AdminOrdersPage: React.FC = () => {
                     <p className="font-black text-gray-900" dir="ltr">{selectedOrder.customerPhone}</p>
                   </div>
                   <div className="space-y-1">
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{language === 'ar' ? 'المدينة' : 'City'}</p>
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{t.cityName}</p>
                     <p className="font-black text-gray-900">{selectedOrder.city}</p>
                   </div>
                   {selectedOrder.address && (

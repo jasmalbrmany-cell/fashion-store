@@ -96,10 +96,10 @@ const CurrenciesPage: React.FC = () => {
         }
       }
       handleCloseModal();
-      showToast('success', editingCurrency ? (isRTL ? 'تم تحديث العملة بنجاح' : 'Currency updated successfully') : (isRTL ? 'تم إضافة العملة بنجاح' : 'Currency added successfully'));
+      showToast('success', editingCurrency ? t.currencyUpdated : t.currencyAdded);
     } catch (error) {
       console.error('Failed to save currency:', error);
-      showToast('error', isRTL ? 'فشل في حفظ العملة' : 'Failed to save currency');
+      showToast('error', t.currencySaveError);
     }
   };
 
@@ -112,9 +112,9 @@ const CurrenciesPage: React.FC = () => {
       const success = await currenciesService.delete(id);
       if (success) {
         setCurrencies(prev => prev.filter(c => c.id !== id));
-        showToast('success', isRTL ? 'تم حذف العملة بنجاح' : 'Currency deleted successfully');
+        showToast('success', t.currencyDeleted);
       } else {
-        showToast('error', isRTL ? 'فشل في حذف العملة' : 'Failed to delete currency');
+        showToast('error', t.currencyDeleteError);
       }
     }
   };
@@ -161,7 +161,7 @@ const CurrenciesPage: React.FC = () => {
            <Info className="w-5 h-5 text-blue-600" />
         </div>
         <div>
-           <p className="text-blue-900 font-black text-sm uppercase tracking-widest">{isRTL ? 'ملاحظة هامة' : 'Important Note'}</p>
+           <p className="text-blue-900 font-black text-sm uppercase tracking-widest">{t.importantNote}</p>
            <p className="text-blue-700 text-sm font-bold mt-1 leading-relaxed">
              {t.currencyInfoNote}
            </p>
@@ -230,7 +230,7 @@ const CurrenciesPage: React.FC = () => {
               
               <div className="p-6 bg-gray-50 rounded-3xl border border-gray-100 divide-y divide-gray-200/50">
                   <div className="pb-3 flex justify-between items-center text-sm">
-                      <span className="text-gray-400 font-black uppercase tracking-widest text-[10px]">{isRTL ? 'الارتباط' : 'Relative to Base'}</span>
+                      <span className="text-gray-400 font-black uppercase tracking-widest text-[10px]">{t.relativeToBase}</span>
                       <span className="font-black text-gray-900">1 {currency.code} = {currency.exchangeRate > 0 ? (1 / currency.exchangeRate).toFixed(2) : 1} YER</span>
                   </div>
                   <div className="pt-3 flex justify-between items-center text-sm">

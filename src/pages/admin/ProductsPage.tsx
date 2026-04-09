@@ -84,10 +84,10 @@ const AdminProductsPage: React.FC = () => {
     try {
       await Promise.all(selectedIds.map(id => productsService.update(id, { isVisible: visible })));
       setProducts(prev => prev.map(p => selectedIds.includes(p.id) ? { ...p, isVisible: visible } : p));
-      showToast('success', isRTL ? `تم تحديث ${selectedIds.length} منتجات` : `Updated ${selectedIds.length} products`);
+      showToast('success', t.updatedCount.replace('{count}', String(selectedIds.length)));
       setSelectedIds([]);
     } catch (err) {
-      showToast('error', 'Error in bulk update');
+      showToast('error', t.errorBulkUpdate);
     } finally {
       setIsBulkLoading(false);
     }
@@ -95,15 +95,15 @@ const AdminProductsPage: React.FC = () => {
 
   const bulkDelete = async () => {
     if (selectedIds.length === 0) return;
-    if (window.confirm(isRTL ? `هل أنت متأكد من حذف ${selectedIds.length} منتجات؟` : `Delete ${selectedIds.length} items?`)) {
+    if (window.confirm(t.deleteItemsConfirm.replace('{count}', String(selectedIds.length)))) {
       setIsBulkLoading(true);
       try {
         await Promise.all(selectedIds.map(id => productsService.delete(id)));
         setProducts(prev => prev.filter(p => !selectedIds.includes(p.id)));
-        showToast('success', isRTL ? 'تم الحذف بنجاح' : 'Deleted successfully');
+        showToast('success', t.deletedSuccessfully);
         setSelectedIds([]);
       } catch (err) {
-        showToast('error', 'Error in bulk delete');
+        showToast('error', t.errorBulkUpdate);
       } finally {
         setIsBulkLoading(false);
       }
@@ -122,7 +122,7 @@ const AdminProductsPage: React.FC = () => {
         const updated = await productsService.toggleVisibility(product.id);
         if (updated) {
             setProducts(prev => prev.map(p => p.id === product.id ? updated : p));
-            showToast('success', updated.isVisible ? (isRTL ? 'المنتج الآن مرئي للجميع' : 'Product is now visible') : (isRTL ? 'تم إخفاء المنتج بنجاح' : 'Product is now hidden'));
+            showToast('success', updated.isVisible ? t.productVisibleMsg : t.productHiddenMsg);
         }
     } catch (err) {
         console.error('Failed to toggle visibility', err);
@@ -135,7 +135,7 @@ const AdminProductsPage: React.FC = () => {
         const success = await productsService.delete(productId);
         if (success) {
             setProducts(prev => prev.filter(p => p.id !== productId));
-            showToast('success', isRTL ? 'تم حذف المنتج بنجاح' : 'Product deleted successfully');
+            showToast('success', t.deletedSuccessfully);
         }
       } catch (err) {
         console.error('Failed to delete product', err);
@@ -245,7 +245,7 @@ const AdminProductsPage: React.FC = () => {
             <span className="bg-white text-black w-7 h-7 rounded-full flex items-center justify-center font-black text-sm">
               {selectedIds.length}
             </span>
-            <span className="text-sm font-bold uppercase tracking-widest">{isRTL ? 'تم تحديدها' : 'Selected'}</span>
+            <span className="text-sm font-bold uppercase tracking-widest">{t.permissionsLabel}</span>
           </div>
 
           <div className="flex items-center gap-4 flex-1">
@@ -409,7 +409,7 @@ const AdminProductsPage: React.FC = () => {
             <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto">
               <AlertCircle className="w-10 h-10 text-gray-300" />
             </div>
-            <p className="text-gray-400 font-bold">{isRTL ? 'لا توجد منتجات تطابق بحثك' : 'No products found matching your criteria'}</p>
+            <p className="text-gray-400 font-bold">{t.noProductsMatching}</p>
           </div>
         )}
       </div>

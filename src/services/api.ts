@@ -404,13 +404,23 @@ export const productsService = {
       const { data, error } = await Promise.race([fetchPromise, timeoutPromise]) as any;
       if (error) {
         console.error('Error creating product:', error);
-        return null;
+        
+        // Fallback to local
+        const newProduct = { ...product, id: `prod-${Date.now()}`, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() } as Product;
+        mockProducts.unshift(newProduct);
+        syncProducts();
+        return newProduct;
       }
       clearCache('products_all');
       clearCache('products_admin_all');
       return transformProduct(data);
     } catch (e) {
-      return null;
+      console.error('Exception creating product:', e);
+      // Fallback to local
+      const newProduct = { ...product, id: `prod-${Date.now()}`, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() } as Product;
+      mockProducts.unshift(newProduct);
+      syncProducts();
+      return newProduct;
     }
   },
 
@@ -434,6 +444,13 @@ export const productsService = {
 
     if (error) {
       console.error('Error updating product:', error);
+      // Fallback to local
+      const index = mockProducts.findIndex(p => p.id === id);
+      if (index > -1) {
+        mockProducts[index] = { ...mockProducts[index], ...updates, updatedAt: new Date().toISOString() };
+        syncProducts();
+        return mockProducts[index];
+      }
       return null;
     }
 
@@ -1467,9 +1484,6 @@ export const usersService = {
     }
   },
 
-    return transformProfile(data);
-  },
-
   async create(user: Partial<User>): Promise<User | null> {
     if (!isSupabaseConfigured()) {
       const newUser = {
@@ -1604,10 +1618,14 @@ export const storeSettingsService = {
         currency: data.currency || mockStoreSettings.currency,
         socialLinks: data.social_links || mockStoreSettings.socialLinks,
       };
-      setToCache('settings_main', transformed);
+      
+      // Keep local mock updated perfectly
+      Object.assign(mockStoreSettings, transformed);
+      syncSettings();
+      
       return transformed;
     } catch (e) {
-      return { ...mockStoreSettings, id: 'settings_main' } as StoreSettings;
+      return mockStoreSettings as StoreSettings;
     }
   },
 
@@ -1638,22 +1656,30 @@ export const storeSettingsService = {
       const { data, error } = await Promise.race([fetchPromise, timeoutPromise]) as any;
       if (error || !data) {
         console.error('Error updating store settings:', error);
-        return null;
+        // Fallback to local
+        Object.assign(mockStoreSettings, settings);
+        syncSettings();
+        return mockStoreSettings as StoreSettings;
       }
-      clearCache('settings_main');
-      return {
+      const transformed = {
         id: data.id,
         name: data.name,
         logo: data.logo || '',
         currency: data.currency,
         socialLinks: data.social_links || {},
       };
+      // Always forcibly update local cache and storage even on success
+      Object.assign(mockStoreSettings, transformed);
+      syncSettings();
+      
+      return transformed;
     } catch (e) {
-      return null;
+      console.error('Exception updating settings:', e);
+      // Fallback to local
+      Object.assign(mockStoreSettings, settings);
+      syncSettings();
+      return mockStoreSettings as StoreSettings;
     }
-  },
-      socialLinks: data.social_links || {},
-    };
   },
 };
 

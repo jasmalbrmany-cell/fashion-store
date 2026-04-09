@@ -391,6 +391,41 @@ interface Translations {
   adContentPlaceholder: string;
   adLinkPlaceholder: string;
   searchUserPlaceholder: string;
+  installApp: string;
+  updatedCount: string;
+  deleteItemsConfirm: string;
+  deletedSuccessfully: string;
+  productVisibleMsg: string;
+  productHiddenMsg: string;
+  errorBulkUpdate: string;
+  whatsappMessageTemplate: string;
+  invoiceGenerated: string;
+  noActivitiesFound: string;
+  noOrdersMatching: string;
+  noProductsMatching: string;
+  cityDuplicate: string;
+  cityAdded: string;
+  cityUpdated: string;
+  citySaveError: string;
+  cityDeleteError: string;
+  activate: string;
+  deactivate: string;
+  citiesCountLabel: string;
+  currencyUpdated: string;
+  currencyAdded: string;
+  currencySaveError: string;
+  currencyDeleted: string;
+  currencyDeleteError: string;
+  importantNote: string;
+  relativeToBase: string;
+  adAdded: string;
+  adUpdated: string;
+  adDeleted: string;
+  adSaveError: string;
+  adDeleteError: string;
+  viewReports: string;
+  exportData: string;
+  unauthorizedError: string;
 
   // صفحة الهوم
   shopNow: string;
@@ -751,7 +786,7 @@ const translations: Record<Language, Translations> = {
     adSidebar: 'جانبي',
     adInline: 'داخلي',
     tiktok: 'تيك توك',
-  followUsOnTiktok: 'تابعنا على تيك توك',
+    followUsOnTiktok: 'تابعنا على تيك توك',
     adPopup: 'منبثق',
     imageType: 'صورة',
     videoType: 'فيديو',
@@ -811,7 +846,42 @@ const translations: Record<Language, Translations> = {
     adImageUrlPlaceholder: 'رابط صورة',
     adContentPlaceholder: 'نص',
     adLinkPlaceholder: 'رابط',
-    searchUserPlaceholder: 'بحث مستخدم',
+    searchUserPlaceholder: 'ابحث عن مستخدم...',
+    installApp: 'تثبيت التطبيق',
+    updatedCount: 'تم تحديث {count} بنجاح',
+    deleteItemsConfirm: 'هل أنت متأكد من حذف {count}؟',
+    deletedSuccessfully: 'تم الحذف بنجاح',
+    productVisibleMsg: 'المنتج الآن مرئي للجميع',
+    productHiddenMsg: 'تم إخفاء المنتج بنجاح',
+    errorBulkUpdate: 'فشلت عملية التحديث الشاملة',
+    whatsappMessageTemplate: 'مرحباً، بخصوص طلبك {orderNumber}. نحن بصدد مراجعة طلبك. هل يمكنك تأكيد طريقة الدفع المناسبة لك؟',
+    invoiceGenerated: 'تم إنشاء فاتورة للطلب {orderNumber}',
+    noActivitiesFound: 'لا توجد نشاطات سجلت بعد',
+    noOrdersMatching: 'لا توجد طلبات تطابق بحثك',
+    noProductsMatching: 'لا توجد منتجات تطابق بحثك',
+    cityDuplicate: 'هذه المدينة موجودة بالفعل',
+    cityAdded: 'تم إضافة المدينة بنجاح',
+    cityUpdated: 'تم تحديث المدينة بنجاح',
+    citySaveError: 'فشل في حفظ المدينة',
+    cityDeleteError: 'فشل في حذف المدينة',
+    activate: 'تنشيط',
+    deactivate: 'تعطيل',
+    citiesCountLabel: 'مدينة',
+    currencyUpdated: 'تم تحديث العملة بنجاح',
+    currencyAdded: 'تم إضافة العملة بنجاح',
+    currencySaveError: 'فشل في حفظ العملة',
+    currencyDeleted: 'تم حذف العملة بنجاح',
+    currencyDeleteError: 'فشل في حذف العملة',
+    importantNote: 'ملاحظة هامة',
+    relativeToBase: 'الارتباط بالعملة الأساسية',
+    adAdded: 'تم إضافة الإعلان بنجاح',
+    adUpdated: 'تم تحديث الإعلان بنجاح',
+    adDeleted: 'تم حذف الإعلان بنجاح',
+    adSaveError: 'فشل في حفظ الإعلان',
+    adDeleteError: 'فشل في حذف الإعلان',
+    viewReports: 'عرض التقارير',
+    exportData: 'تصدير البيانات',
+    unauthorizedError: 'غير مصرح له - يرجى إعادة تسجيل الدخول',
 
     shopNow: 'تسوق الآن',
     welcomeTo: 'مرحباً بك في',
@@ -1167,7 +1237,7 @@ const translations: Record<Language, Translations> = {
     adSidebar: 'Sidebar',
     adInline: 'Inline',
     tiktok: 'TikTok',
-  followUsOnTiktok: 'Follow us on TikTok',
+    followUsOnTiktok: 'Follow us on TikTok',
     adPopup: 'Popup',
     imageType: 'Image',
     videoType: 'Video',
@@ -1227,7 +1297,42 @@ const translations: Record<Language, Translations> = {
     adImageUrlPlaceholder: 'Image URL',
     adContentPlaceholder: 'Text',
     adLinkPlaceholder: 'Link',
-    searchUserPlaceholder: 'Search user',
+    searchUserPlaceholder: 'Search user...',
+    installApp: 'Install App',
+    updatedCount: 'Updated {count} successfully',
+    deleteItemsConfirm: 'Are you sure you want to delete {count} items?',
+    deletedSuccessfully: 'Deleted successfully',
+    productVisibleMsg: 'Product is now visible',
+    productHiddenMsg: 'Product is now hidden',
+    errorBulkUpdate: 'Bulk update failed',
+    whatsappMessageTemplate: 'Hello, regarding your order {orderNumber}. We are processing it. Could you confirm your payment method?',
+    invoiceGenerated: 'Invoice generated for order {orderNumber}',
+    noActivitiesFound: 'No activities found',
+    noOrdersMatching: 'No orders found matching your search',
+    noProductsMatching: 'No products found matching your criteria',
+    cityDuplicate: 'This city already exists',
+    cityAdded: 'City added successfully',
+    cityUpdated: 'City updated successfully',
+    citySaveError: 'Failed to save city',
+    cityDeleteError: 'Failed to delete city',
+    activate: 'Activate',
+    deactivate: 'Deactivate',
+    citiesCountLabel: 'cities',
+    currencyUpdated: 'Currency updated successfully',
+    currencyAdded: 'Currency added successfully',
+    currencySaveError: 'Failed to save currency',
+    currencyDeleted: 'Currency deleted successfully',
+    currencyDeleteError: 'Failed to delete currency',
+    importantNote: 'Important Note',
+    relativeToBase: 'Relative to Base',
+    adAdded: 'Ad added successfully',
+    adUpdated: 'Ad updated successfully',
+    adDeleted: 'Ad deleted successfully',
+    adSaveError: 'Failed to save ad',
+    adDeleteError: 'Failed to delete ad',
+    viewReports: 'View Reports',
+    exportData: 'Export Data',
+    unauthorizedError: 'Unauthorized - Please login again',
 
     shopNow: 'Shop Now',
     welcomeTo: 'Welcome to',

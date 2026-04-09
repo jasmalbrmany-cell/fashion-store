@@ -73,7 +73,7 @@ const CitiesPage: React.FC = () => {
     );
 
     if (duplicate) {
-      showToast('error', isRTL ? 'هذه المدينة موجودة بالفعل' : 'This city already exists');
+      showToast('error', t.cityDuplicate);
       return;
     }
 
@@ -98,10 +98,10 @@ const CitiesPage: React.FC = () => {
         }
       }
       handleCloseModal();
-      showToast('success', editingCity ? (isRTL ? 'تم تحديث المدينة بنجاح' : 'City updated successfully') : (isRTL ? 'تم إضافة المدينة بنجاح' : 'City added successfully'));
+      showToast('success', editingCity ? t.cityUpdated : t.cityAdded);
     } catch (error) {
       console.error('Failed to save city:', error);
-      showToast('error', isRTL ? 'فشل في حفظ المدينة' : 'Failed to save city');
+      showToast('error', t.citySaveError);
     }
   };
 
@@ -110,9 +110,9 @@ const CitiesPage: React.FC = () => {
       const success = await citiesService.delete(id);
       if (success) {
         setCities(prev => prev.filter(c => c.id !== id));
-        showToast('success', isRTL ? 'تم حذف المدينة بنجاح' : 'City deleted successfully');
+        showToast('success', t.deletedSuccessfully);
       } else {
-        showToast('error', isRTL ? 'فشل في حذف المدينة' : 'Failed to delete city');
+        showToast('error', t.cityDeleteError);
       }
     }
   };
@@ -149,7 +149,7 @@ const CitiesPage: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-black text-gray-900">{t.adminCitiesTitle}</h1>
-          <p className="text-gray-500 font-bold">{cities.length} {isRTL ? 'مدينة' : 'cities'}</p>
+          <p className="text-gray-500 font-bold">{cities.length} {t.citiesCountLabel}</p>
         </div>
         <button
           onClick={() => handleOpenModal()}
@@ -230,7 +230,7 @@ const CitiesPage: React.FC = () => {
                    : 'bg-green-50 text-green-600 hover:bg-green-600 hover:text-white'
                }`}
             >
-               {city.isActive ? (isRTL ? 'تعطيل المدينة' : 'Deactivate') : (isRTL ? 'تنشيط المدينة' : 'Activate')}
+               {city.isActive ? t.deactivate : t.activate}
             </button>
           </div>
         ))}

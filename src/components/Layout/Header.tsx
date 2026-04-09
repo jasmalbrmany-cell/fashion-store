@@ -65,7 +65,7 @@ const Header: React.FC = () => {
                   className="hidden sm:flex items-center gap-1.5 px-3 py-1 bg-white text-black font-bold hover:bg-gray-200 rounded-full text-xs transition shadow-md shadow-white/10 animate-bounce"
                 >
                   <Download className="w-3.5 h-3.5" />
-                  <span>{isRTL ? 'تثبيت التطبيق' : 'Install App'}</span>
+                  <span>{t.installApp}</span>
                 </button>
               )}
               {/* زر التبديل بين الوضع المظلم والفاتح */}
@@ -189,7 +189,7 @@ const Header: React.FC = () => {
                           {t.dashboard}
                         </Link>
                       )}
-                      <button onClick={() => { logout(); setIsUserMenuOpen(false); }} className="w-full text-right px-4 py-2.5 hover:bg-red-50 text-red-600 transition">
+                      <button onClick={() => { logout(); setIsUserMenuOpen(false); setTimeout(() => { window.location.href = '/' }, 100); }} className="w-full text-right px-4 py-2.5 hover:bg-red-50 text-red-600 transition">
                         {t.logout}
                       </button>
                     </div>

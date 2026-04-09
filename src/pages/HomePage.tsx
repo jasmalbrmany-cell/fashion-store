@@ -187,7 +187,9 @@ const HomePage: React.FC = () => {
                 <div className={`w-20 h-20 mb-4 rounded-2xl flex items-center justify-center transform group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-inner
                   ${['bg-purple-100 text-purple-600', 'bg-blue-100 text-blue-600', 'bg-pink-100 text-pink-600', 'bg-indigo-100 text-indigo-600', 'bg-rose-100 text-rose-600', 'bg-teal-100 text-teal-600'][index % 6]}
                 `}>
-                  <span className="text-4xl drop-shadow-sm filter">{categoryIcons[category.id]}</span>
+                  <span className="text-4xl drop-shadow-sm filter">
+                    {categoryIcons[category.id] || ['👗', '👔', '👟', '⌚', '👜', '🌸'][index % 6]}
+                  </span>
                 </div>
                 <h3 className="font-bold text-gray-800 dark:text-gray-200 group-hover:text-black dark:group-hover:text-white transition">
                   {categoryNames[category.id]?.[language] || category.name}

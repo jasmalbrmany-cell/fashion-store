@@ -97,10 +97,10 @@ const AdsPage: React.FC = () => {
       }
       await fetchAds();
       handleCloseModal();
-      showToast('success', editingAd ? (isRTL ? 'تم تحديث الإعلان بنجاح' : 'Ad updated successfully') : (isRTL ? 'تم إضافة الإعلان بنجاح' : 'Ad added successfully'));
+      showToast('success', editingAd ? t.adUpdated : t.adAdded);
     } catch (err) {
       console.error('Failed to save ad:', err);
-      showToast('error', isRTL ? 'فشل في حفظ الإعلان' : 'Failed to save ad');
+      showToast('error', t.adSaveError);
     } finally {
       setIsSubmitting(false);
     }
@@ -111,10 +111,10 @@ const AdsPage: React.FC = () => {
       try {
         await adsService.delete(id);
         setAds(prev => prev.filter(a => a.id !== id));
-        showToast('success', isRTL ? 'تم حذف الإعلان بنجاح' : 'Ad deleted successfully');
+        showToast('success', t.adDeleted);
       } catch (err) {
         console.error('Failed to delete ad:', err);
-        showToast('error', isRTL ? 'فشل في حذف الإعلان' : 'Failed to delete ad');
+        showToast('error', t.adDeleteError);
       }
     }
   };

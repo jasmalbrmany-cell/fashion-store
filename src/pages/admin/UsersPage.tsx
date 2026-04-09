@@ -60,9 +60,8 @@ const UsersPage: React.FC = () => {
     can_manage_users: t.adminUsers,
     can_manage_ads: t.adminAds,
     can_manage_cities: t.adminCitiesTitle,
-    can_manage_currencies: t.currenciesTitle,
-    can_view_reports: isRTL ? 'عرض التقارير' : 'View Reports',
-    can_export_data: isRTL ? 'تصدير البيانات' : 'Export Data',
+    can_view_reports: t.viewReports,
+    can_export_data: t.exportData,
   };
 
   const showToast = (type: 'success' | 'error', message: string) => {
@@ -161,7 +160,7 @@ const UsersPage: React.FC = () => {
 
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
-      if (!token) throw new Error(isRTL ? 'غير مصرح له - يرجى إعادة تسجيل الدخول' : 'Unauthorized - Please login again');
+      if (!token) throw new Error(t.unauthorizedError);
 
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 
