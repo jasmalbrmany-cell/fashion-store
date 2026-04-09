@@ -29,7 +29,9 @@ const AdsPage: React.FC = () => {
   };
 
   const fetchAds = async () => {
-    setIsLoading(true);
+    if (!hasValidCache('ads_all')) {
+        setIsLoading(true);
+    }
     try {
       const data = await adsService.getAll();
       setAds(data || []);

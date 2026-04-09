@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Edit, Trash2, Search, DollarSign, X, Loader2, Info, CheckCircle2, AlertCircle } from 'lucide-react';
-import { currenciesService } from '@/services/api';
+import { currenciesService, hasValidCache, getCachedSync } from '@/services/api';
 import { Currency } from '@/types';
 import { useLanguage } from '@/context/LanguageContext';
 
 const CurrenciesPage: React.FC = () => {
   const { t, language, isRTL } = useLanguage();
-  const [currencies, setCurrencies] = useState<Currency[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [currencies, setCurrencies] = useState<Currency[]>(getCachedSync<Currency[]>('currencies_all') || []);
+  const [loading, setLoading] = useState(!hasValidCache('currencies_all'));
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCurrency, setEditingCurrency] = useState<Currency | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -26,7 +26,9 @@ const CurrenciesPage: React.FC = () => {
 
   const loadData = async () => {
     try {
-      setLoading(true);
+      if (!hasValidCache('currencies_all')) {
+          setLoading(true);
+      }
       const data = await currenciesService.getAll();
       setCurrencies(data);
     } catch (error) {

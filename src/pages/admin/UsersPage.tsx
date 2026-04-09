@@ -7,7 +7,7 @@ import {
 import { User, UserRole } from '@/types';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
-import { usersService } from '@/services/api';
+import { usersService, hasValidCache, getCachedSync } from '@/services/api';
 import { useLanguage } from '@/context/LanguageContext';
 
 interface UserPermissions {
@@ -35,8 +35,8 @@ const defaultPermissions: UserPermissions = {
 const UsersPage: React.FC = () => {
   const { user: currentUser } = useAuth();
   const { t, language, isRTL } = useLanguage();
-  const [users, setUsers] = useState<User[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [users, setUsers] = useState<User[]>(getCachedSync<User[]>('users_all') || []);
+  const [isLoading, setIsLoading] = useState(!hasValidCache('users_all'));
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
@@ -71,7 +71,9 @@ const UsersPage: React.FC = () => {
   };
 
   const fetchUsers = useCallback(async () => {
-    setIsLoading(true);
+    if (!hasValidCache('users_all')) {
+        setIsLoading(true);
+    }
     try {
       const data = await usersService.getAll();
       setUsers(data || []);

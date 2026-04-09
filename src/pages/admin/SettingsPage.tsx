@@ -37,12 +37,24 @@ const SettingsPage: React.FC = () => {
     if (!settings) return;
     
     setIsSaving(true);
-    const result = await storeSettingsService.update(settings);
-    setIsSaving(false);
     
-    if (result) {
-      setSaved(true);
-      setTimeout(() => setSaved(false), 3000);
+    // Emergency unblock timeout
+    const safetyTimeout = setTimeout(() => {
+        setIsSaving(false);
+        setSaved(false);
+    }, 10000);
+
+    try {
+      const result = await storeSettingsService.update(settings);
+      if (result) {
+        setSaved(true);
+        setTimeout(() => setSaved(false), 3000);
+      }
+    } catch (err) {
+      console.error('Failed to save settings:', err);
+    } finally {
+      clearTimeout(safetyTimeout);
+      setIsSaving(false);
     }
   };
 

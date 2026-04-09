@@ -41,7 +41,9 @@ const AdminProductsPage: React.FC = () => {
   };
 
   const loadData = async () => {
-    setIsLoading(true);
+    if (!hasValidCache('products_admin_all')) {
+        setIsLoading(true);
+    }
     try {
       const [prods, cats] = await Promise.all([
         productsService.getAllAdmin(),

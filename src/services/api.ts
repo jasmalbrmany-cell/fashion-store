@@ -390,20 +390,28 @@ export const productsService = {
       return newProduct;
     }
 
-    const { data, error } = await (supabase as any)
+    const fetchPromise = (supabase as any)
       .from('products')
       .insert(transformProductToDb(product))
       .select()
       .single();
 
-    if (error) {
-      console.error('Error creating product:', error);
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Timeout')), 5000)
+    );
+
+    try {
+      const { data, error } = await Promise.race([fetchPromise, timeoutPromise]) as any;
+      if (error) {
+        console.error('Error creating product:', error);
+        return null;
+      }
+      clearCache('products_all');
+      clearCache('products_admin_all');
+      return transformProduct(data);
+    } catch (e) {
       return null;
     }
-
-    clearCache('products_all');
-    clearCache('products_admin_all');
-    return transformProduct(data);
   },
 
   async update(id: string, updates: Partial<Product>): Promise<Product | null> {
@@ -871,7 +879,7 @@ export const currenciesService = {
       return newCurrency;
     }
 
-    const { data, error } = await (supabase as any)
+    const fetchPromise = (supabase as any)
       .from('currencies')
       .insert({
         code: currency.code || '',
@@ -882,12 +890,21 @@ export const currenciesService = {
       .select()
       .single();
 
-    if (error) {
-      console.error('Error creating currency:', error);
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Timeout')), 5000)
+    );
+
+    try {
+      const { data, error } = await Promise.race([fetchPromise, timeoutPromise]) as any;
+      if (error) {
+        console.error('Error creating currency:', error);
+        return null;
+      }
+      clearCache('currencies_all');
+      return transformCurrency(data);
+    } catch (e) {
       return null;
     }
-
-    return transformCurrency(data);
   },
 
   async update(id: string, updates: Partial<Currency>): Promise<Currency | null> {
@@ -901,7 +918,7 @@ export const currenciesService = {
       return null;
     }
 
-    const { data, error } = await (supabase as any)
+    const fetchPromise = (supabase as any)
       .from('currencies')
       .update({
         code: updates.code,
@@ -913,12 +930,21 @@ export const currenciesService = {
       .select()
       .single();
 
-    if (error) {
-      console.error('Error updating currency:', error);
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Timeout')), 5000)
+    );
+
+    try {
+      const { data, error } = await Promise.race([fetchPromise, timeoutPromise]) as any;
+      if (error) {
+        console.error('Error updating currency:', error);
+        return null;
+      }
+      clearCache('currencies_all');
+      return transformCurrency(data);
+    } catch (e) {
       return null;
     }
-
-    return transformCurrency(data);
   },
 
   async delete(id: string): Promise<boolean> {
@@ -932,17 +958,20 @@ export const currenciesService = {
       return false;
     }
 
-    const { error } = await (supabase as any)
-      .from('currencies')
-      .delete()
-      .eq('id', id);
+    const fetchPromise = (supabase as any).from('currencies').delete().eq('id', id);
+    const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 5000));
 
-    if (error) {
-      console.error('Error deleting currency:', error);
+    try {
+      const { error } = await Promise.race([fetchPromise, timeoutPromise]) as any;
+      if (error) {
+        console.error('Error deleting currency:', error);
+        return false;
+      }
+      clearCache('currencies_all');
+      return true;
+    } catch (e) {
       return false;
     }
-
-    return true;
   },
 };
 
@@ -1104,19 +1133,29 @@ export const ordersService = {
       return null;
     }
 
-    const { data, error } = await (supabase as any)
+    const fetchPromise = (supabase as any)
       .from('orders')
       .update({ status })
       .eq('id', id)
       .select()
       .single();
 
-    if (error) {
-      console.error('Error updating order status:', error);
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Timeout')), 5000)
+    );
+
+    try {
+      const { data, error } = await Promise.race([fetchPromise, timeoutPromise]) as any;
+      if (error) {
+        console.error('Error updating order status:', error);
+        return null;
+      }
+      clearCache('orders_all');
+      clearCache('statistics_main');
+      return transformOrder(data);
+    } catch (e) {
       return null;
     }
-
-    return transformOrder(data);
   },
 
   async update(id: string, updates: Partial<Order>): Promise<Order | null> {
@@ -1347,6 +1386,9 @@ export const adsService = {
 
 export const usersService = {
   async getAll(): Promise<User[]> {
+    const cached = getFromCache('users_all');
+    if (cached) return cached;
+
     if (!isSupabaseConfigured()) {
       return mockUsers;
     }
@@ -1361,7 +1403,9 @@ export const usersService = {
       return mockUsers;
     }
 
-    return (data || []).map(transformProfile);
+    const transformed = (data || []).map(transformProfile);
+    setToCache('users_all', transformed);
+    return transformed;
   },
 
   async getById(id: string): Promise<User | null> {
@@ -1394,7 +1438,7 @@ export const usersService = {
       return null;
     }
 
-    const { data, error } = await (supabase as any)
+    const fetchPromise = (supabase as any)
       .from('profiles')
       .update({
         name: updates.name,
@@ -1406,10 +1450,22 @@ export const usersService = {
       .select()
       .single();
 
-    if (error) {
-      console.error('Error updating user:', error);
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Timeout')), 5000)
+    );
+
+    try {
+      const { data, error } = await Promise.race([fetchPromise, timeoutPromise]) as any;
+      if (error) {
+        console.error('Error updating user:', error);
+        return null;
+      }
+      clearCache('users_all');
+      return transformProfile(data);
+    } catch (e) {
       return null;
     }
+  },
 
     return transformProfile(data);
   },
@@ -1562,7 +1618,7 @@ export const storeSettingsService = {
       return mockStoreSettings as StoreSettings;
     }
 
-    const { data, error } = await (supabase as any)
+    const fetchPromise = (supabase as any)
       .from('store_settings')
       .upsert({
         id: settings.id || 'settings_main',
@@ -1574,20 +1630,28 @@ export const storeSettingsService = {
       .select()
       .single();
 
-    if (error) {
-      console.error('Error updating store settings:', error);
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Timeout')), 5000)
+    );
+
+    try {
+      const { data, error } = await Promise.race([fetchPromise, timeoutPromise]) as any;
+      if (error || !data) {
+        console.error('Error updating store settings:', error);
+        return null;
+      }
+      clearCache('settings_main');
+      return {
+        id: data.id,
+        name: data.name,
+        logo: data.logo || '',
+        currency: data.currency,
+        socialLinks: data.social_links || {},
+      };
+    } catch (e) {
       return null;
     }
-
-    if (!data) {
-      return null;
-    }
-
-    return {
-      id: data.id,
-      name: data.name,
-      logo: data.logo || '',
-      currency: data.currency,
+  },
       socialLinks: data.social_links || {},
     };
   },

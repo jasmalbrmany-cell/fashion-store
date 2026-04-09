@@ -24,7 +24,9 @@ const DashboardPage: React.FC = () => {
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
 
   const fetchStats = async () => {
-    setIsLoading(true);
+    if (!hasValidCache('statistics_main')) {
+        setIsLoading(true);
+    }
     try {
       const [statsData, productsData] = await Promise.all([
         statisticsService.get(),

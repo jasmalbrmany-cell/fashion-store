@@ -32,7 +32,9 @@ const AdminOrdersPage: React.FC = () => {
   useEffect(() => {
     const fetchOrders = async () => {
       try {
-        setLoading(true);
+        if (!hasValidCache('orders_all')) {
+            setLoading(true);
+        }
         const data = await ordersService.getAll();
         setOrders(data);
       } catch (error) {
