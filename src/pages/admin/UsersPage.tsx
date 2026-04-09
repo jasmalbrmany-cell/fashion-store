@@ -184,7 +184,7 @@ const UsersPage: React.FC = () => {
         
         if (!res.ok) {
            const errData = await res.json().catch(() => ({}));
-           throw new Error(errData.error || t.updateError || 'Failed to update user');
+           throw new Error(errData.error || (isRTL ? 'فشل في تحديث المستخدم' : 'Failed to update user'));
         }
 
         showToast('success', t.userUpdatedSuccess);
