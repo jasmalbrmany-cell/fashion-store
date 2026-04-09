@@ -60,6 +60,7 @@ const UsersPage: React.FC = () => {
     can_manage_users: t.adminUsers,
     can_manage_ads: t.adminAds,
     can_manage_cities: t.adminCitiesTitle,
+    can_manage_currencies: t.currenciesTitle,
     can_view_reports: t.viewReports,
     can_export_data: t.exportData,
   };
