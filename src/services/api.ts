@@ -579,6 +579,9 @@ export const categoriesService = {
 
 export const citiesService = {
   async getAll(): Promise<City[]> {
+    const cached = getFromCache('cities_all');
+    if (cached) return cached;
+
     if (!isSupabaseConfigured()) {
       return mockCities;
     }
@@ -589,7 +592,7 @@ export const citiesService = {
       .order('name', { ascending: true });
 
     const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Timeout')), 5000)
+      setTimeout(() => reject(new Error('Timeout')), 2500)
     );
 
     try {
@@ -600,7 +603,6 @@ export const citiesService = {
         return mockCities;
       }
 
-      // Filter out exact duplicates based on name as a safety measure
       const results = (data || []).map(transformCity);
       const uniqueResults: City[] = [];
       const seenNames = new Set<string>();
@@ -613,14 +615,17 @@ export const citiesService = {
         }
       }
 
+      setToCache('cities_all', uniqueResults);
       return uniqueResults;
     } catch (e) {
-      console.warn('Cities fetch timed out or failed, using mock data');
       return mockCities;
     }
   },
 
   async getActive(): Promise<City[]> {
+    const cached = getFromCache('cities_active');
+    if (cached) return cached;
+
     if (!isSupabaseConfigured()) {
       return mockCities.filter(c => c.isActive);
     }
@@ -632,7 +637,7 @@ export const citiesService = {
       .order('name', { ascending: true });
 
     const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Timeout')), 5000)
+      setTimeout(() => reject(new Error('Timeout')), 2500)
     );
 
     try {
@@ -655,6 +660,7 @@ export const citiesService = {
         }
       }
 
+      setToCache('cities_active', uniqueResults);
       return uniqueResults;
     } catch (e) {
       return mockCities.filter(c => c.isActive);
@@ -703,6 +709,8 @@ export const citiesService = {
       return null;
     }
 
+    clearCache('cities_all');
+    clearCache('cities_active');
     return transformCity(data);
   },
 
@@ -733,6 +741,8 @@ export const citiesService = {
       return null;
     }
 
+    clearCache('cities_all');
+    clearCache('cities_active');
     return transformCity(data);
   },
 
@@ -757,6 +767,8 @@ export const citiesService = {
       return false;
     }
 
+    clearCache('cities_all');
+    clearCache('cities_active');
     return true;
   },
 };
@@ -892,6 +904,9 @@ export const currenciesService = {
 
 export const ordersService = {
   async getAll(): Promise<Order[]> {
+    const cached = getFromCache('orders_all');
+    if (cached) return cached;
+
     if (!isSupabaseConfigured()) {
       return mockOrders;
     }
@@ -906,7 +921,9 @@ export const ordersService = {
       return mockOrders;
     }
 
-    return (data || []).map(transformOrder);
+    const transformed = (data || []).map(transformOrder);
+    setToCache('orders_all', transformed);
+    return transformed;
   },
 
   async getById(id: string): Promise<Order | null> {
@@ -1525,6 +1542,9 @@ export const storeSettingsService = {
 
 export const statisticsService = {
   async get(): Promise<Statistics> {
+    const cached = getFromCache('statistics_main');
+    if (cached) return cached;
+
     if (!isSupabaseConfigured()) {
       const products = mockProducts;
       const orders = mockOrders;
@@ -1553,14 +1573,65 @@ export const statisticsService = {
       };
     }
 
-    const { data, error } = await (supabase as any)
+    const fetchPromise = (supabase as any)
       .from('statistics')
       .select('*')
       .limit(1)
       .single();
 
-    if (error) {
-      console.error('Error fetching statistics:', error);
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Timeout')), 2500)
+    );
+
+    try {
+      const { data, error } = await Promise.race([fetchPromise, timeoutPromise]) as any;
+
+      if (error) {
+        console.error('Error fetching statistics:', error);
+        return {
+          totalProducts: 0,
+          totalOrders: 0,
+          todayOrders: 0,
+          weekOrders: 0,
+          monthOrders: 0,
+          totalCustomers: 0,
+          totalRevenue: 0,
+          topProducts: [],
+          recentActivities: [],
+        };
+      }
+
+      const recentActivities = await activityLogsService.getRecent(5);
+
+      if (!data) {
+        return {
+          totalProducts: 0,
+          totalOrders: 0,
+          todayOrders: 0,
+          weekOrders: 0,
+          monthOrders: 0,
+          totalCustomers: 0,
+          totalRevenue: 0,
+          topProducts: [],
+          recentActivities,
+        };
+      }
+
+      const transformed = {
+        totalProducts: data.total_products || 0,
+        totalOrders: data.total_orders || 0,
+        todayOrders: data.today_orders || 0,
+        weekOrders: data.week_orders || 0,
+        monthOrders: data.month_orders || 0,
+        totalCustomers: data.total_customers || 0,
+        totalRevenue: data.total_revenue || 0,
+        topProducts: [],
+        recentActivities,
+      };
+
+      setToCache('statistics_main', transformed);
+      return transformed;
+    } catch (e) {
       return {
         totalProducts: 0,
         totalOrders: 0,
@@ -1573,34 +1644,6 @@ export const statisticsService = {
         recentActivities: [],
       };
     }
-
-    const recentActivities = await activityLogsService.getRecent(5);
-
-    if (!data) {
-      return {
-        totalProducts: 0,
-        totalOrders: 0,
-        todayOrders: 0,
-        weekOrders: 0,
-        monthOrders: 0,
-        totalCustomers: 0,
-        totalRevenue: 0,
-        topProducts: [],
-        recentActivities: [],
-      };
-    }
-
-    return {
-      totalProducts: data.total_products || 0,
-      totalOrders: data.total_orders || 0,
-      todayOrders: data.today_orders || 0,
-      weekOrders: data.week_orders || 0,
-      monthOrders: data.month_orders || 0,
-      totalCustomers: data.total_customers || 0,
-      totalRevenue: data.total_revenue || 0,
-      topProducts: [],
-      recentActivities,
-    };
   },
 };
 
