@@ -165,17 +165,17 @@ const HomePage: React.FC = () => {
               <Link
                 key={category.id}
                 to={`/products?category=${category.id}`}
-                className="group flex flex-col items-center justify-center p-6 bg-white rounded-3xl border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300 relative overflow-hidden"
+                className={`group flex flex-col items-center justify-center p-6 bg-white dark:bg-gray-900 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300 relative overflow-hidden animate-stagger delay-${(index + 1) * 100 <= 500 ? (index + 1) * 100 : 500}`}
               >
                 {/* Decorative background gradient on hover */}
-                <div className="absolute inset-0 bg-gradient-to-br from-gray-50 to-gray-100 opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10"></div>
+                <div className="absolute inset-0 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10"></div>
                 
                 <div className={`w-20 h-20 mb-4 rounded-2xl flex items-center justify-center transform group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-inner
                   ${['bg-purple-100 text-purple-600', 'bg-blue-100 text-blue-600', 'bg-pink-100 text-pink-600', 'bg-indigo-100 text-indigo-600', 'bg-rose-100 text-rose-600', 'bg-teal-100 text-teal-600'][index % 6]}
                 `}>
                   <span className="text-4xl drop-shadow-sm filter">{categoryIcons[category.id]}</span>
                 </div>
-                <h3 className="font-bold text-gray-800 group-hover:text-black transition">
+                <h3 className="font-bold text-gray-800 dark:text-gray-200 group-hover:text-black dark:group-hover:text-white transition">
                   {categoryNames[category.id]?.[language] || category.name}
                 </h3>
               </Link>

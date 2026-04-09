@@ -55,53 +55,47 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
 
   return (
     <div
-      className="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-xl transition-all duration-300 h-full flex flex-col"
+      className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm overflow-hidden hover:shadow-2xl transition-all duration-500 h-full flex flex-col group animate-fadeIn"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       dir={isRTL ? 'rtl' : 'ltr'}
     >
       <Link to={`/product/${product.id}`} className="block flex-1 flex flex-col">
         {/* Image */}
-        <div className="relative aspect-[3/4] overflow-hidden bg-gray-100">
+        <div className="relative aspect-[3/4] overflow-hidden bg-gray-100 dark:bg-gray-800">
           {!imageLoaded && (
-            <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
-              <div className="w-8 h-8 border-3 border-black border-t-transparent rounded-full animate-spin"></div>
+            <div className="absolute inset-0 flex items-center justify-center bg-gray-100 dark:bg-gray-800 shimmer">
             </div>
           )}
           <img
             src={primaryImage?.url}
             alt={product.name}
-            className={`w-full h-full object-cover transition-transform duration-500 ${isHovered ? 'scale-105' : ''} ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
+            className={`w-full h-full object-cover transition-transform duration-700 ease-out ${isHovered ? 'scale-110' : 'scale-100'} ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
             onLoad={() => setImageLoaded(true)}
           />
 
           {/* Badges */}
           <div className={`absolute top-3 ${isRTL ? 'right-3' : 'left-3'} flex flex-col gap-2`}>
             {product.sourceUrl && (
-              <span className="bg-black/80 backdrop-blur-sm text-white text-[10px] md:text-sm px-2.5 py-1 rounded-full uppercase tracking-tighter">
+              <span className="bg-black/80 dark:bg-white/80 dark:text-black backdrop-blur-md text-white text-[10px] md:text-sm px-3 py-1.5 rounded-full font-black uppercase tracking-widest animate-fadeIn">
                 {t.imported}
               </span>
             )}
             {product.stock <= 3 && product.stock > 0 && (
-              <span className="bg-red-500 text-white text-[10px] md:text-sm px-2.5 py-1 rounded-full font-medium">
+              <span className="bg-red-500 text-white text-[10px] md:text-sm px-3 py-1.5 rounded-full font-black animate-fadeIn">
                 {t.onlyLeft.replace('{count}', product.stock.toString())}
-              </span>
-            )}
-            {product.stock === 0 && (
-              <span className="bg-gray-800 text-white text-[10px] md:text-sm px-2.5 py-1 rounded-full">
-                {t.outOfStock}
               </span>
             )}
           </div>
 
           {/* Actions */}
-          <div className={`absolute top-3 ${isRTL ? 'left-3' : 'right-3'} flex flex-col gap-2`}>
+          <div className={`absolute top-3 ${isRTL ? 'left-3' : 'right-3'} flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300`}>
             <button
               onClick={toggleWishlist}
-              className={`w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-sm shadow-lg transition-all duration-200 ${
+              className={`w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-md shadow-lg transition-all duration-300 hover:scale-110 ${
                 isWishlisted
                    ? 'bg-red-500 text-white'
-                  : 'bg-white/90 text-gray-600 hover:bg-red-50'
+                  : 'bg-white/90 dark:bg-gray-800/90 text-gray-600 dark:text-gray-300'
               }`}
             >
               <Heart className={`w-5 h-5 ${isWishlisted ? 'fill-current' : ''}`} />
@@ -109,29 +103,29 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
           </div>
 
           {/* Quick Actions Overlay */}
-          <div className={`absolute inset-x-0 bottom-0 p-4 bg-gradient-to-t from-black/60 to-transparent transition-opacity duration-300 ${isHovered ? 'opacity-100' : 'opacity-0'}`}>
+          <div className={`absolute inset-x-0 bottom-0 p-4 bg-gradient-to-t from-black/80 via-black/40 to-transparent transition-all duration-500 ease-out ${isHovered ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}>
             <div className="flex gap-2">
               <button
                 onClick={handleQuickBuy}
                 disabled={product.stock === 0}
-                className="flex-1 py-2 bg-white text-black rounded-lg font-semibold hover:bg-gray-100 transition disabled:opacity-50 disabled:cursor-not-allowed text-xs sm:text-sm"
+                className="flex-1 py-3 bg-white text-black rounded-xl font-black uppercase tracking-widest hover:bg-gray-100 transition shadow-xl active:scale-95 disabled:opacity-50 text-[10px] sm:text-xs"
               >
                 {t.buyNow}
               </button>
               <button
                 onClick={handleAddToCart}
                 disabled={product.stock === 0}
-                className="w-10 sm:w-12 h-8 sm:h-10 bg-white/90 rounded-lg flex items-center justify-center hover:bg-white transition disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-12 h-12 bg-white/20 backdrop-blur-md text-white rounded-xl flex items-center justify-center hover:bg-white hover:text-black transition shadow-xl active:scale-95 disabled:opacity-50"
               >
-                <ShoppingCart className="w-5 h-5 text-gray-700" />
+                <ShoppingCart className="w-5 h-5" />
               </button>
             </div>
           </div>
         </div>
 
         {/* Info */}
-        <div className="p-4 flex-1 flex flex-col">
-          <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2 hover:text-black transition text-sm leading-snug flex-1">
+        <div className="p-4 flex-1 flex flex-col dark:bg-gray-900 transition-colors">
+          <h3 className="font-black text-gray-900 dark:text-white mb-2 line-clamp-2 hover:text-primary-600 transition text-sm leading-snug flex-1 uppercase tracking-tight">
             {product.name}
           </h3>
           <div className="mt-auto">
