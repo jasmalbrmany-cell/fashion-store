@@ -15,7 +15,8 @@ import {
   Loader2,
   AlertCircle,
   RefreshCw,
-  CheckCircle2
+  CheckCircle2,
+  X
 } from 'lucide-react';
 import { productsService, categoriesService } from '@/services';
 import { Product, Category } from '@/types';

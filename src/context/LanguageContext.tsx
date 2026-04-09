@@ -330,6 +330,7 @@ interface Translations {
   adSidebar: string;
   adInline: string;
   tiktok: string;
+  followUsOnTiktok: string;
   adPopup: string;
   imageType: string;
   videoType: string;
@@ -750,6 +751,7 @@ const translations: Record<Language, Translations> = {
     adSidebar: 'جانبي',
     adInline: 'داخلي',
     tiktok: 'تيك توك',
+  followUsOnTiktok: 'تابعنا على تيك توك',
     adPopup: 'منبثق',
     imageType: 'صورة',
     videoType: 'فيديو',
@@ -1165,6 +1167,7 @@ const translations: Record<Language, Translations> = {
     adSidebar: 'Sidebar',
     adInline: 'Inline',
     tiktok: 'TikTok',
+  followUsOnTiktok: 'Follow us on TikTok',
     adPopup: 'Popup',
     imageType: 'Image',
     videoType: 'Video',
