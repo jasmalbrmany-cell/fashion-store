@@ -20,13 +20,12 @@
   <script type="module" src="/src/main.tsx"></script>
   <script>
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.getRegistrations().then(function(registrations) {
-        let hasUnregistered = false;
-        for(let registration of registrations) {
-          registration.unregister();
-          hasUnregistered = true;
-        }
-        if (hasUnregistered) {
+      navigator.serviceWorker.getRegistrations().then(async function(registrations) {
+        if (registrations.length > 0) {
+          for(let registration of registrations) {
+            await registration.unregister();
+          }
+          // Only reload once the unregistration actually completes
           window.location.reload(true);
         }
       });
