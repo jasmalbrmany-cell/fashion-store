@@ -8,6 +8,6 @@ self.addEventListener('activate', (e) => {
 
 self.addEventListener('fetch', (e) => {
   // A minimal fetch listener is required by Chrome to trigger the PWA install prompt.
-  // We just let the network handle it (Network-first strategy placeholder).
-  e.respondWith(fetch(e.request).catch(() => new Response("Network error.")));
+  // Leaving it empty allows all network requests to bypass the service worker 
+  // and be handled by the browser normally, avoiding CORS and caching issues.
 });
