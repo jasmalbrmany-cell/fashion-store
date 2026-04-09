@@ -66,6 +66,17 @@ const CitiesPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Check for duplicates
+    const duplicate = cities.find(c => 
+      c.name.trim().toLowerCase() === formData.name.trim().toLowerCase() && 
+      (!editingCity || c.id !== editingCity.id)
+    );
+
+    if (duplicate) {
+      showToast('error', isRTL ? 'هذه المدينة موجودة بالفعل' : 'This city already exists');
+      return;
+    }
+
     try {
       if (editingCity) {
         const updated = await citiesService.update(editingCity.id, {

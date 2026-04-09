@@ -52,18 +52,81 @@ let mockActivityLogs: ActivityLog[] = getStorageItem(STORAGE_KEYS.ACTIVITY, init
 let mockStoreSettings = getStorageItem(STORAGE_KEYS.SETTINGS, initialStoreSettings) || initialStoreSettings;
 let mockUsers: User[] = getStorageItem(STORAGE_KEYS.USERS, initialUsers) || [];
 
+// Cache duration (5 minutes)
+const CACHE_TTL = 5 * 60 * 1000;
+
+// Simple session + local storage hybrid cache
+const memoryCache: Record<string, { data: any; timestamp: number }> = {};
+
+const getFromCache = (key: string) => {
+  // 1. Check memory first
+  if (memoryCache[key]) {
+    const isStale = Date.now() - memoryCache[key].timestamp > CACHE_TTL;
+    if (!isStale) return memoryCache[key].data;
+  }
+
+  // 2. Check local storage
+  const stored = getStorageItem<{ data: any; timestamp: number } | null>(`cache_${key}`, null);
+  if (stored) {
+    const isStale = Date.now() - stored.timestamp > CACHE_TTL;
+    if (!isStale) {
+      memoryCache[key] = stored; // populate memory
+      return stored.data;
+    }
+  }
+
+  return null;
+};
+
+const setToCache = (key: string, data: any) => {
+  const cacheEntry = { data, timestamp: Date.now() };
+  memoryCache[key] = cacheEntry;
+  setStorageItem(`cache_${key}`, cacheEntry);
+};
+
+const clearCache = (key: string) => {
+  delete memoryCache[key];
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem(`cache_${key}`);
+  }
+};
+
 // Syncing functions
-const syncProducts = () => setStorageItem(STORAGE_KEYS.PRODUCTS, mockProducts);
-const syncCategories = () => setStorageItem(STORAGE_KEYS.CATEGORIES, mockCategories);
-const syncCities = () => setStorageItem(STORAGE_KEYS.CITIES, mockCities);
-const syncCurrencies = () => setStorageItem(STORAGE_KEYS.CURRENCIES, mockCurrencies);
-const syncOrders = () => setStorageItem(STORAGE_KEYS.ORDERS, mockOrders);
-const syncAds = () => setStorageItem(STORAGE_KEYS.ADS, mockAds);
-const syncActivity = () => setStorageItem(STORAGE_KEYS.ACTIVITY, mockActivityLogs);
-const syncSettings = () => setStorageItem(STORAGE_KEYS.SETTINGS, mockStoreSettings);
+const syncProducts = () => {
+  setStorageItem(STORAGE_KEYS.PRODUCTS, mockProducts);
+  setToCache('products_all', mockProducts);
+};
+const syncCategories = () => {
+  setStorageItem(STORAGE_KEYS.CATEGORIES, mockCategories);
+  setToCache('categories_all', mockCategories);
+};
+const syncCities = () => {
+  setStorageItem(STORAGE_KEYS.CITIES, mockCities);
+  setToCache('cities_all', mockCities);
+};
+const syncCurrencies = () => {
+  setStorageItem(STORAGE_KEYS.CURRENCIES, mockCurrencies);
+  setToCache('currencies_all', mockCurrencies);
+};
+const syncOrders = () => {
+  setStorageItem(STORAGE_KEYS.ORDERS, mockOrders);
+  setToCache('orders_all', mockOrders);
+};
+const syncAds = () => {
+  setStorageItem(STORAGE_KEYS.ADS, mockAds);
+  setToCache('ads_all', mockAds);
+};
+const syncActivity = () => {
+  setStorageItem(STORAGE_KEYS.ACTIVITY, mockActivityLogs);
+  setToCache('activity_all', mockActivityLogs);
+};
+const syncSettings = () => {
+  setStorageItem(STORAGE_KEYS.SETTINGS, mockStoreSettings);
+  setToCache('settings_main', mockStoreSettings);
+};
 const syncUsers = () => {
   setStorageItem(STORAGE_KEYS.USERS, mockUsers);
-  // Also update the exported version if anything relies on direct import (though we should avoid it)
+  setToCache('users_all', mockUsers);
 };
 
 // Types for database rows
@@ -164,22 +227,37 @@ interface ProfileRow {
 
 export const productsService = {
   async getAll(): Promise<Product[]> {
+    const cached = getFromCache('products_all');
+    if (cached) return cached;
+
     if (!isSupabaseConfigured()) {
       return mockProducts.filter(p => p.isVisible);
     }
 
-    const { data, error } = await (supabase as any)
+    const fetchPromise = (supabase as any)
       .from('products')
       .select('*')
       .eq('is_visible', true)
       .order('created_at', { ascending: false });
 
-    if (error) {
-      console.error('Error fetching products:', error);
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Timeout')), 2500)
+    );
+
+    try {
+      const { data, error } = await Promise.race([fetchPromise, timeoutPromise]) as any;
+
+      if (error) {
+        console.error('Error fetching products:', error);
+        return mockProducts.filter(p => p.isVisible);
+      }
+
+      const transformed = (data || []).map(transformProduct);
+      setToCache('products_all', transformed);
+      return transformed;
+    } catch (e) {
       return mockProducts.filter(p => p.isVisible);
     }
-
-    return (data || []).map(transformProduct);
   },
 
   async getByCategory(categoryId: string): Promise<Product[]> {
@@ -187,19 +265,29 @@ export const productsService = {
       return mockProducts.filter(p => p.categoryId === categoryId && p.isVisible);
     }
 
-    const { data, error } = await (supabase as any)
+    const fetchPromise = (supabase as any)
       .from('products')
       .select('*')
       .eq('category_id', categoryId)
       .eq('is_visible', true)
       .order('created_at', { ascending: false });
 
-    if (error) {
-      console.error('Error fetching products by category:', error);
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Timeout')), 5000)
+    );
+
+    try {
+      const { data, error } = await Promise.race([fetchPromise, timeoutPromise]) as any;
+
+      if (error) {
+        console.error('Error fetching products by category:', error);
+        return mockProducts.filter(p => p.categoryId === categoryId && p.isVisible);
+      }
+
+      return (data || []).map(transformProduct);
+    } catch (e) {
       return mockProducts.filter(p => p.categoryId === categoryId && p.isVisible);
     }
-
-    return (data || []).map(transformProduct);
   },
 
   async getById(id: string): Promise<Product | null> {
@@ -281,6 +369,7 @@ export const productsService = {
       return null;
     }
 
+    clearCache('products_all');
     return transformProduct(data);
   },
 
@@ -307,6 +396,7 @@ export const productsService = {
       return null;
     }
 
+    clearCache('products_all');
     return transformProduct(data);
   },
 
@@ -331,6 +421,7 @@ export const productsService = {
       return false;
     }
 
+    clearCache('products_all');
     return true;
   },
 
@@ -347,21 +438,36 @@ export const productsService = {
 
 export const categoriesService = {
   async getAll(): Promise<Category[]> {
+    const cached = getFromCache('categories_all');
+    if (cached) return cached;
+
     if (!isSupabaseConfigured()) {
       return mockCategories;
     }
 
-    const { data, error } = await (supabase as any)
+    const fetchPromise = (supabase as any)
       .from('categories')
       .select('*')
       .order('order', { ascending: true });
 
-    if (error) {
-      console.error('Error fetching categories:', error);
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Timeout')), 2500)
+    );
+
+    try {
+      const { data, error } = await Promise.race([fetchPromise, timeoutPromise]) as any;
+
+      if (error) {
+        console.error('Error fetching categories:', error);
+        return mockCategories;
+      }
+
+      const transformed = (data || []).map(transformCategory);
+      setToCache('categories_all', transformed);
+      return transformed;
+    } catch (e) {
       return mockCategories;
     }
-
-    return (data || []).map(transformCategory);
   },
 
   async getById(id: string): Promise<Category | null> {
@@ -406,6 +512,7 @@ export const categoriesService = {
       return null;
     }
 
+    clearCache('categories_all');
     return transformCategory(data);
   },
 
@@ -436,6 +543,7 @@ export const categoriesService = {
       return null;
     }
 
+    clearCache('categories_all');
     return transformCategory(data);
   },
 
@@ -460,6 +568,7 @@ export const categoriesService = {
       return false;
     }
 
+    clearCache('categories_all');
     return true;
   },
 };
@@ -474,17 +583,41 @@ export const citiesService = {
       return mockCities;
     }
 
-    const { data, error } = await (supabase as any)
+    const fetchPromise = (supabase as any)
       .from('cities')
       .select('*')
       .order('name', { ascending: true });
 
-    if (error) {
-      console.error('Error fetching cities:', error);
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Timeout')), 5000)
+    );
+
+    try {
+      const { data, error } = await Promise.race([fetchPromise, timeoutPromise]) as any;
+
+      if (error) {
+        console.error('Error fetching cities:', error);
+        return mockCities;
+      }
+
+      // Filter out exact duplicates based on name as a safety measure
+      const results = (data || []).map(transformCity);
+      const uniqueResults: City[] = [];
+      const seenNames = new Set<string>();
+
+      for (const city of results) {
+        const nameKey = city.name.trim().toLowerCase();
+        if (!seenNames.has(nameKey)) {
+          seenNames.add(nameKey);
+          uniqueResults.push(city);
+        }
+      }
+
+      return uniqueResults;
+    } catch (e) {
+      console.warn('Cities fetch timed out or failed, using mock data');
       return mockCities;
     }
-
-    return (data || []).map(transformCity);
   },
 
   async getActive(): Promise<City[]> {
@@ -492,18 +625,40 @@ export const citiesService = {
       return mockCities.filter(c => c.isActive);
     }
 
-    const { data, error } = await (supabase as any)
+    const fetchPromise = (supabase as any)
       .from('cities')
       .select('*')
       .eq('is_active', true)
       .order('name', { ascending: true });
 
-    if (error) {
-      console.error('Error fetching active cities:', error);
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Timeout')), 5000)
+    );
+
+    try {
+      const { data, error } = await Promise.race([fetchPromise, timeoutPromise]) as any;
+
+      if (error) {
+        console.error('Error fetching active cities:', error);
+        return mockCities.filter(c => c.isActive);
+      }
+
+      const results = (data || []).map(transformCity);
+      const uniqueResults: City[] = [];
+      const seenNames = new Set<string>();
+
+      for (const city of results) {
+        const nameKey = city.name.trim().toLowerCase();
+        if (!seenNames.has(nameKey)) {
+          seenNames.add(nameKey);
+          uniqueResults.push(city);
+        }
+      }
+
+      return uniqueResults;
+    } catch (e) {
       return mockCities.filter(c => c.isActive);
     }
-
-    return (data || []).map(transformCity);
   },
 
   async getById(id: string): Promise<City | null> {
@@ -947,18 +1102,28 @@ export const adsService = {
       return mockAds.filter(a => a.isActive);
     }
 
-    const { data, error } = await (supabase as any)
+    const fetchPromise = (supabase as any)
       .from('ads')
       .select('*')
       .eq('is_active', true)
       .order('order', { ascending: true });
 
-    if (error) {
-      console.error('Error fetching active ads:', error);
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Timeout')), 5000)
+    );
+
+    try {
+      const { data, error } = await Promise.race([fetchPromise, timeoutPromise]) as any;
+
+      if (error) {
+        console.error('Error fetching active ads:', error);
+        return mockAds.filter(a => a.isActive);
+      }
+
+      return (data || []).map(transformAd);
+    } catch (e) {
       return mockAds.filter(a => a.isActive);
     }
-
-    return (data || []).map(transformAd);
   },
 
   async getAll(): Promise<Ad[]> {
@@ -966,17 +1131,28 @@ export const adsService = {
       return mockAds;
     }
 
-    const { data, error } = await (supabase as any)
+    const fetchPromise = (supabase as any)
       .from('ads')
       .select('*')
       .order('order', { ascending: true });
 
-    if (error) {
-      console.error('Error fetching ads:', error);
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Timeout')), 5000)
+    );
+
+    try {
+      const { data, error } = await Promise.race([fetchPromise, timeoutPromise]) as any;
+
+      if (error) {
+        console.error('Error fetching ads:', error);
+        return mockAds;
+      }
+
+      return (data || []).map(transformAd);
+    } catch (e) {
+      console.warn('Ads fetch timed out or failed, using mock data');
       return mockAds;
     }
-
-    return (data || []).map(transformAd);
   },
 
   async getById(id: string): Promise<Ad | null> {
@@ -1267,11 +1443,13 @@ export const activityLogsService = {
 
 export const storeSettingsService = {
   async get(): Promise<StoreSettings | null> {
+    const cached = getFromCache('settings_main');
+    if (cached) return cached;
+
     if (!isSupabaseConfigured()) {
       return mockStoreSettings as StoreSettings;
     }
 
-    // Add a race with a timeout
     const fetchPromise = (supabase as any)
       .from('store_settings')
       .select('*')
@@ -1279,26 +1457,26 @@ export const storeSettingsService = {
       .single();
 
     const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Timeout')), 5000)
+      setTimeout(() => reject(new Error('Timeout')), 2500)
     );
 
     try {
       const { data, error } = await Promise.race([fetchPromise, timeoutPromise]) as any;
 
       if (error || !data) {
-        console.warn('Using mock settings due to error or no data:', error);
         return mockStoreSettings as StoreSettings;
       }
 
-      return {
+      const transformed = {
         id: data.id || 'settings_main',
         name: data.name || mockStoreSettings.name,
         logo: data.logo || mockStoreSettings.logo,
         currency: data.currency || mockStoreSettings.currency,
         socialLinks: data.social_links || mockStoreSettings.socialLinks,
       };
+      setToCache('settings_main', transformed);
+      return transformed;
     } catch (e) {
-      console.error('Settings fetch failed or timed out:', e);
       return { ...mockStoreSettings, id: 'settings_main' } as StoreSettings;
     }
   },
