@@ -31,6 +31,8 @@ const AdminProductsPage: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState('');
   const [menuOpen, setMenuOpen] = useState<string | null>(null);
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [isBulkLoading, setIsBulkLoading] = useState(false);
 
   const showToast = (type: 'success' | 'error', message: string) => {
     setToast({ type, message });
@@ -58,6 +60,52 @@ const AdminProductsPage: React.FC = () => {
   useEffect(() => {
     loadData();
   }, []);
+
+  const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.checked) {
+      setSelectedIds(filteredProducts.map(p => p.id));
+    } else {
+      setSelectedIds([]);
+    }
+  };
+
+  const handleSelectOne = (id: string) => {
+    setSelectedIds(prev =>
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
+  const bulkToggleVisibility = async (visible: boolean) => {
+    if (selectedIds.length === 0) return;
+    setIsBulkLoading(true);
+    try {
+      await Promise.all(selectedIds.map(id => productsService.update(id, { isVisible: visible })));
+      setProducts(prev => prev.map(p => selectedIds.includes(p.id) ? { ...p, isVisible: visible } : p));
+      showToast('success', isRTL ? `تم تحديث ${selectedIds.length} منتجات` : `Updated ${selectedIds.length} products`);
+      setSelectedIds([]);
+    } catch (err) {
+      showToast('error', 'Error in bulk update');
+    } finally {
+      setIsBulkLoading(false);
+    }
+  };
+
+  const bulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+    if (window.confirm(isRTL ? `هل أنت متأكد من حذف ${selectedIds.length} منتجات؟` : `Delete ${selectedIds.length} items?`)) {
+      setIsBulkLoading(true);
+      try {
+        await Promise.all(selectedIds.map(id => productsService.delete(id)));
+        setProducts(prev => prev.filter(p => !selectedIds.includes(p.id)));
+        showToast('success', isRTL ? 'تم الحذف بنجاح' : 'Deleted successfully');
+        setSelectedIds([]);
+      } catch (err) {
+        showToast('error', 'Error in bulk delete');
+      } finally {
+        setIsBulkLoading(false);
+      }
+    }
+  };
 
   const filteredProducts = products.filter(product => {
     const nameStr = product.name || '';
@@ -187,12 +235,74 @@ const AdminProductsPage: React.FC = () => {
         </div>
       </div>
 
+      {/* Bulk Action Bar */}
+      {selectedIds.length > 0 && (
+        <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-50 bg-black text-white px-6 py-4 rounded-3xl shadow-2xl flex items-center gap-6 animate-in slide-in-from-bottom-10 border border-white/10 min-w-[300px] md:min-w-[500px]">
+          <div className="flex items-center gap-2 border-e border-white/20 pe-6">
+            <span className="bg-white text-black w-7 h-7 rounded-full flex items-center justify-center font-black text-sm">
+              {selectedIds.length}
+            </span>
+            <span className="text-sm font-bold uppercase tracking-widest">{isRTL ? 'تم تحديدها' : 'Selected'}</span>
+          </div>
+
+          <div className="flex items-center gap-4 flex-1">
+            <button
+              onClick={() => bulkToggleVisibility(true)}
+              disabled={isBulkLoading}
+              className="flex items-center gap-2 hover:text-green-400 transition-colors font-black text-sm uppercase tracking-widest disabled:opacity-50"
+            >
+              <Eye className="w-5 h-5" />
+              <span className="hidden md:inline">{t.show}</span>
+            </button>
+            <button
+              onClick={() => bulkToggleVisibility(false)}
+              disabled={isBulkLoading}
+              className="flex items-center gap-2 hover:text-orange-400 transition-colors font-black text-sm uppercase tracking-widest disabled:opacity-50"
+            >
+              <EyeOff className="w-5 h-5" />
+              <span className="hidden md:inline">{t.hidden}</span>
+            </button>
+            <button 
+              onClick={bulkDelete}
+              disabled={isBulkLoading}
+              className="flex items-center gap-2 hover:text-red-400 Transition-colors font-black text-sm uppercase tracking-widest pe-4 disabled:opacity-50"
+            >
+              <Trash2 className="w-5 h-5" />
+              <span className="hidden md:inline">{t.delete}</span>
+            </button>
+          </div>
+
+          <button
+            onClick={() => setSelectedIds([])}
+            className="p-2 hover:bg-white/10 rounded-full transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+          
+          {isBulkLoading && (
+            <div className="absolute inset-0 bg-black/60 rounded-3xl flex items-center justify-center">
+              <Loader2 className="w-6 h-6 animate-spin" />
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Table Interface */}
       <div className="bg-white rounded-3xl shadow-sm border overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="bg-gray-50/50 border-b border-gray-100">
+                <th className="px-6 py-5 text-start w-12">
+                   <div className="flex items-center">
+                     <input
+                       type="checkbox"
+                       checked={selectedIds.length === filteredProducts.length && filteredProducts.length > 0}
+                       onChange={handleSelectAll}
+                       className="w-5 h-5 rounded border-gray-300 text-black focus:ring-black cursor-pointer"
+                     />
+                   </div>
+                </th>
                 <th className="px-6 py-5 text-start text-xs font-black text-gray-400 uppercase tracking-widest">{t.productName}</th>
                 <th className="px-6 py-5 text-start text-xs font-black text-gray-400 uppercase tracking-widest">{t.productCategory}</th>
                 <th className="px-6 py-5 text-start text-xs font-black text-gray-400 uppercase tracking-widest">{t.productPrice}</th>
@@ -205,7 +315,15 @@ const AdminProductsPage: React.FC = () => {
               {filteredProducts.map((product) => {
                 const category = categories.find(c => c.id === product.categoryId);
                 return (
-                  <tr key={product.id} className="hover:bg-gray-50/50 transition-colors">
+                  <tr key={product.id} className={`hover:bg-gray-50/50 transition-colors ${selectedIds.includes(product.id) ? 'bg-black/[0.02]' : ''}`}>
+                    <td className="px-6 py-4">
+                       <input
+                         type="checkbox"
+                         checked={selectedIds.includes(product.id)}
+                         onChange={() => handleSelectOne(product.id)}
+                         className="w-5 h-5 rounded border-gray-300 text-black focus:ring-black cursor-pointer"
+                       />
+                    </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-4">
                         <div className="w-16 h-16 rounded-xl overflow-hidden border border-gray-100 shadow-sm flex-shrink-0 bg-gray-50">

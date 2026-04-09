@@ -19,6 +19,12 @@ const ProductsPage: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [sortBy, setSortBy] = useState<string>('newest');
   const [priceRange, setPriceRange] = useState<{ min: number; max: number }>({ min: 0, max: 1000000 });
+  const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
+  const [selectedColors, setSelectedColors] = useState<string[]>([]);
+
+  // Derived Filter Data
+  const availableSizes = Array.from(new Set(products.flatMap(p => p.sizes.map(s => s.name)))).sort();
+  const availableColors = Array.from(new Map(products.flatMap(p => p.colors.map(c => [c.hex, c.name]))).entries());
 
   // Fetch all products and categories once
   useEffect(() => {
@@ -71,6 +77,20 @@ const ProductsPage: React.FC = () => {
       );
     }
 
+    // Size filter
+    if (selectedSizes.length > 0) {
+      result = result.filter(p => 
+        p.sizes.some(s => selectedSizes.includes(s.name))
+      );
+    }
+
+    // Color filter
+    if (selectedColors.length > 0) {
+      result = result.filter(p => 
+        p.colors.some(c => selectedColors.includes(c.hex))
+      );
+    }
+
     // Price filter
     result = result.filter(p =>
       p.price >= priceRange.min && p.price <= priceRange.max
@@ -93,7 +113,7 @@ const ProductsPage: React.FC = () => {
     }
 
     setFilteredProducts(result);
-  }, [selectedCategory, searchQuery, sortBy, priceRange, products, loading]);
+  }, [selectedCategory, searchQuery, sortBy, priceRange, selectedSizes, selectedColors, products, loading]);
 
   const handleCategoryChange = (categoryId: string) => {
     setSelectedCategory(categoryId);
@@ -122,6 +142,8 @@ const ProductsPage: React.FC = () => {
     setSearchQuery('');
     setSortBy('newest');
     setPriceRange({ min: 0, max: 1000000 });
+    setSelectedSizes([]);
+    setSelectedColors([]);
     setSearchParams({});
   };
 
@@ -206,7 +228,7 @@ const ProductsPage: React.FC = () => {
             <div className="bg-white rounded-lg shadow-sm p-6 sticky top-24">
               <div className="flex items-center justify-between mb-6">
                 <h3 className="font-semibold text-gray-900">{t.filters}</h3>
-                {(selectedCategory || searchQuery) && (
+                {(selectedCategory || searchQuery || selectedSizes.length > 0 || selectedColors.length > 0) && (
                   <button
                     onClick={clearFilters}
                     className="text-sm text-primary-600 hover:text-primary-700 font-medium"
@@ -263,6 +285,60 @@ const ProductsPage: React.FC = () => {
                   />
                 </div>
               </div>
+
+              {/* Sizes */}
+              {availableSizes.length > 0 && (
+                <div className="mb-6">
+                  <h4 className="font-medium text-gray-900 mb-3 border-b pb-2">{t.availableSizes}</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {availableSizes.map(size => (
+                      <button
+                        key={size}
+                        onClick={() => {
+                          setSelectedSizes(prev => 
+                            prev.includes(size) ? prev.filter(s => s !== size) : [...prev, size]
+                          );
+                        }}
+                        className={`px-3 py-1.5 rounded-lg border text-sm font-medium transition-all ${
+                          selectedSizes.includes(size) 
+                            ? 'bg-black text-white border-black' 
+                            : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'
+                        }`}
+                      >
+                        {size}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Colors */}
+              {availableColors.length > 0 && (
+                <div className="mb-6">
+                  <h4 className="font-medium text-gray-900 mb-3 border-b pb-2">{t.availableColors}</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {availableColors.map(([hex, name]) => (
+                      <button
+                        key={hex}
+                        title={name}
+                        onClick={() => {
+                          setSelectedColors(prev => 
+                            prev.includes(hex) ? prev.filter(c => c !== hex) : [...prev, hex]
+                          );
+                        }}
+                        className={`w-8 h-8 rounded-full border-2 transition-all flex items-center justify-center p-0.5 ${
+                          selectedColors.includes(hex) ? 'border-black scale-110' : 'border-transparent hover:border-gray-300'
+                        }`}
+                      >
+                        <div 
+                          className="w-full h-full rounded-full border border-gray-200" 
+                          style={{ backgroundColor: hex }}
+                        ></div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </aside>
 
@@ -351,6 +427,60 @@ const ProductsPage: React.FC = () => {
                   />
                 </div>
               </div>
+
+              {/* Sizes Mobile */}
+              {availableSizes.length > 0 && (
+                <div className="mb-6">
+                  <h4 className="font-medium text-gray-900 mb-3 border-b pb-2">{t.availableSizes}</h4>
+                  <div className="flex flex-wrap gap-2 text-right" dir="rtl">
+                    {availableSizes.map(size => (
+                      <button
+                        key={size}
+                        onClick={() => {
+                          setSelectedSizes(prev => 
+                            prev.includes(size) ? prev.filter(s => s !== size) : [...prev, size]
+                          );
+                        }}
+                        className={`px-4 py-2 rounded-xl border text-base font-medium transition-all ${
+                          selectedSizes.includes(size) 
+                            ? 'bg-black text-white border-black' 
+                            : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'
+                        }`}
+                      >
+                        {size}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Colors Mobile */}
+              {availableColors.length > 0 && (
+                <div className="mb-8">
+                  <h4 className="font-medium text-gray-900 mb-3 border-b pb-2">{t.availableColors}</h4>
+                  <div className="flex flex-wrap gap-3">
+                    {availableColors.map(([hex, name]) => (
+                      <button
+                        key={hex}
+                        title={name}
+                        onClick={() => {
+                          setSelectedColors(prev => 
+                            prev.includes(hex) ? prev.filter(c => c !== hex) : [...prev, hex]
+                          );
+                        }}
+                        className={`w-10 h-10 rounded-full border-2 transition-all flex items-center justify-center p-0.5 ${
+                          selectedColors.includes(hex) ? 'border-black scale-110' : 'border-transparent hover:border-gray-300'
+                        }`}
+                      >
+                        <div 
+                          className="w-full h-full rounded-full border border-gray-200" 
+                          style={{ backgroundColor: hex }}
+                        ></div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <button
                 onClick={() => setShowFilters(false)}
