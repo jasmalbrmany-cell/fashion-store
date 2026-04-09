@@ -1291,6 +1291,7 @@ export const storeSettingsService = {
       }
 
       return {
+        id: data.id || 'settings_main',
         name: data.name || mockStoreSettings.name,
         logo: data.logo || mockStoreSettings.logo,
         currency: data.currency || mockStoreSettings.currency,
@@ -1298,7 +1299,7 @@ export const storeSettingsService = {
       };
     } catch (e) {
       console.error('Settings fetch failed or timed out:', e);
-      return mockStoreSettings as StoreSettings;
+      return { ...mockStoreSettings, id: 'settings_main' } as StoreSettings;
     }
   },
 
@@ -1311,7 +1312,8 @@ export const storeSettingsService = {
 
     const { data, error } = await (supabase as any)
       .from('store_settings')
-      .update({
+      .upsert({
+        id: settings.id || 'settings_main',
         name: settings.name,
         logo: settings.logo,
         currency: settings.currency,
@@ -1330,6 +1332,7 @@ export const storeSettingsService = {
     }
 
     return {
+      id: data.id,
       name: data.name,
       logo: data.logo || '',
       currency: data.currency,

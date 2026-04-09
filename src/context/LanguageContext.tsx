@@ -329,6 +329,7 @@ interface Translations {
   adBottom: string;
   adSidebar: string;
   adInline: string;
+  tiktok: string;
   adPopup: string;
   imageType: string;
   videoType: string;
@@ -748,6 +749,7 @@ const translations: Record<Language, Translations> = {
     adBottom: 'أسفل',
     adSidebar: 'جانبي',
     adInline: 'داخلي',
+    tiktok: 'تيك توك',
     adPopup: 'منبثق',
     imageType: 'صورة',
     videoType: 'فيديو',
@@ -1162,6 +1164,7 @@ const translations: Record<Language, Translations> = {
     adBottom: 'Bottom',
     adSidebar: 'Sidebar',
     adInline: 'Inline',
+    tiktok: 'TikTok',
     adPopup: 'Popup',
     imageType: 'Image',
     videoType: 'Video',

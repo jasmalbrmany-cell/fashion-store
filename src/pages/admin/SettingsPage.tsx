@@ -192,6 +192,22 @@ const SettingsPage: React.FC = () => {
               />
             </div>
 
+            {/* TikTok */}
+            <div className="space-y-3">
+              <label className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-gray-400 px-2">
+                <Share2 className="w-4 h-4 text-black" />
+                {t.tiktok}
+              </label>
+              <input
+                type="url"
+                value={settings.socialLinks.tiktok || ''}
+                onChange={(e) => updateSocialLink('tiktok', e.target.value)}
+                placeholder="https://tiktok.com/@..."
+                className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-black focus:bg-white transition-all outline-none font-medium"
+                dir="ltr"
+              />
+            </div>
+
             {/* Email */}
             <div className="space-y-3">
               <label className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-gray-400 px-2">

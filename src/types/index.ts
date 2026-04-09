@@ -187,6 +187,7 @@ export interface Statistics {
 
 // Store Settings
 export interface StoreSettings {
+  id?: string;
   name: string;
   logo: string;
   currency: string;
