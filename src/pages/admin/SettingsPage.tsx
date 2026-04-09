@@ -145,14 +145,19 @@ const SettingsPage: React.FC = () => {
                 <Phone className="w-4 h-4 text-green-500" />
                 {t.mainWhatsapp}
               </label>
-              <input
-                type="tel"
-                value={settings.socialLinks.whatsapp}
-                onChange={(e) => updateSocialLink('whatsapp', e.target.value)}
-                placeholder="967777123456"
-                className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-black focus:bg-white transition-all outline-none font-black"
-                dir="ltr"
-              />
+              <div className="flex items-center bg-gray-50 border border-gray-100 rounded-2xl overflow-hidden focus-within:ring-2 focus-within:ring-black transition-all">
+                <div className="bg-gray-100 px-4 py-4 border-r border-gray-200 font-black text-gray-400 flex items-center justify-center min-w-[70px]">
+                  +967
+                </div>
+                <input
+                  type="tel"
+                  value={settings.socialLinks.whatsapp.replace(/^967/, '')}
+                  onChange={(e) => updateSocialLink('whatsapp', '967' + e.target.value.replace(/[^0-9]/g, '').substring(0, 9))}
+                  placeholder="77XXXXXXX"
+                  className="w-full px-6 py-4 bg-transparent transition-all outline-none font-black"
+                  dir="ltr"
+                />
+              </div>
             </div>
 
             {/* Instagram */}
@@ -226,25 +231,33 @@ const SettingsPage: React.FC = () => {
                     {cat.name}
                   </span>
                 </div>
-                <input
-                  type="tel"
-                  value={settings.socialLinks.whatsappCategory?.[cat.id as keyof typeof settings.socialLinks.whatsappCategory] || ''}
-                  onChange={(e) => setSettings(prev => {
-                    if (!prev) return null;
-                    const catMap = { ...(prev.socialLinks.whatsappCategory || {}) };
-                    catMap[cat.id as keyof typeof catMap] = e.target.value;
-                    return {
-                      ...prev,
-                      socialLinks: {
-                        ...prev.socialLinks,
-                        whatsappCategory: catMap
-                      }
-                    };
-                  })}
-                  placeholder="967777XXXXXX"
-                  className="flex-1 px-6 py-3 bg-white border border-gray-100 rounded-2xl focus:ring-2 focus:ring-black outline-none font-black shadow-sm"
-                  dir="ltr"
-                />
+                <div className="flex-1 flex items-center bg-white border border-gray-100 rounded-2xl overflow-hidden focus-within:ring-2 focus-within:ring-black shadow-sm transition-all">
+                  <div className="bg-gray-50 px-4 py-3 border-r border-gray-100 font-black text-gray-400 text-sm">
+                    +967
+                  </div>
+                  <input
+                    type="tel"
+                    value={(settings.socialLinks.whatsappCategory?.[cat.id as keyof typeof settings.socialLinks.whatsappCategory] || '').replace(/^967/, '')}
+                    onChange={(e) => {
+                      const val = '967' + e.target.value.replace(/[^0-9]/g, '').substring(0, 9);
+                      setSettings(prev => {
+                        if (!prev) return null;
+                        const catMap = { ...(prev.socialLinks.whatsappCategory || {}) };
+                        catMap[cat.id as keyof typeof catMap] = val;
+                        return {
+                          ...prev,
+                          socialLinks: {
+                            ...prev.socialLinks,
+                            whatsappCategory: catMap
+                          }
+                        };
+                      });
+                    }}
+                    placeholder="77XXXXXXX"
+                    className="w-full px-6 py-3 bg-transparent outline-none font-black"
+                    dir="ltr"
+                  />
+                </div>
               </div>
             ))}
             {categories.length === 0 && (
