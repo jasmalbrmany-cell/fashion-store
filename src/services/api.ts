@@ -333,21 +333,36 @@ export const productsService = {
   },
 
   async getAllAdmin(): Promise<Product[]> {
+    const cached = getFromCache('products_admin_all');
+    if (cached) return cached;
+
     if (!isSupabaseConfigured()) {
       return mockProducts;
     }
 
-    const { data, error } = await (supabase as any)
+    const fetchPromise = (supabase as any)
       .from('products')
       .select('*')
       .order('created_at', { ascending: false });
 
-    if (error) {
-      console.error('Error fetching admin products:', error);
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Timeout')), 2500)
+    );
+
+    try {
+      const { data, error } = await Promise.race([fetchPromise, timeoutPromise]) as any;
+
+      if (error) {
+        console.error('Error fetching admin products:', error);
+        return mockProducts;
+      }
+
+      const transformed = (data || []).map(transformProduct);
+      setToCache('products_admin_all', transformed);
+      return transformed;
+    } catch (e) {
       return mockProducts;
     }
-
-    return (data || []).map(transformProduct);
   },
 
   async create(product: Partial<Product>): Promise<Product | null> {
@@ -370,6 +385,7 @@ export const productsService = {
     }
 
     clearCache('products_all');
+    clearCache('products_admin_all');
     return transformProduct(data);
   },
 
@@ -779,21 +795,36 @@ export const citiesService = {
 
 export const currenciesService = {
   async getAll(): Promise<Currency[]> {
+    const cached = getFromCache('currencies_all');
+    if (cached) return cached;
+
     if (!isSupabaseConfigured()) {
       return mockCurrencies;
     }
 
-    const { data, error } = await (supabase as any)
+    const fetchPromise = (supabase as any)
       .from('currencies')
       .select('*')
       .order('code', { ascending: true });
 
-    if (error) {
-      console.error('Error fetching currencies:', error);
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Timeout')), 2500)
+    );
+
+    try {
+      const { data, error } = await Promise.race([fetchPromise, timeoutPromise]) as any;
+
+      if (error) {
+        console.error('Error fetching currencies:', error);
+        return mockCurrencies;
+      }
+
+      const transformed = (data || []).map(transformCurrency);
+      setToCache('currencies_all', transformed);
+      return transformed;
+    } catch (e) {
       return mockCurrencies;
     }
-
-    return (data || []).map(transformCurrency);
   },
 
   async getByCode(code: string): Promise<Currency | null> {
@@ -1115,6 +1146,9 @@ export const ordersService = {
 
 export const adsService = {
   async getActive(): Promise<Ad[]> {
+    const cached = getFromCache('ads_active');
+    if (cached) return cached;
+
     if (!isSupabaseConfigured()) {
       return mockAds.filter(a => a.isActive);
     }
@@ -1126,7 +1160,7 @@ export const adsService = {
       .order('order', { ascending: true });
 
     const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Timeout')), 5000)
+      setTimeout(() => reject(new Error('Timeout')), 2500)
     );
 
     try {
@@ -1137,13 +1171,18 @@ export const adsService = {
         return mockAds.filter(a => a.isActive);
       }
 
-      return (data || []).map(transformAd);
+      const transformed = (data || []).map(transformAd);
+      setToCache('ads_active', transformed);
+      return transformed;
     } catch (e) {
       return mockAds.filter(a => a.isActive);
     }
   },
 
   async getAll(): Promise<Ad[]> {
+    const cached = getFromCache('ads_all');
+    if (cached) return cached;
+
     if (!isSupabaseConfigured()) {
       return mockAds;
     }
@@ -1154,7 +1193,7 @@ export const adsService = {
       .order('order', { ascending: true });
 
     const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Timeout')), 5000)
+      setTimeout(() => reject(new Error('Timeout')), 2500)
     );
 
     try {
@@ -1165,9 +1204,10 @@ export const adsService = {
         return mockAds;
       }
 
-      return (data || []).map(transformAd);
+      const transformed = (data || []).map(transformAd);
+      setToCache('ads_all', transformed);
+      return transformed;
     } catch (e) {
-      console.warn('Ads fetch timed out or failed, using mock data');
       return mockAds;
     }
   },
