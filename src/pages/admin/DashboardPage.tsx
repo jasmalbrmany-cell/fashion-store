@@ -13,12 +13,14 @@ import { Skeleton, CardSkeleton, TableSkeleton } from '@/components/Common/Skele
 import { SalesChart, CategoryChart } from '@/components/Admin/DashboardCharts';
 import { LowStockAlerts } from '@/components/Admin/LowStockAlerts';
 
+import { hasValidCache, getCachedSync } from '@/services/api';
+
 const DashboardPage: React.FC = () => {
   const { user } = useAuth();
   const { t, isRTL, language } = useLanguage();
-  const [stats, setStats] = useState<Statistics | null>(null);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [stats, setStats] = useState<Statistics | null>(getCachedSync<Statistics>('statistics_main'));
+  const [products, setProducts] = useState<Product[]>(getCachedSync<Product[]>('products_admin_all') || []);
+  const [isLoading, setIsLoading] = useState(!hasValidCache('statistics_main') || !hasValidCache('products_admin_all'));
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
 
   const fetchStats = async () => {

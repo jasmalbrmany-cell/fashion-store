@@ -1,16 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { Save, Building2, Globe, Palette, Mail, Phone, Link as LinkIcon, CheckCircle2, Loader2, Share2, Instagram, Facebook } from 'lucide-react';
 import { storeSettingsService, categoriesService } from '@/services/api';
-import { StoreSettings, Category } from '@/types';
+import { StoreSettings, Category, City } from '@/types';
 import { useLanguage } from '@/context/LanguageContext';
+import { hasValidCache, getCachedSync } from '@/services/api';
 
 const SettingsPage: React.FC = () => {
   const { isRTL, t } = useLanguage();
-  const [settings, setSettings] = useState<StoreSettings | null>(null);
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [settings, setSettings] = useState<StoreSettings | null>(getCachedSync<StoreSettings>('settings_main'));
+  const [categories, setCategories] = useState<Category[]>(getCachedSync<Category[]>('categories_all') || []);
   const [isSaving, setIsSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(!hasValidCache('settings_main'));
 
   useEffect(() => {
     const loadData = async () => {

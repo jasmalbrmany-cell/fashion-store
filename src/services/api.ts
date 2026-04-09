@@ -91,6 +91,23 @@ const clearCache = (key: string) => {
   }
 };
 
+export const hasValidCache = (key: string): boolean => {
+  if (memoryCache[key]) {
+    const isStale = Date.now() - memoryCache[key].timestamp > CACHE_TTL;
+    return !isStale;
+  }
+  const stored = getStorageItem<{ data: any; timestamp: number } | null>(`cache_${key}`, null);
+  if (stored) {
+    const isStale = Date.now() - stored.timestamp > CACHE_TTL;
+    return !isStale;
+  }
+  return false;
+};
+
+export const getCachedSync = <T>(key: string): T | null => {
+  return getFromCache(key) as T | null;
+};
+
 // Syncing functions
 const syncProducts = () => {
   setStorageItem(STORAGE_KEYS.PRODUCTS, mockProducts);

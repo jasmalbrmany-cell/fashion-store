@@ -15,15 +15,15 @@ import {
   Loader2,
   Package
 } from 'lucide-react';
-import { ordersService } from '@/services/api';
+import { ordersService, hasValidCache, getCachedSync } from '@/services/api';
 import { Order, OrderStatus } from '@/types';
 import { useLanguage } from '@/context/LanguageContext';
 
 const AdminOrdersPage: React.FC = () => {
   const { t, language, isRTL } = useLanguage();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [orders, setOrders] = useState<Order[]>(getCachedSync<Order[]>('orders_all') || []);
+  const [loading, setLoading] = useState(!hasValidCache('orders_all'));
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>(searchParams.get('status') || '');
   const [menuOpen, setMenuOpen] = useState<string | null>(null);

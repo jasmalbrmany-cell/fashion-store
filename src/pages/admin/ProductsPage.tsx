@@ -18,16 +18,16 @@ import {
   CheckCircle2,
   X
 } from 'lucide-react';
-import { productsService, categoriesService } from '@/services';
+import { productsService, categoriesService, hasValidCache, getCachedSync } from '@/services/api';
 import { Product, Category } from '@/types';
 import { useLanguage } from '@/context/LanguageContext';
 import { Skeleton, TableSkeleton } from '@/components/Common/Skeleton';
 
 const AdminProductsPage: React.FC = () => {
   const { t, language, isRTL } = useLanguage();
-  const [products, setProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [products, setProducts] = useState<Product[]>(getCachedSync<Product[]>('products_admin_all') || []);
+  const [categories, setCategories] = useState<Category[]>(getCachedSync<Category[]>('categories_all') || []);
+  const [isLoading, setIsLoading] = useState(!hasValidCache('products_admin_all') || !hasValidCache('categories_all'));
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [menuOpen, setMenuOpen] = useState<string | null>(null);

@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Edit, Trash2, Search, MapPin, X, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
-import { citiesService } from '@/services/api';
+import { citiesService, hasValidCache, getCachedSync } from '@/services/api';
 import { City } from '@/types';
 import { useLanguage } from '@/context/LanguageContext';
 
 const CitiesPage: React.FC = () => {
   const { t, language, isRTL } = useLanguage();
-  const [cities, setCities] = useState<City[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [cities, setCities] = useState<City[]>(getCachedSync<City[]>('cities_all') || []);
+  const [loading, setLoading] = useState(!hasValidCache('cities_all'));
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCity, setEditingCity] = useState<City | null>(null);
   const [searchQuery, setSearchQuery] = useState('');

@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Edit, Trash2, Search, Image as ImageIcon, Video, Type, X, Eye, EyeOff, Loader2, RefreshCw, Layers, CheckCircle2, AlertCircle } from 'lucide-react';
-import { adsService } from '@/services/api';
+import { adsService, hasValidCache, getCachedSync } from '@/services/api';
 import { Ad, AdType, AdPosition } from '@/types';
 import { useLanguage } from '@/context/LanguageContext';
 
 const AdsPage: React.FC = () => {
   const { t, isRTL } = useLanguage();
-  const [ads, setAds] = useState<Ad[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [ads, setAds] = useState<Ad[]>(getCachedSync<Ad[]>('ads_all') || []);
+  const [isLoading, setIsLoading] = useState(!hasValidCache('ads_all'));
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingAd, setEditingAd] = useState<Ad | null>(null);
