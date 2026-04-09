@@ -56,7 +56,7 @@ const SettingsPage: React.FC = () => {
     }) : null);
   };
 
-  if (isLoading || !settings) {
+  if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
         <Loader2 className="w-10 h-10 animate-spin text-black" />
@@ -64,6 +64,15 @@ const SettingsPage: React.FC = () => {
       </div>
     );
   }
+
+  // Use imported mockStoreSettings as fallback if settings is still null for some reason
+  // We need to import it or define a local fallback
+  const finalSettings = settings || {
+    name: 'Fashion Hub',
+    logo: '',
+    currency: 'YER',
+    socialLinks: { whatsapp: '', email: '' }
+  } as StoreSettings;
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 pb-12" dir={isRTL ? 'rtl' : 'ltr'}>

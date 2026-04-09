@@ -1271,27 +1271,35 @@ export const storeSettingsService = {
       return mockStoreSettings as StoreSettings;
     }
 
-    const { data, error } = await (supabase as any)
+    // Add a race with a timeout
+    const fetchPromise = (supabase as any)
       .from('store_settings')
       .select('*')
       .limit(1)
       .single();
 
-    if (error) {
-      console.error('Error fetching store settings:', error);
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Timeout')), 5000)
+    );
+
+    try {
+      const { data, error } = await Promise.race([fetchPromise, timeoutPromise]) as any;
+
+      if (error || !data) {
+        console.warn('Using mock settings due to error or no data:', error);
+        return mockStoreSettings as StoreSettings;
+      }
+
+      return {
+        name: data.name || mockStoreSettings.name,
+        logo: data.logo || mockStoreSettings.logo,
+        currency: data.currency || mockStoreSettings.currency,
+        socialLinks: data.social_links || mockStoreSettings.socialLinks,
+      };
+    } catch (e) {
+      console.error('Settings fetch failed or timed out:', e);
       return mockStoreSettings as StoreSettings;
     }
-
-    if (!data) {
-      return mockStoreSettings as StoreSettings;
-    }
-
-    return {
-      name: data.name,
-      logo: data.logo || '',
-      currency: data.currency,
-      socialLinks: data.social_links || {},
-    };
   },
 
   async update(settings: Partial<StoreSettings>): Promise<StoreSettings | null> {

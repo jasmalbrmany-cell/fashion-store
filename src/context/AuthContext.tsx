@@ -18,6 +18,28 @@ const profileToUser = (profile: ProfileRow): User => ({
   created_at: profile.created_at,
 });
 
+interface UserPermissions {
+  can_manage_products: boolean;
+  can_manage_orders: boolean;
+  can_manage_users: boolean;
+  can_manage_ads: boolean;
+  can_manage_cities: boolean;
+  can_manage_currencies: boolean;
+  can_view_reports: boolean;
+  can_export_data: boolean;
+}
+
+const defaultPermissions: UserPermissions = {
+  can_manage_products: false,
+  can_manage_orders: false,
+  can_manage_users: false,
+  can_manage_ads: false,
+  can_manage_cities: false,
+  can_manage_currencies: false,
+  can_view_reports: false,
+  can_export_data: false,
+};
+
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
@@ -27,69 +49,85 @@ interface AuthContextType {
   isAdmin: boolean;
   isEditor: boolean;
   isViewer: boolean;
+  permissions: UserPermissions;
   canManageProducts: boolean;
   canManageOrders: boolean;
   canManageUsers: boolean;
+  canManageAds: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [permissions, setPermissions] = useState<UserPermissions>(defaultPermissions);
   const [isLoading, setIsLoading] = useState(true);
+
+  const fetchPermissions = async (userId: string) => {
+    if (!isSupabaseConfigured()) return;
+    try {
+      const { data, error } = await supabase
+        .from('user_permissions')
+        .select('*')
+        .eq('user_id', userId)
+        .single();
+      
+      if (data) {
+        const d = data as any;
+        setPermissions({
+          can_manage_products: d.can_manage_products ?? false,
+          can_manage_orders: d.can_manage_orders ?? false,
+          can_manage_users: d.can_manage_users ?? false,
+          can_manage_ads: d.can_manage_ads ?? false,
+          can_manage_cities: d.can_manage_cities ?? false,
+          can_manage_currencies: d.can_manage_currencies ?? false,
+          can_view_reports: d.can_view_reports ?? false,
+          can_export_data: d.can_export_data ?? false,
+        });
+      } else {
+        setPermissions(defaultPermissions);
+      }
+    } catch (e) {
+      console.error('Error fetching permissions:', e);
+      setPermissions(defaultPermissions);
+    }
+  };
 
   useEffect(() => {
     const initAuth = async () => {
-      // Safety timeout to prevent infinite loading state
       const timeoutId = setTimeout(() => {
         setIsLoading(false);
-        console.warn('Auth initialization timed out after 8s');
       }, 8000);
 
       try {
-        // Check for saved session
         const savedUser = localStorage.getItem('fashionHubUser');
         if (savedUser) {
           try {
-            setUser(JSON.parse(savedUser));
-          } catch (e) {
-            console.error('Error loading user from localStorage:', e);
-          }
+            const parsed = JSON.parse(savedUser);
+            setUser(parsed);
+            if (parsed.role !== 'customer') fetchPermissions(parsed.id);
+          } catch (e) {}
         }
 
-        // If Supabase is configured, check for Supabase session
         if (isSupabaseConfigured()) {
-          try {
-            const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-            
-            if (sessionError) {
-              console.error('Supabase getSession error:', sessionError);
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.user) {
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', session.user.id)
+              .single();
+
+            if (profile) {
+              const userData = profileToUser(profile);
+              setUser(userData);
+              localStorage.setItem('fashionHubUser', JSON.stringify(userData));
+              if (userData.role !== 'customer') await fetchPermissions(userData.id);
             }
-
-            if (session?.user) {
-              // Fetch user profile from database
-              const { data: profile, error: profileError } = await supabase
-                .from('profiles')
-                .select('*')
-                .eq('id', session.user.id)
-                .single();
-
-              if (profileError) {
-                console.error('Error fetching Supabase profile:', profileError);
-              }
-
-              if (profile) {
-                const userData = profileToUser(profile);
-                setUser(userData);
-                localStorage.setItem('fashionHubUser', JSON.stringify(userData));
-              }
-            }
-          } catch (e) {
-            console.error('Error in Supabase initialization:', e);
           }
         }
       } catch (globalError) {
-        console.error('Global error in initAuth:', globalError);
+        console.error('Auth error:', globalError);
       } finally {
         clearTimeout(timeoutId);
         setIsLoading(false);
@@ -98,7 +136,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     initAuth();
 
-    // Listen for auth changes
     if (isSupabaseConfigured()) {
       const { data: { subscription } } = supabase.auth.onAuthStateChange(
         async (event, session) => {
@@ -113,14 +150,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               const userData = profileToUser(profile);
               setUser(userData);
               localStorage.setItem('fashionHubUser', JSON.stringify(userData));
+              if (userData.role !== 'customer') fetchPermissions(userData.id);
             }
           } else {
             setUser(null);
+            setPermissions(defaultPermissions);
             localStorage.removeItem('fashionHubUser');
           }
         }
       );
-
       return () => subscription.unsubscribe();
     }
   }, []);
@@ -128,7 +166,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
     setIsLoading(true);
 
-    // Try Supabase authentication first
     if (isSupabaseConfigured()) {
       try {
         const { data, error } = await supabase.auth.signInWithPassword({
@@ -137,85 +174,41 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         });
 
         if (error) {
-          console.error('Supabase login error:', error);
           setIsLoading(false);
-          // Return specific error messages
-          if (error.message.includes('Email not confirmed') || error.message.includes('email_not_confirmed')) {
-            return { success: false, error: 'email_not_confirmed' };
-          }
-          if (error.message.includes('Invalid login credentials')) {
-            return { success: false, error: 'invalid_credentials' };
-          }
-          return { success: false, error: error.message };
+          if (error.message.includes('confirmed')) return { success: false, error: 'email_not_confirmed' };
+          return { success: false, error: 'invalid_credentials' };
         }
 
         if (data.user) {
-          // Fetch user profile
-          let { data: profile } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', data.user.id)
-            .single();
+          let { data: profile } = await supabase.from('profiles').select('*').eq('id', data.user.id).single();
 
-          // If no profile, create one with role from metadata
           if (!profile) {
-            const metaRole =
-              data.user.app_metadata?.role ||
-              data.user.user_metadata?.role ||
-              'customer';
-            const { data: newProfile } = await (supabase as any)
-              .from('profiles')
-              .upsert({
-                id: data.user.id,
-                email: data.user.email || email,
-                name: data.user.user_metadata?.name || data.user.user_metadata?.full_name || email.split('@')[0],
-                role: metaRole,
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString(),
-              })
-              .select()
-              .single();
+            const metaRole = data.user.app_metadata?.role || data.user.user_metadata?.role || 'customer';
+            const { data: newProfile } = await (supabase as any).from('profiles').upsert({
+              id: data.user.id, email, name: data.user.user_metadata?.name || email.split('@')[0], role: metaRole
+            }).select().single();
             profile = newProfile;
-          }
-
-          // If profile exists but role might need update from metadata
-          if (profile && (profile as any).role === 'customer') {
-            const metaRole =
-              data.user.app_metadata?.role ||
-              data.user.user_metadata?.role;
-            if (metaRole && metaRole !== 'customer') {
-              const { data: updatedProfile } = await (supabase as any)
-                .from('profiles')
-                .update({ role: metaRole })
-                .eq('id', data.user.id)
-                .select()
-                .single();
-              if (updatedProfile) profile = updatedProfile;
-            }
           }
 
           if (profile) {
             const userData = profileToUser(profile);
             setUser(userData);
             localStorage.setItem('fashionHubUser', JSON.stringify(userData));
+            if (userData.role !== 'customer') await fetchPermissions(userData.id);
             setIsLoading(false);
             return { success: true };
           }
         }
       } catch (e) {
-        console.error('Error during Supabase login:', e);
         setIsLoading(false);
         return { success: false, error: 'unknown' };
       }
     }
 
-    // Fallback demo login
-    await new Promise(resolve => setTimeout(resolve, 500));
+    // Demo Mode logic remains but should fetch permissions if existing in storage
     const allUsers = await usersService.getAll();
     const foundUser = allUsers.find(u => u.email.toLowerCase().trim() === email.toLowerCase().trim());
     
-    // We allow any password for newly created demo users to make testing easier
-    // or keep demo123 for initial mock users.
     if (foundUser && (password === 'demo123' || foundUser.id.startsWith('user-'))) {
       setUser(foundUser);
       localStorage.setItem('fashionHubUser', JSON.stringify(foundUser));
@@ -228,25 +221,21 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const logout = async () => {
-    // Log out from Supabase if configured
-    if (isSupabaseConfigured()) {
-      try {
-        await supabase.auth.signOut();
-      } catch (e) {
-        console.error('Error signing out from Supabase:', e);
-      }
-    }
-
+    if (isSupabaseConfigured()) await supabase.auth.signOut().catch(() => {});
     setUser(null);
+    setPermissions(defaultPermissions);
     localStorage.removeItem('fashionHubUser');
   };
 
-  const isAdmin = user?.role === 'admin';
-  const isEditor = user?.role === 'editor' || isAdmin;
-  const isViewer = user?.role === 'viewer' || isEditor || isAdmin;
-  const canManageProducts = isAdmin || isEditor;
-  const canManageOrders = isAdmin || isEditor;
-  const canManageUsers = isAdmin;
+  const isAdmin = user?.role?.toLowerCase() === 'admin';
+  const isEditor = user?.role?.toLowerCase() === 'editor' || isAdmin;
+  const isViewer = user?.role?.toLowerCase() === 'viewer' || isEditor || isAdmin;
+  
+  // Real granular permissions
+  const canManageProducts = isAdmin || permissions.can_manage_products;
+  const canManageOrders = isAdmin || permissions.can_manage_orders;
+  const canManageUsers = isAdmin || permissions.can_manage_users;
+  const canManageAds = isAdmin || permissions.can_manage_ads;
 
   return (
     <AuthContext.Provider
@@ -259,9 +248,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         isAdmin,
         isEditor,
         isViewer,
+        permissions,
         canManageProducts,
         canManageOrders,
         canManageUsers,
+        canManageAds
       }}
     >
       {children}

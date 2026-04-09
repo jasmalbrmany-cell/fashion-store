@@ -22,9 +22,22 @@ import { useLanguage } from '@/context/LanguageContext';
 const AdminLayout: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, isLoading, logout, canManageUsers, canManageProducts, canManageOrders } = useAuth();
+  const { user, isLoading, logout, canManageUsers, canManageProducts, canManageOrders, canManageAds, permissions, isAdmin } = useAuth();
   const { t, language, toggleLanguage, isRTL } = useLanguage();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  const menuItems = React.useMemo(() => [
+    { path: '/admin', icon: <LayoutDashboard className="w-5 h-5" />, label: t.adminDashboard, exact: true, show: true },
+    { path: '/admin/products', icon: <Package className="w-5 h-5" />, label: t.adminProducts, show: canManageProducts },
+    { path: '/admin/orders', icon: <ShoppingCart className="w-5 h-5" />, label: t.adminOrders, show: canManageOrders },
+    { path: '/admin/users', icon: <Users className="w-5 h-5" />, label: t.adminUsers, show: canManageUsers },
+    { path: '/admin/cities', icon: <Globe className="w-5 h-5" />, label: t.adminCities, show: isAdmin || permissions.can_manage_cities },
+    { path: '/admin/currencies', icon: <DollarSign className="w-5 h-5" />, label: t.adminCurrencies, show: isAdmin || permissions.can_manage_currencies },
+    { path: '/admin/ads', icon: <Megaphone className="w-5 h-5" />, label: t.adminAds, show: canManageAds },
+    { path: '/admin/activity', icon: <Activity className="w-5 h-5" />, label: t.adminActivity, show: isAdmin || permissions.can_view_reports },
+    { path: '/admin/settings', icon: <Settings className="w-5 h-5" />, label: t.adminSettings, show: canManageUsers },
+    { path: '/admin/products/bulk', icon: <ShoppingCart className="w-5 h-5" />, label: t.bulkImport, show: canManageProducts },
+  ].filter(item => item.show !== false), [t, canManageProducts, canManageOrders, canManageUsers, canManageAds, isAdmin, permissions]);
 
   useEffect(() => {
     if (!isLoading) {
@@ -52,19 +65,6 @@ const AdminLayout: React.FC = () => {
     logout();
     navigate('/');
   };
-
-  const menuItems = [
-    { path: '/admin', icon: <LayoutDashboard className="w-5 h-5" />, label: t.adminDashboard, exact: true },
-    { path: '/admin/products', icon: <Package className="w-5 h-5" />, label: t.adminProducts, show: canManageProducts },
-    { path: '/admin/orders', icon: <ShoppingCart className="w-5 h-5" />, label: t.adminOrders, show: canManageOrders },
-    { path: '/admin/users', icon: <Users className="w-5 h-5" />, label: t.adminUsers, show: canManageUsers },
-    { path: '/admin/cities', icon: <Globe className="w-5 h-5" />, label: t.adminCities, show: canManageProducts },
-    { path: '/admin/currencies', icon: <DollarSign className="w-5 h-5" />, label: t.adminCurrencies, show: canManageProducts },
-    { path: '/admin/ads', icon: <Megaphone className="w-5 h-5" />, label: t.adminAds, show: canManageProducts },
-    { path: '/admin/activity', icon: <Activity className="w-5 h-5" />, label: t.adminActivity, show: true },
-    { path: '/admin/settings', icon: <Settings className="w-5 h-5" />, label: t.adminSettings, show: canManageUsers },
-    { path: '/admin/products/bulk', icon: <ShoppingCart className="w-5 h-5" />, label: t.bulkImport, show: canManageProducts },
-  ].filter(item => item.show !== false);
 
   const isActive = (path: string, exact = false) => {
     if (exact) return location.pathname === path;

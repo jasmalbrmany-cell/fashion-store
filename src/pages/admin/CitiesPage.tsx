@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, Search, MapPin, X, Loader2 } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, MapPin, X, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 import { citiesService } from '@/services/api';
 import { City } from '@/types';
 import { useLanguage } from '@/context/LanguageContext';

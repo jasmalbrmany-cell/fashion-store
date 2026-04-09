@@ -145,6 +145,13 @@ interface Translations {
   adminRole: string;
   editorRole: string;
   viewerRole: string;
+  customerRole: string;
+  refresh: string;
+  salesOverview: string;
+  last7Days: string;
+  topCategories: string;
+  selectCategory: string;
+  add: string;
   
   // شاشة Dashboard
   overview: string;
@@ -165,7 +172,6 @@ interface Translations {
   dateAdded: string;
   status: string;
   actions: string;
-  // source: string; // Removed duplicate
   units: string;
   show: string;
   viewProduct: string;
@@ -187,11 +193,11 @@ interface Translations {
   generateInvoice: string;
   downloadInvoice: string;
   contactCustomer: string;
-  // customerInfo: string; // Removed duplicate
   address: string;
   subtotal: string;
   shippingCost: string;
   orderTotal: string;
+  cancelOrder: string;
 
   // عام
   currency: string;
@@ -201,50 +207,6 @@ interface Translations {
   city: string;
   quantity: string;
   search: string;
-
-  // الصفحة الرئيسية
-  shopNow: string;
-  browseProducts: string;
-  welcomeTo: string;
-  latestTrends: string;
-  featuredProducts: string;
-  newArrivals: string;
-  viewAll: string;
-  categories: string;
-  buyViaWhatsapp: string;
-  contactNow: string;
-  whatsappDesc: string;
-  fastShipping: string;
-  fastShippingDesc: string;
-  securePay: string;
-  securePayDesc: string;
-  easyReturn: string;
-  easyReturnDesc: string;
-  support: string;
-  supportDesc: string;
-
-  // الفوتر
-  footerAbout: string;
-  quickLinks: string;
-  footerCategories: string;
-  contactInfo: string;
-  trackMyOrder: string;
-  allRights: string;
-  madeWith: string;
-
-  // تتبع الطلب
-  trackOrderTitle: string;
-  orderNotFound: string;
-  orderNotFoundDesc: string;
-  orderReceived: string;
-  paymentConfirmed: string;
-  shipped: string;
-  orderDelivered: string;
-  orderCancelled: string;
-  enterOrderNumber: string;
-  whatsappContact: string;
-  orderStatus: string;
-  orderTracking: string;
 
   // حالات الطلب
   statusPending: string;
@@ -325,8 +287,6 @@ interface Translations {
   adminDashboardTitle: string;
   welcomeBack: string;
   lastUpdated: string;
-  totalRevenue: string;
-  recentActivities: string;
   fullLog: string;
   quickActions: string;
   noRecentActivity: string;
@@ -339,7 +299,6 @@ interface Translations {
   adminsCount: string;
   addUser: string;
   editUser: string;
-  fullName: string;
   emailLabel: string;
   phoneLabel: string;
   passwordLabel: string;
@@ -390,33 +349,23 @@ interface Translations {
   deletions_count: string;
   manageProducts: string;
   availableProducts: string;
-  addProduct: string;
   editProduct: string;
-  importFromUrl: string;
   searchByProductName: string;
-  allCategories: string;
-  productName: string;
-  productDescription: string;
   productPrice: string;
   productCategory: string;
   stockLabel: string;
   stockUnits: string;
   visibilityStatus: string;
-  visible: string;
-  hidden: string;
   productAddedSuccess: string;
   productUpdatedSuccess: string;
   productDeletedSuccess: string;
   errorSavingProduct: string;
-  confirmDeleteProduct: string;
   loadingProducts: string;
   visualAssets: string;
   uploadImages: string;
   fromUrl: string;
   mainImage: string;
   sizesAndVariants: string;
-  addSize: string;
-  addColor: string;
   colorMapping: string;
   saveFinalProduct: string;
   addedAt: string;
@@ -426,9 +375,7 @@ interface Translations {
   mobile: string;
   qtyLabel: string;
   approveOrder: string;
-  completeOrder: string;
   waitingPayment: string;
-  cancelOrder: string;
   paid: string;
   cityName: string;
   searchCity: string;
@@ -438,45 +385,53 @@ interface Translations {
   officialEmail: string;
   noCategories: string;
   adTitlePlaceholder: string;
-  adImageUrl: string;
-  adContent: string;
-  adLink: string;
-  adActive: string;
   adImageUrlPlaceholder: string;
   adContentPlaceholder: string;
   adLinkPlaceholder: string;
   searchUserPlaceholder: string;
-  cannotDeleteSelf: string;
-  cannotDeleteAdmin: string;
-  userUpdatedSuccess: string;
-  userCreatedSuccess: string;
-  userDeletedSuccess: string;
-  confirmDeleteUser: string;
-  totalUsersDesc: string;
-  customersCount: string;
-  adminsCount: string;
-  selectAll: string;
-  deselectAll: string;
-  you: string;
-  inventoryManagement: string;
-  identityManagement: string;
-  fullName: string;
-  emailLabel: string;
-  phoneLabel: string;
-  passwordLabel: string;
-  roleLabel: string;
-  permissionsLabel: string;
-  activityHistory: string;
-  exportReport: string;
-  searchActivities: string;
-  allUsers: string;
-  justNow: string;
-  hoursAgo: string;
-  daysAgo: string;
-  totalActivities: string;
-  additions: string;
-  edits: string;
-  deletions_count: string;
+
+  // صفحة الهوم
+  shopNow: string;
+  welcomeTo: string;
+  latestTrends: string;
+  featuredProducts: string;
+  newArrivals: string;
+  viewAll: string;
+  categories: string;
+  buyViaWhatsapp: string;
+  contactNow: string;
+  whatsappDesc: string;
+  fastShipping: string;
+  fastShippingDesc: string;
+  securePay: string;
+  securePayDesc: string;
+  easyReturn: string;
+  easyReturnDesc: string;
+  support: string;
+  supportDesc: string;
+
+  // الفوتر
+  footerAbout: string;
+  quickLinks: string;
+  footerCategories: string;
+  contactInfo: string;
+  trackMyOrder: string;
+  allRights: string;
+  madeWith: string;
+
+  // تتبع الطلب
+  trackOrderTitle: string;
+  orderNotFound: string;
+  orderNotFoundDesc: string;
+  orderReceived: string;
+  paymentConfirmed: string;
+  shipped: string;
+  orderDelivered: string;
+  orderCancelled: string;
+  enterOrderNumber: string;
+  whatsappContact: string;
+  orderStatus: string;
+  orderTracking: string;
 }
 
 const translations: Record<Language, Translations> = {
@@ -564,7 +519,6 @@ const translations: Record<Language, Translations> = {
     willContactYou: 'سيتم التواصل معك عبر واتساب لتأكيد طلبك واستكمال عملية الدفع',
     emptyCartCheckout: 'السلة فارغة، لا يمكنك إتمام الطلب',
 
-    // نجاح الطلب
     orderSuccessTitle: 'تم إرسال طلبك بنجاح!',
     thankYou: 'شكراً لك',
     orderSuccessDesc: 'سيتم التواصل معك قريباً عبر واتساب',
@@ -589,7 +543,7 @@ const translations: Record<Language, Translations> = {
     addProduct: 'إضافة منتج',
     importFromUrl: 'استيراد من رابط',
     productName: 'اسم المنتج',
-    productDescription: 'الوصف',
+    productDescription: 'الوصف التفصيلي',
     price: 'السعر',
     category: 'القسم',
     stockQuantity: 'الكمية في المخزون',
@@ -599,8 +553,8 @@ const translations: Record<Language, Translations> = {
     productImages: 'صور المنتج',
     sizes: 'المقاسات',
     colors: 'الألوان',
-    addSize: 'إضافة مقاس',
-    addColor: 'إضافة لون',
+    addSize: '+ إضافة مقاس',
+    addColor: '+ إضافة لون',
     saveProduct: 'حفظ المنتج',
     cancel: 'إلغاء',
 
@@ -616,7 +570,14 @@ const translations: Record<Language, Translations> = {
     adminRole: 'مدير',
     editorRole: 'محرر',
     viewerRole: 'مشاهد',
-
+    customerRole: 'عميل',
+    refresh: 'تحديث',
+    salesOverview: 'نظرة عامة على المبيعات',
+    last7Days: 'آخر 7 أيام',
+    topCategories: 'أفضل الفئات',
+    selectCategory: 'اختر القسم المناسب',
+    add: 'إضافة',
+    
     overview: 'نظرة عامة',
     totalProducts: 'إجمالي المنتجات',
     totalOrders: 'إجمالي الطلبات',
@@ -628,14 +589,13 @@ const translations: Record<Language, Translations> = {
     noActivitiesYet: 'لم يتم تسجيل أي نشاطات بعد',
     noOrdersYet: 'لا توجد طلبات جديدة',
 
-    // الصفحات الداخلية المنتجات
     productCount: 'منتج',
     allCategories: 'جميع الأقسام',
     moreFilters: 'المزيد',
     dateAdded: 'تاريخ الإضافة',
     status: 'الحالة',
     actions: 'إجراءات',
-    units: 'وحدة',
+    units: 'قطعة',
     show: 'إظهار',
     viewProduct: 'عرض المنتج',
     edit: 'تعديل',
@@ -643,7 +603,6 @@ const translations: Record<Language, Translations> = {
     noProducts: 'لا توجد منتجات',
     confirmDeleteProduct: 'هل أنت متأكد من حذف هذا المنتج؟',
 
-    // الصفحات الداخلية الطلبات
     ordersCount: 'طلب',
     searchOrders: 'ابحث برقم الطلب أو اسم العميل أو الجوال...',
     searchProducts: 'ابحث عن منتج...',
@@ -660,60 +619,16 @@ const translations: Record<Language, Translations> = {
     subtotal: 'المجموع الفرعي',
     shippingCost: 'تكلفة الشحن',
     orderTotal: 'الإجمالي النهائي',
+    cancelOrder: 'إلغاء الطلب',
 
     currency: 'YER',
     rial: 'ر.ي',
-
-    // الصفحة الرئيسية
-    shopNow: 'تسوق الآن',
-    browseProducts: 'تصفح المنتجات',
-    welcomeTo: 'مرحباً بك في',
-    latestTrends: 'أحدث الصيحات بأسعار منافسة',
-    featuredProducts: 'المنتجات المميزة',
-    newArrivals: 'وصل حديثاً',
-    viewAll: 'عرض الكل',
-    categories: 'الأقسام',
-    buyViaWhatsapp: 'اشترِ عبر واتساب',
-    contactNow: 'تواصل الآن',
-    whatsappDesc: 'تسوق بسهولة وأرسل لنا طلبك مباشرة عبر واتساب',
-    fastShipping: 'شحن سريع',
-    fastShippingDesc: 'توصيل لجميع المدن',
-    securePay: 'دفع آمن',
-    securePayDesc: 'طرق دفع متعددة',
-    easyReturn: 'استرجاع سهل',
-    easyReturnDesc: 'ضمان استرجاع المنتج',
-    support: 'دعم فني',
-    supportDesc: '24/7 عبر واتساب',
-
-    // الفوتر
-    footerAbout: 'متجرك المفضل للأزياء العصرية ومتابعة أحدث الصيحات العالمية. نوفر لك أفضل المنتجات بأسعار منافسة.',
-    quickLinks: 'روابط سريعة',
-    footerCategories: 'الأقسام',
-    contactInfo: 'تواصل معنا',
-    trackMyOrder: 'تتبع طلبي',
-    allRights: 'جميع الحقوق محفوظة',
-    madeWith: 'صُنع بـ ❤️ في اليمن',
-
-    // تتبع الطلب
-    trackOrderTitle: 'تتبع الطلب',
-    orderNotFound: 'لم يتم العثور على الطلب',
-    orderNotFoundDesc: 'تأكد من صحة رقم الطلب أو رقم الجوال وحاول مرة أخرى',
-    orderReceived: 'تم استلام الطلب',
-    paymentConfirmed: 'تم تأكيد الدفع',
-    shipped: 'تم الشحن',
-    orderDelivered: 'تم التسليم',
-    orderCancelled: 'تم إلغاء الطلب',
-    enterOrderNumber: 'أدخل رقم الطلب أو رقم الجوال',
-    whatsappContact: 'تواصل عبر واتساب',
-    orderStatus: 'حالة الطلب',
-    orderTracking: 'تتبع الطلب',
     name: 'الاسم',
-    phone: 'رقم الجوال',
+    phone: 'الجوال',
     city: 'المدينة',
     quantity: 'الكمية',
     search: 'بحث',
 
-    // حالات الطلب
     statusPending: 'قيد الانتظار',
     statusWaitingPayment: 'بانتظار الدفع',
     statusPaid: 'تم الدفع',
@@ -721,7 +636,6 @@ const translations: Record<Language, Translations> = {
     statusCompleted: 'مكتمل',
     statusCancelled: 'ملغي',
 
-    // حسابي
     premiumCustomer: 'عميل مميز',
     ordersHistory: 'سجل طلباتي',
     noOrdersYetDesc: 'لم تقم بإجراء أي طلبات حتى الآن، تصفح المتجر واكتشف منتجاتنا!',
@@ -749,202 +663,191 @@ const translations: Record<Language, Translations> = {
     onlyLeft: 'تبقى {count} فقط',
     clearCart: 'إفراغ السلة',
     browseProducts: 'تصفح المنتجات',
-    whatsappConfirmNote: 'سيتم التواصل معك عبر واتساب لتأكيد الطلب',
-    adminCitiesTitle: 'المدن والشحن',
+    whatsappConfirmNote: 'سيتم توجيهك للواتساب',
+    adminCitiesTitle: 'إدارة المدن',
     addCity: 'إضافة مدينة',
     editCity: 'تعديل مدينة',
-    cityPlaceholder: 'مثال: صنعاء',
-    shippingCostLabel: 'تكلفة الشحن (ريال)',
-    active: 'مفعل',
-    inactive: 'غير مفعل',
+    cityPlaceholder: 'اسم المدينة...',
+    shippingCostLabel: 'تكلفة الشحن',
+    active: 'نشط',
+    inactive: 'غير نشط',
     saveChanges: 'حفظ التغييرات',
-    confirmDeleteCity: 'هل أنت متأكد من حذف هذه المدينة؟',
+    confirmDeleteCity: 'حذف المدينة؟',
     noCitiesFound: 'لا توجد مدن',
-    inventoryManagement: 'إدارة المنتجات',
-    totalItems: 'منتج متوفر',
-    loadingInventory: 'جاري تحميل المخزون...',
-    addingProduct: 'إضافة منتج',
-    confirmDeleteOrder: 'هل أنت متأكد من حذف هذا الطلب؟',
-    currenciesTitle: 'العملات',
-    manageExchangeRates: 'إدارة أسعار الصرف',
+    inventoryManagement: 'إدارة المخزون',
+    totalItems: 'إجمالي القطع',
+    loadingInventory: 'جاري التحميل...',
+    addingProduct: 'إضافة...',
+    confirmDeleteOrder: 'حذف الطلب؟',
+    currenciesTitle: 'إدارة العملات',
+    manageExchangeRates: 'أسعار الصرف',
     addCurrency: 'إضافة عملة',
     editCurrency: 'تعديل عملة',
-    currencyCode: 'كود العملة',
-    currencyName: 'اسم العملة',
-    exchangeRateLabel: 'سعر الصرف (مقابل الريال اليمني)',
-    symbolLabel: 'الرمز',
-    baseCurrency: 'أساسية',
+    currencyCode: 'الرمز',
+    currencyName: 'الاسم',
+    exchangeRateLabel: 'سعر الصرف',
+    symbolLabel: 'العلامة',
+    baseCurrency: 'العملة الأساسية',
     cannotDeleteBaseCurrency: 'لا يمكن حذف العملة الأساسية',
-    confirmDeleteCurrency: 'هل أنت متأكد من حذف هذه العملة؟',
+    confirmDeleteCurrency: 'حذف العملة؟',
     noCurrenciesFound: 'لا توجد عملات',
-    currencyInfoNote: 'العملة الأساسية هي الريال اليمني (YER). جميع الأسعار في المتجر تُعرض بهذه العملة.',
-    identitySettings: 'إعدادات الهوية والتواصل',
-    identitySettingsDesc: 'تحكم في هوية متجرك وروابط الوصول السريع لعملائك',
+    currencyInfoNote: 'معلومات الصرف',
+    identitySettings: 'إعدادات الهوية',
+    identitySettingsDesc: 'تغيير اسم الشعار',
     branding: 'العلامة التجارية',
-    officialStoreName: 'اسم المتجر الرسمي',
-    logoUrl: 'رابط الشعار (URL)',
-    socialChannels: 'قنوات التواصل الإجتماعي',
-    mainWhatsapp: 'رقم الواتساب الرئيسي',
-    categoryRouting: 'توجيه طلبات الأقسام',
-    categoryRoutingDesc: 'توجيه كل قسم لمسؤول محدد',
-    savedSuccessfully: 'تم الحفظ بنجاح!',
+    officialStoreName: 'اسم المتجر',
+    logoUrl: 'رابط الشعار',
+    socialChannels: 'قنوات التواصل',
+    mainWhatsapp: 'واتساب الرئيسي',
+    categoryRouting: 'توجيه الفئات',
+    categoryRoutingDesc: 'إدارة الروابط',
+    savedSuccessfully: 'تم الحفظ',
     saving: 'جاري الحفظ...',
     adminDashboardTitle: 'لوحة التحكم',
-    welcomeBack: 'مرحباً بعودتك،',
+    welcomeBack: 'مرحباً بعودتك',
     lastUpdated: 'آخر تحديث',
-    totalRevenue: 'إجمالي الإيرادات',
-    recentActivities: 'الأعمال الأخيرة',
     fullLog: 'السجل الكامل',
-    quickActions: 'وصول سريع',
-    noRecentActivity: 'لا توجد نشاطات حديثة',
-    securePersistence: 'نظام الحفظ المحمى نشط',
-    dataEncrypted: 'جميع البيانات مشفرة محلياً',
-    addProductShort: 'إضافة منتج',
-    adminUsersTitle: 'إدارة المستخدمين',
-    totalUsersDesc: 'مستخدم إجمالاً',
-    customersCount: 'عميل',
-    adminsCount: 'مشرف',
+    quickActions: 'إجراءات سريعة',
+    noRecentActivity: 'لا نشاط مؤخراً',
+    securePersistence: 'حفظ آمن',
+    dataEncrypted: 'مشفر',
+    addProductShort: 'إضافة',
+    adminUsersTitle: 'المستخدمين',
+    totalUsersDesc: 'إجمالي المستخدمين',
+    customersCount: 'عملاء',
+    adminsCount: 'مدراء',
     addUser: 'إضافة مستخدم',
-    editUser: 'تعديل المستخدم',
-    fullName: 'الاسم الكامل',
-    emailLabel: 'البريد الإلكتروني',
-    phoneLabel: 'رقم الجوال',
-    passwordLabel: 'كلمة المرور',
-    roleLabel: 'الدور الوظيفي',
-    permissionsLabel: 'الصلاحيات المخصصة',
+    editUser: 'تعديل',
+    emailLabel: 'البريد',
+    phoneLabel: 'الهاتف',
+    passwordLabel: 'كلمة السر',
+    roleLabel: 'الصلاحية',
+    permissionsLabel: 'الأذونات',
     selectAll: 'تحديد الكل',
     deselectAll: 'إلغاء الكل',
-    cannotDeleteSelf: 'لا يمكنك حذف حسابك الحالي',
-    cannotDeleteAdmin: 'لا يمكن حذف حساب المدير الرئيسي',
-    confirmDeleteUser: 'هل أنت متأكد من حذف المستخدم؟',
-    userCreatedSuccess: 'تم إنشاء المستخدم بنجاح',
-    userUpdatedSuccess: 'تم تحديث المستخدم بنجاح',
-    userDeletedSuccess: 'تم حذف المستخدم بنجاح',
+    cannotDeleteSelf: 'لا تحذف نفسك',
+    cannotDeleteAdmin: 'لا يمكن حذف المدير',
+    confirmDeleteUser: 'حذف المستخدم؟',
+    userCreatedSuccess: 'تم الإنشاء',
+    userUpdatedSuccess: 'تم التحديث',
+    userDeletedSuccess: 'تم الحذف',
     you: 'أنت',
     adminAdsTitle: 'إدارة الإعلانات',
     adsCount: 'إعلان',
     addAd: 'إضافة إعلان',
-    editAd: 'تعديل إعلان',
-    adTitle: 'عنوان الإعلان',
+    editAd: 'تعديل الإعلان',
+    adTitle: 'العنوان',
     adType: 'النوع',
-    adPosition: 'مكان الظهور',
-    adContent: 'المحتوى النصي',
+    adPosition: 'الموقع',
+    adContent: 'المحتوى',
     adImageUrl: 'رابط الصورة',
     adVideoUrl: 'رابط الفيديو',
-    adLink: 'رابط التوجيه (اختياري)',
-    adActive: 'مفعل',
-    adTop: 'أعلى الصفحة',
-    adBottom: 'أسفل الصفحة',
+    adLink: 'الرابط',
+    adActive: 'نشط',
+    adTop: 'أعلى',
+    adBottom: 'أسفل',
     adSidebar: 'جانبي',
-    adInline: 'داخل الأقسام',
-    adPopup: 'نافذة منبثقة',
+    adInline: 'داخلي',
+    adPopup: 'منبثق',
     imageType: 'صورة',
     videoType: 'فيديو',
     textType: 'نص',
-    adDeletedSuccess: 'تم حذف الإعلان بنجاح',
-    confirmDeleteAd: 'هل أنت متأكد من حذف هذا الإعلان؟',
-    activityHistory: 'سجل النشاطات',
-    exportReport: 'تصدير التقرير',
-    allUsers: 'جميع المستخدمين',
-    searchActivities: 'ابحث في النشاطات...',
+    adDeletedSuccess: 'تم الحذف',
+    confirmDeleteAd: 'حذف الإعلان؟',
+    activityHistory: 'تاريخ النشاط',
+    exportReport: 'تصدير',
+    allUsers: 'الكل',
+    searchActivities: 'بحث...',
     systemAction: 'النظام',
     justNow: 'الآن',
-    hoursAgo: 'ساعة',
-    daysAgo: 'يوم',
-    totalActivities: 'إجمالي النشاطات',
+    hoursAgo: 'ساعات',
+    daysAgo: 'أيام',
+    totalActivities: 'النشاطات',
     additions: 'إضافات',
     edits: 'تعديلات',
     deletions_count: 'حذف',
     manageProducts: 'إدارة المنتجات',
-    availableProducts: 'منتج متوفر',
-    addProduct: 'إضافة منتج',
+    availableProducts: 'منتج متاح',
     editProduct: 'تعديل المنتج',
-    importFromUrl: 'استيراد من رابط',
-    searchByProductName: 'ابحث باسم المنتج...',
-    allCategories: 'جميع الأقسام',
-    productName: 'اسم المنتج',
-    productDescription: 'الوصف التفصيلي',
+    searchByProductName: 'بحث بالاسم...',
     productPrice: 'السعر',
-    productCategory: 'القسم',
+    productCategory: 'الفئة',
     stockLabel: 'المخزون',
-    stockUnits: 'قطعة',
+    stockUnits: 'قطع',
     visibilityStatus: 'الحالة',
-    visible: 'ظاهر',
-    hidden: 'مخفي',
-    productAddedSuccess: 'تم إضافة المنتج بنجاح!',
-    productUpdatedSuccess: 'تم تحديث المنتج بنجاح!',
-    productDeletedSuccess: 'تم حذف المنتج بنجاح!',
-    errorSavingProduct: 'حدث خطأ أثناء حفظ المنتج',
-    confirmDeleteProduct: 'هل أنت متأكد من حذف هذا المنتج؟',
-    loadingProducts: 'جاري تحميل المنتجات...',
-    visualAssets: 'معرض الصور',
-    uploadImages: 'رفع صور',
-    fromUrl: 'رابط URL',
+    productAddedSuccess: 'تمت الإضافة',
+    productUpdatedSuccess: 'تم التحديث',
+    productDeletedSuccess: 'تم الحذف',
+    errorSavingProduct: 'خطأ في الحفظ',
+    loadingProducts: 'تحميل...',
+    visualAssets: 'الصور',
+    uploadImages: 'رفع',
+    fromUrl: 'رابط',
     mainImage: 'أساسي',
-    sizesAndVariants: 'المقاسات والألوان',
-    addSize: '+ إضافة مقاس',
-    addColor: '+ إضافة لون',
-    colorMapping: 'ترتيب الألوان',
-    saveFinalProduct: 'حفظ المنتج النهائي',
-    addedAt: 'تم الإضافة:',
-    generalInfo: 'البيانات الأساسية',
-    detailedDescription: 'الوصف التفصيلي',
-    selectCategory: 'اختر القسم المناسب',
-    loadingOrders: 'جاري تحميل الطلبات...',
-    mobile: 'الجوال',
-    qtyLabel: 'الكمية:',
-    approveOrder: 'موافقة على الطلب',
-    completeOrder: 'تسليم الطلب',
-    waitingPayment: 'بانتظار الدفع',
-    cancelOrder: 'إلغاء الطلب',
-    paid: 'تم الدفع',
-    cityName: 'اسم المدينة',
-    searchCity: 'ابحث عن مدينة...',
-    searchCurrency: 'ابحث عن عملة...',
-    currencyNamePlaceholder: 'مثال: دولار أمريكي',
-    exchangeRateInfo: 'ملاحظة: إذا كان سعر صرف العملة (الدولار مثلاً) يساوي 0.004، فهذا يعني أن 1 دولار يساوي 250 ريال يمني.',
-    officialEmail: 'البريد الإلكتروني الرسمي',
-    noCategories: 'لا توجد أقسام حالياً',
-    adTitlePlaceholder: 'مثال: خصم 20%',
-    adImageUrl: 'رابط الصورة',
-    adContent: 'المحتوى النصي',
-    adLink: 'رابط التوجيه (اختياري)',
-    adActive: 'مفعل',
-    adImageUrlPlaceholder: 'https://...',
-    adContentPlaceholder: 'نص الإعلان...',
-    adLinkPlaceholder: 'https://...',
-    searchUserPlaceholder: 'ابحث بالاسم أو البريد الإلكتروني...',
-    cannotDeleteSelf: 'لا يمكنك حذف نفسك',
-    cannotDeleteAdmin: 'لا يمكن حذف حساب المسؤول',
-    userUpdatedSuccess: 'تم تحديث بيانات المستخدم بنجاح',
-    userCreatedSuccess: 'تم إنشاء المستخدم بنجاح',
-    userDeletedSuccess: 'تم حذف المستخدم بنجاح',
-    confirmDeleteUser: 'هل أنت متأكد من حذف المستخدم',
-    totalUsersDesc: 'إجمالي المستخدمين',
-    customersCount: 'عملاء',
-    adminsCount: 'مسؤولين',
-    selectAll: 'تحديد الكل',
-    deselectAll: 'إلغاء التحديد',
-    you: 'أنت',
-    inventoryManagement: 'إدارة المخزون',
-    identityManagement: 'إدارة الهوية',
-    fullName: 'الاسم الكامل',
-    emailLabel: 'البريد الإلكتروني',
-    phoneLabel: 'رقم الهاتف',
-    passwordLabel: 'كلمة المرور',
-    roleLabel: 'الصلاحية',
-    permissionsLabel: 'الأذونات',
-    activityHistory: 'تاريخ النشاطات',
-    exportReport: 'تصدير التقرير',
-    searchActivities: 'ابحث في النشاطات...',
-    allUsers: 'جميع المستخدمين',
-    justNow: 'الآن',
-    hoursAgo: 'ساعات',
-    daysAgo: 'أيام',
-    totalActivities: 'إجمالي النشاطات',
-    additions: 'إضافات',
-    edits: 'تعديلات',
-    deletions_count: 'حذف',
+    sizesAndVariants: 'المقاسات',
+    colorMapping: 'الألوان',
+    saveFinalProduct: 'حفظ',
+    addedAt: 'أضيف في',
+    generalInfo: 'معلومات عامة',
+    detailedDescription: 'الوصف',
+    loadingOrders: 'تحميل الطلبات...',
+    mobile: 'جوال',
+    qtyLabel: 'كمية',
+    approveOrder: 'موافقة',
+    waitingPayment: 'انتظار دقع',
+    paid: 'مدفوع',
+    cityName: 'المدينة',
+    searchCity: 'بحث مدينة',
+    searchCurrency: 'بحث عملة',
+    currencyNamePlaceholder: 'اسم العملة',
+    exchangeRateInfo: 'سعر الصرف',
+    officialEmail: 'البريد',
+    noCategories: 'لا أقسام',
+    adTitlePlaceholder: 'عنوان',
+    adImageUrlPlaceholder: 'رابط صورة',
+    adContentPlaceholder: 'نص',
+    adLinkPlaceholder: 'رابط',
+    searchUserPlaceholder: 'بحث مستخدم',
+
+    shopNow: 'تسوق الآن',
+    welcomeTo: 'مرحباً بك في',
+    latestTrends: 'أحدث الصيحات بأسعار منافسة',
+    featuredProducts: 'المنتجات المميزة',
+    newArrivals: 'وصل حديثاً',
+    viewAll: 'عرض الكل',
+    categories: 'الأقسام',
+    buyViaWhatsapp: 'اشترِ عبر واتساب',
+    contactNow: 'تواصل الآن',
+    whatsappDesc: 'تسوق بسهولة وأرسل لنا طلبك مباشرة عبر واتساب',
+    fastShipping: 'شحن سريع',
+    fastShippingDesc: 'توصيل لجميع المدن',
+    securePay: 'دفع آمن',
+    securePayDesc: 'طرق دفع متعددة',
+    easyReturn: 'استرجاع سهل',
+    easyReturnDesc: 'ضمان استرجاع المنتج',
+    support: 'دعم فني',
+    supportDesc: '24/7 عبر واتساب',
+
+    footerAbout: 'متجرك المفضل للأزياء العصرية ومتابعة أحدث الصيحات العالمية. نوفر لك أفضل المنتجات بأسعار منافسة.',
+    quickLinks: 'روابط سريعة',
+    footerCategories: 'الأقسام',
+    contactInfo: 'تواصل معنا',
+    trackMyOrder: 'تتبع طلبي',
+    allRights: 'جميع الحقوق محفوظة',
+    madeWith: 'صُنع بـ ❤️ في اليمن',
+
+    trackOrderTitle: 'تتبع الطلب',
+    orderNotFound: 'لم يتم العثور على الطلب',
+    orderNotFoundDesc: 'تأكد من صحة رقم الطلب أو رقم الجوال وحاول مرة أخرى',
+    orderReceived: 'تم استلام الطلب',
+    paymentConfirmed: 'تم تأكيد الدفع',
+    shipped: 'تم الشحن',
+    orderDelivered: 'تم التسليم',
+    orderCancelled: 'تم إلغاء الطلب',
+    enterOrderNumber: 'أدخل رقم الطلب أو رقم الجوال',
+    whatsappContact: 'تواصل عبر واتساب',
+    orderStatus: 'حالة الطلب',
+    orderTracking: 'تتبع الطلب',
   },
   en: {
     contactUs: 'Contact Us',
@@ -1030,7 +933,6 @@ const translations: Record<Language, Translations> = {
     willContactYou: 'We will contact you via WhatsApp to confirm your order and payment',
     emptyCartCheckout: 'Cart is empty. Cannot proceed to checkout',
 
-    // Order Success
     orderSuccessTitle: 'Order Sent Successfully!',
     thankYou: 'Thank you',
     orderSuccessDesc: 'We will contact you soon via WhatsApp',
@@ -1082,6 +984,13 @@ const translations: Record<Language, Translations> = {
     adminRole: 'Admin',
     editorRole: 'Editor',
     viewerRole: 'Viewer',
+    customerRole: 'Customer',
+    refresh: 'Refresh',
+    salesOverview: 'Sales Overview',
+    last7Days: 'Last 7 Days',
+    topCategories: 'Top Categories',
+    selectCategory: 'Select Category',
+    add: 'Add',
 
     overview: 'Overview',
     totalProducts: 'Total Products',
@@ -1094,7 +1003,6 @@ const translations: Record<Language, Translations> = {
     noActivitiesYet: 'No activities yet',
     noOrdersYet: 'No recent orders',
 
-    // الصفحات الداخلية المنتجات
     productCount: 'Product(s)',
     allCategories: 'All Categories',
     moreFilters: 'More',
@@ -1109,7 +1017,6 @@ const translations: Record<Language, Translations> = {
     noProducts: 'No products found',
     confirmDeleteProduct: 'Are you sure you want to delete this product?',
 
-    // الصفحات الداخلية الطلبات
     ordersCount: 'Order(s)',
     searchOrders: 'Search by Order No, Customer, or Phone...',
     searchProducts: 'Search products...',
@@ -1126,13 +1033,197 @@ const translations: Record<Language, Translations> = {
     subtotal: 'Subtotal',
     shippingCost: 'Shipping',
     orderTotal: 'Total',
+    cancelOrder: 'Cancel Order',
 
     currency: 'YER',
     rial: 'YER',
+    name: 'Name',
+    phone: 'Phone',
+    city: 'City',
+    quantity: 'Quantity',
+    search: 'Search',
 
-    // Homepage
-    shopNow: 'Shop Now',
+    statusPending: 'Pending',
+    statusWaitingPayment: 'Waiting Payment',
+    statusPaid: 'Paid',
+    statusApproved: 'Approved',
+    statusCompleted: 'Completed',
+    statusCancelled: 'Cancelled',
+
+    premiumCustomer: 'Premium Customer',
+    ordersHistory: 'Order History',
+    noOrdersYetDesc: 'You haven\'t made any orders yet. Start shopping!',
+    backToShopping: 'Back to Shopping',
+    orderNumberLabel: 'Order #',
+    orderDate: 'Date',
+    paymentSummary: 'Payment Summary',
+    itemsSummary: 'Items',
+    shippingAddress: 'Shipping Address',
+    menu: 'Menu',
+    bulkImport: 'Bulk Import',
+    discoverProducts: 'Discover Products',
+    filters: 'Filters',
+    clearAll: 'Clear All',
+    priceRange: 'Price Range',
+    minPrice: 'Min',
+    maxPrice: 'Max',
+    applyFilters: 'Apply Filters',
+    sortBy: 'Sort By',
+    sortNewest: 'Newest',
+    sortPriceLow: 'Price: Low to High',
+    sortPriceHigh: 'Price: High to Low',
+    sortName: 'Name: A-Z',
+    tryDiffSearch: 'Try different filters or search terms',
+    onlyLeft: '{count} left',
+    clearCart: 'Clear Cart',
     browseProducts: 'Browse Products',
+    whatsappConfirmNote: 'Redirecting to WhatsApp',
+    adminCitiesTitle: 'Manage Cities',
+    addCity: 'Add City',
+    editCity: 'Edit City',
+    cityPlaceholder: 'City name...',
+    shippingCostLabel: 'Shipping Cost',
+    active: 'Active',
+    inactive: 'Inactive',
+    saveChanges: 'Save Changes',
+    confirmDeleteCity: 'Delete City?',
+    noCitiesFound: 'No cities found',
+    inventoryManagement: 'Inventory',
+    totalItems: 'Total Units',
+    loadingInventory: 'Loading...',
+    addingProduct: 'Adding...',
+    confirmDeleteOrder: 'Delete order?',
+    currenciesTitle: 'Currencies',
+    manageExchangeRates: 'Exchanges',
+    addCurrency: 'Add Currency',
+    editCurrency: 'Edit Currency',
+    currencyCode: 'Code',
+    currencyName: 'Name',
+    exchangeRateLabel: 'Rate',
+    symbolLabel: 'Symbol',
+    baseCurrency: 'Base',
+    cannotDeleteBaseCurrency: 'Cannot delete base',
+    confirmDeleteCurrency: 'Delete currency?',
+    noCurrenciesFound: 'No currencies found',
+    currencyInfoNote: 'Exchange info',
+    identitySettings: 'Identity Settings',
+    identitySettingsDesc: 'Branding setup',
+    branding: 'Branding',
+    officialStoreName: 'Store Name',
+    logoUrl: 'Logo URL',
+    socialChannels: 'Socials',
+    mainWhatsapp: 'Main WhatsApp',
+    categoryRouting: 'Routing',
+    categoryRoutingDesc: 'Slug management',
+    savedSuccessfully: 'Saved!',
+    saving: 'Saving...',
+    adminDashboardTitle: 'Dashboard',
+    welcomeBack: 'Welcome Back',
+    lastUpdated: 'Last Updated',
+    fullLog: 'View Logs',
+    quickActions: 'Quick Actions',
+    noRecentActivity: 'No activity',
+    securePersistence: 'Secure Save',
+    dataEncrypted: 'Encrypted',
+    addProductShort: 'Add',
+    adminUsersTitle: 'Users',
+    totalUsersDesc: 'Total Users',
+    customersCount: 'Customers',
+    adminsCount: 'Admins',
+    addUser: 'Add User',
+    editUser: 'Edit',
+    emailLabel: 'Email',
+    phoneLabel: 'Phone',
+    passwordLabel: 'Password',
+    roleLabel: 'Role',
+    permissionsLabel: 'Permissions',
+    selectAll: 'Select All',
+    deselectAll: 'Deselect All',
+    cannotDeleteSelf: 'Cannot delete self',
+    cannotDeleteAdmin: 'Cannot delete admin',
+    confirmDeleteUser: 'Delete user?',
+    userCreatedSuccess: 'Created!',
+    userUpdatedSuccess: 'Updated!',
+    userDeletedSuccess: 'Deleted!',
+    you: 'You',
+    adminAdsTitle: 'Manage Ads',
+    adsCount: 'Ads',
+    addAd: 'Add Ad',
+    editAd: 'Edit Ad',
+    adTitle: 'Title',
+    adType: 'Type',
+    adPosition: 'Position',
+    adContent: 'Content',
+    adImageUrl: 'Image URL',
+    adVideoUrl: 'Video URL',
+    adLink: 'Link',
+    adActive: 'Active',
+    adTop: 'Top',
+    adBottom: 'Bottom',
+    adSidebar: 'Sidebar',
+    adInline: 'Inline',
+    adPopup: 'Popup',
+    imageType: 'Image',
+    videoType: 'Video',
+    textType: 'Text',
+    adDeletedSuccess: 'Deleted',
+    confirmDeleteAd: 'Delete ad?',
+    activityHistory: 'Activity Log',
+    exportReport: 'Export',
+    allUsers: 'All',
+    searchActivities: 'Search...',
+    systemAction: 'System',
+    justNow: 'Now',
+    hoursAgo: 'hours',
+    daysAgo: 'days',
+    totalActivities: 'Activities',
+    additions: 'Additions',
+    edits: 'Edits',
+    deletions_count: 'Deletions',
+    manageProducts: 'Products',
+    availableProducts: 'Available',
+    editProduct: 'Edit Product',
+    searchByProductName: 'Search Name...',
+    productPrice: 'Price',
+    productCategory: 'Category',
+    stockLabel: 'Stock',
+    stockUnits: 'units',
+    visibilityStatus: 'Status',
+    productAddedSuccess: 'Added',
+    productUpdatedSuccess: 'Updated',
+    productDeletedSuccess: 'Deleted',
+    errorSavingProduct: 'Error saving',
+    loadingProducts: 'Loading...',
+    visualAssets: 'Images',
+    uploadImages: 'Upload',
+    fromUrl: 'URL',
+    mainImage: 'Main',
+    sizesAndVariants: 'Sizes',
+    colorMapping: 'Colors',
+    saveFinalProduct: 'Save',
+    addedAt: 'Added at',
+    generalInfo: 'General',
+    detailedDescription: 'Description',
+    loadingOrders: 'Loading...',
+    mobile: 'Mobile',
+    qtyLabel: 'Qty',
+    approveOrder: 'Approve',
+    waitingPayment: 'Waiting',
+    paid: 'Paid',
+    cityName: 'City',
+    searchCity: 'Search City',
+    searchCurrency: 'Search Currency',
+    currencyNamePlaceholder: 'Currency Name',
+    exchangeRateInfo: 'Exchange Rate',
+    officialEmail: 'Email',
+    noCategories: 'No categories',
+    adTitlePlaceholder: 'Title',
+    adImageUrlPlaceholder: 'Image URL',
+    adContentPlaceholder: 'Text',
+    adLinkPlaceholder: 'Link',
+    searchUserPlaceholder: 'Search user',
+
+    shopNow: 'Shop Now',
     welcomeTo: 'Welcome to',
     latestTrends: 'Latest trends at competitive prices',
     featuredProducts: 'Featured Products',
@@ -1151,266 +1242,26 @@ const translations: Record<Language, Translations> = {
     support: 'Support',
     supportDesc: '24/7 via WhatsApp',
 
-    // Footer
-    footerAbout: 'Your favorite store for modern fashion and the latest global trends. We offer the best products at competitive prices.',
+    footerAbout: 'Your favorite store for modern fashion and trend updates. We offer quality products at competitive prices.',
     quickLinks: 'Quick Links',
     footerCategories: 'Categories',
     contactInfo: 'Contact Us',
-    trackMyOrder: 'Track Order',
-    allRights: 'All Rights Reserved',
-    madeWith: 'Made with ❤️ in Yemen',
+    trackMyOrder: 'Track My Order',
+    allRights: 'All rights reserved',
+    madeWith: 'Made with ❤️',
 
-    // Track Order
     trackOrderTitle: 'Track Order',
     orderNotFound: 'Order Not Found',
-    orderNotFoundDesc: 'Check the order number or phone number and try again',
+    orderNotFoundDesc: 'Check order number or phone and try again',
     orderReceived: 'Order Received',
     paymentConfirmed: 'Payment Confirmed',
     shipped: 'Shipped',
     orderDelivered: 'Delivered',
-    orderCancelled: 'Cancelled',
+    orderCancelled: 'Order Cancelled',
     enterOrderNumber: 'Enter Order Number or Phone',
     whatsappContact: 'Contact via WhatsApp',
     orderStatus: 'Order Status',
     orderTracking: 'Order Tracking',
-    name: 'Name',
-    phone: 'Phone',
-    city: 'City',
-    quantity: 'Quantity',
-    search: 'Search',
-
-    // Order Statuses
-    statusPending: 'Pending',
-    statusWaitingPayment: 'Waiting Payment',
-    statusPaid: 'Paid',
-    statusApproved: 'Approved',
-    statusCompleted: 'Completed',
-    statusCancelled: 'Cancelled',
-
-    // My Account
-    premiumCustomer: 'Premium Customer',
-    ordersHistory: 'Orders History',
-    noOrdersYetDesc: 'You haven\'t placed any orders yet. Browse our store and discover our products!',
-    backToShopping: 'Back to Shopping',
-    orderNumberLabel: 'Order No',
-    orderDate: 'Date',
-    paymentSummary: 'Payment Summary',
-    itemsSummary: 'Products',
-    shippingAddress: 'Shipping Address',
-    menu: 'Menu',
-    bulkImport: 'Full Store Import',
-    discoverProducts: 'Discover Products',
-    filters: 'Filters',
-    clearAll: 'Clear All',
-    priceRange: 'Price Range',
-    minPrice: 'Min',
-    maxPrice: 'Max',
-    applyFilters: 'Apply Filters',
-    sortBy: 'Sort By',
-    sortNewest: 'Newest',
-    sortPriceLow: 'Price: Low to High',
-    sortPriceHigh: 'Price: High to Low',
-    sortName: 'Name: A-Z',
-    tryDiffSearch: 'Try changing filters or search with different keywords',
-    onlyLeft: 'Only {count} left',
-    clearCart: 'Clear Cart',
-    browseProducts: 'Browse Products',
-    whatsappConfirmNote: 'We will contact you via WhatsApp to confirm your order',
-    adminCitiesTitle: 'Cities & Shipping',
-    addCity: 'Add City',
-    editCity: 'Edit City',
-    cityPlaceholder: 'e.g. Sanaa',
-    shippingCostLabel: 'Shipping Cost (Rial)',
-    active: 'Active',
-    inactive: 'Inactive',
-    saveChanges: 'Save Changes',
-    confirmDeleteCity: 'Are you sure you want to delete this city?',
-    noCitiesFound: 'No cities found',
-    inventoryManagement: 'Inventory Management',
-    totalItems: 'total items',
-    loadingInventory: 'Loading Inventory...',
-    addingProduct: 'Add Product',
-    confirmDeleteOrder: 'Are you sure you want to delete this order?',
-    currenciesTitle: 'Currencies',
-    manageExchangeRates: 'Manage Exchange Rates',
-    addCurrency: 'Add Currency',
-    editCurrency: 'Edit Currency',
-    currencyCode: 'Currency Code',
-    currencyName: 'Currency Name',
-    exchangeRateLabel: 'Exchange Rate (vs YER)',
-    symbolLabel: 'Symbol',
-    baseCurrency: 'Base',
-    cannotDeleteBaseCurrency: 'Cannot delete the base currency',
-    confirmDeleteCurrency: 'Are you sure you want to delete this currency?',
-    noCurrenciesFound: 'No currencies found',
-    currencyInfoNote: 'Base currency is Yemeni Rial (YER). All store prices are displayed in this currency.',
-    identitySettings: 'Identity & Contact Settings',
-    identitySettingsDesc: 'Manage your store identity and quick access links for customers',
-    branding: 'Store Branding',
-    officialStoreName: 'Official Store Name',
-    logoUrl: 'Logo Link (URL)',
-    socialChannels: 'Social Media Channels',
-    mainWhatsapp: 'Main WhatsApp',
-    categoryRouting: 'Category Order Routing',
-    categoryRoutingDesc: 'Route departments to specific agents',
-    savedSuccessfully: 'Settings Saved!',
-    saving: 'Saving...',
-    adminDashboardTitle: 'Dashboard',
-    welcomeBack: 'Welcome back,',
-    lastUpdated: 'Last Updated',
-    totalRevenue: 'Total Revenue',
-    recentActivities: 'Recent Activity',
-    fullLog: 'Full Log',
-    quickActions: 'Quick Actions',
-    noRecentActivity: 'No recent activity',
-    securePersistence: 'Secure persistence active',
-    dataEncrypted: 'All data encrypted locally',
-    addProductShort: 'Add Product',
-    adminUsersTitle: 'Users Management',
-    totalUsersDesc: 'total users',
-    customersCount: 'customer',
-    adminsCount: 'admin',
-    addUser: 'Add User',
-    editUser: 'Edit User',
-    fullName: 'Full Name',
-    emailLabel: 'Email Address',
-    phoneLabel: 'Phone Number',
-    passwordLabel: 'Password',
-    roleLabel: 'User Role',
-    permissionsLabel: 'Custom Permissions',
-    selectAll: 'Select All',
-    deselectAll: 'Deselect All',
-    cannotDeleteSelf: 'You cannot delete your own account',
-    cannotDeleteAdmin: 'The main administrator account cannot be deleted',
-    confirmDeleteUser: 'Are you sure you want to delete this user?',
-    userCreatedSuccess: 'User created successfully',
-    userUpdatedSuccess: 'User updated successfully',
-    userDeletedSuccess: 'User deleted successfully',
-    you: 'You',
-    adminAdsTitle: 'Advertisements',
-    adsCount: 'ad',
-    addAd: 'Add Advertisement',
-    editAd: 'Edit Advertisement',
-    adTitle: 'Advertisement Title',
-    adType: 'Type',
-    adPosition: 'Position',
-    adContent: 'Text Content',
-    adImageUrl: 'Image URL',
-    adVideoUrl: 'Video URL',
-    adLink: 'Link URL (Optional)',
-    adActive: 'Active',
-    adTop: 'Top of Page',
-    adBottom: 'Bottom of Page',
-    adSidebar: 'Sidebar',
-    adInline: 'In-between Categories',
-    adPopup: 'Popup Window',
-    imageType: 'Image',
-    videoType: 'Video',
-    textType: 'Text',
-    adDeletedSuccess: 'Advertisement deleted successfully',
-    confirmDeleteAd: 'Are you sure you want to delete this advertisement?',
-    activityHistory: 'Activity History',
-    exportReport: 'Export Report',
-    allUsers: 'All Users',
-    searchActivities: 'Search activities...',
-    systemAction: 'System',
-    justNow: 'Just now',
-    hoursAgo: 'hours ago',
-    daysAgo: 'days ago',
-    totalActivities: 'Total Activities',
-    additions: 'Additions',
-    edits: 'Edits',
-    deletions_count: 'Deletions',
-    manageProducts: 'Product Management',
-    availableProducts: 'products available',
-    addProduct: 'Add Product',
-    editProduct: 'Edit Product',
-    importFromUrl: 'Import from URL',
-    searchByProductName: 'Search by product name...',
-    allCategories: 'All Categories',
-    productName: 'Product Name',
-    productDescription: 'Detailed Description',
-    productPrice: 'Price',
-    productCategory: 'Category',
-    stockLabel: 'Stock',
-    stockUnits: 'units',
-    visibilityStatus: 'Status',
-    visible: 'Visible',
-    hidden: 'Hidden',
-    productAddedSuccess: 'Product added successfully!',
-    productUpdatedSuccess: 'Product updated successfully!',
-    productDeletedSuccess: 'Product deleted successfully!',
-    errorSavingProduct: 'Error saving product',
-    confirmDeleteProduct: 'Are you sure you want to delete this product?',
-    loadingProducts: 'Loading products...',
-    visualAssets: 'Visual Assets',
-    uploadImages: 'Upload Images',
-    fromUrl: 'From URL',
-    mainImage: 'Main',
-    sizesAndVariants: 'Sizes & Variants',
-    addSize: '+ Add Size',
-    addColor: '+ Add Color',
-    colorMapping: 'Color Mapping',
-    saveFinalProduct: 'Save Product',
-    addedAt: 'Added at:',
-    generalInfo: 'General Info',
-    detailedDescription: 'Detailed Description',
-    selectCategory: 'Select Branch',
-    loadingOrders: 'Loading Orders...',
-    mobile: 'Phone',
-    qtyLabel: 'Qty:',
-    approveOrder: 'Approve Order',
-    completeOrder: 'Complete Order',
-    waitingPayment: 'Waiting Payment',
-    cancelOrder: 'Cancel Order',
-    paid: 'Paid',
-    cityName: 'City Name',
-    searchCity: 'Search cities...',
-    searchCurrency: 'Search currencies...',
-    currencyNamePlaceholder: 'e.g. US Dollar',
-    exchangeRateInfo: 'Note: If the exchange rate is 0.004, then 1 unit of this currency equals 250 Yemeni Rial.',
-    officialEmail: 'Official Email',
-    noCategories: 'No categories available',
-    adTitlePlaceholder: 'e.g. 20% Off',
-    adImageUrl: 'Image URL',
-    adContent: 'Text Content',
-    adLink: 'Redirect Link (Optional)',
-    adActive: 'Active',
-    adImageUrlPlaceholder: 'https://...',
-    adContentPlaceholder: 'Ad text content...',
-    adLinkPlaceholder: 'https://...',
-    searchUserPlaceholder: 'Search by name or email...',
-    cannotDeleteSelf: 'You cannot delete yourself',
-    cannotDeleteAdmin: 'Cannot delete an admin account',
-    userUpdatedSuccess: 'User data updated successfully',
-    userCreatedSuccess: 'User created successfully',
-    userDeletedSuccess: 'User deleted successfully',
-    confirmDeleteUser: 'Are you sure you want to delete user',
-    totalUsersDesc: 'Total Users',
-    customersCount: 'Customers',
-    adminsCount: 'Admins',
-    selectAll: 'Select All',
-    deselectAll: 'Deselect All',
-    you: 'You',
-    inventoryManagement: 'Inventory Management',
-    identityManagement: 'Identity Management',
-    fullName: 'Full Name',
-    emailLabel: 'Email Address',
-    phoneLabel: 'Phone Number',
-    passwordLabel: 'Password',
-    roleLabel: 'Role',
-    permissionsLabel: 'Permissions',
-    activityHistory: 'Activity History',
-    exportReport: 'Export Report',
-    searchActivities: 'Search activities...',
-    allUsers: 'All Users',
-    justNow: 'Just now',
-    hoursAgo: 'hours ago',
-    daysAgo: 'days ago',
-    totalActivities: 'Total Activities',
-    additions: 'Additions',
-    edits: 'Edits',
-    deletions_count: 'Deletions',
   },
 };
 

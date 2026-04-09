@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, Search, DollarSign, X, Loader2, Info } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, DollarSign, X, Loader2, Info, CheckCircle2, AlertCircle } from 'lucide-react';
 import { currenciesService } from '@/services/api';
 import { Currency } from '@/types';
 import { useLanguage } from '@/context/LanguageContext';

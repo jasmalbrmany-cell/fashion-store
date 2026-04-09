@@ -9,6 +9,8 @@ import { statisticsService } from '@/services/api';
 import { Statistics } from '@/types';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
+import { Skeleton, CardSkeleton, TableSkeleton } from '@/components/Common/Skeleton';
+import { SalesChart, CategoryChart } from '@/components/Admin/DashboardCharts';
 
 const DashboardPage: React.FC = () => {
   const { user } = useAuth();
@@ -102,7 +104,7 @@ const DashboardPage: React.FC = () => {
           <button
             onClick={fetchStats}
             disabled={isLoading}
-            className="p-4 bg-white border-2 border-gray-100 rounded-2xl hover:border-black transition-all group"
+            className="p-4 bg-white border-2 border-gray-100 rounded-2xl hover:border-black transition-all group shadow-sm active:scale-95"
           >
             <RefreshCw className={`w-5 h-5 ${isLoading ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'}`} />
           </button>
@@ -111,55 +113,95 @@ const DashboardPage: React.FC = () => {
 
       {/* Modern Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {statCards.map((card, i) => (
-          <Link
-            key={i}
-            to={card.link}
-            className="bg-white rounded-3xl p-6 border-2 border-transparent hover:border-black transition-all shadow-sm group relative overflow-hidden"
-          >
-            <div className={`w-12 h-12 ${card.bg} ${card.color} rounded-2xl flex items-center justify-center mb-4 transition-transform group-hover:scale-110`}>
-              <card.icon className="w-6 h-6" />
-            </div>
-            <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">{card.label}</p>
-            <div className="flex items-end gap-2">
-              <p className="text-3xl font-black text-gray-900 tracking-tighter">{card.value}</p>
-              {card.label === t.totalRevenue && <span className="text-xs font-black text-gray-400 pb-1">{t.rial}</span>}
-            </div>
-            <ArrowRight className={`absolute bottom-6 ${isRTL ? 'left-6 rotate-180' : 'right-6'} w-5 h-5 opacity-0 group-hover:opacity-100 transition-all`} />
-          </Link>
-        ))}
+        {isLoading && !stats ? (
+          <>
+            <CardSkeleton /> <CardSkeleton /> <CardSkeleton /> <CardSkeleton />
+          </>
+        ) : (
+          statCards.map((card, i) => (
+            <Link
+              key={i}
+              to={card.link}
+              className="bg-white rounded-3xl p-6 border-2 border-transparent hover:border-black transition-all shadow-sm group relative overflow-hidden"
+            >
+              <div className={`w-12 h-12 ${card.bg} ${card.color} rounded-2xl flex items-center justify-center mb-4 transition-transform group-hover:scale-110 shadow-sm border border-gray-50`}>
+                <card.icon className="w-6 h-6" />
+              </div>
+              <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">{card.label}</p>
+              <div className="flex items-end gap-2">
+                <p className="text-3xl font-black text-gray-900 tracking-tighter">{card.value}</p>
+                {card.label === t.totalRevenue && <span className="text-xs font-black text-gray-400 pb-1">{t.rial}</span>}
+              </div>
+              <ArrowRight className={`absolute bottom-6 ${isRTL ? 'left-6 rotate-180' : 'right-6'} w-5 h-5 opacity-0 group-hover:opacity-100 transition-all`} />
+            </Link>
+          ))
+        )}
+      </div>
+
+      {/* Interactive Trends Section */}
+      <div className="grid lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2 bg-white rounded-3xl border-2 border-gray-100 p-8 shadow-sm space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-black text-gray-900 tracking-tighter">{t.salesOverview || (isRTL ? 'نظرة عامة على المبيعات' : 'Sales Overview')}</h2>
+                  <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">{t.last7Days || (isRTL ? 'آخر 7 أيام' : 'Last 7 Days')}</p>
+                </div>
+                <div className="flex items-center gap-2 text-green-500 bg-green-50 px-3 py-1 rounded-full border border-green-100">
+                    <TrendingUp className="w-4 h-4" />
+                    <span className="text-[10px] font-black">+12.4%</span>
+                </div>
+              </div>
+              {isLoading && !stats ? <Skeleton className="h-[300px] w-full" /> : <SalesChart isRTL={isRTL} />}
+          </div>
+
+          <div className="bg-white rounded-3xl border-2 border-gray-100 p-8 shadow-sm space-y-6">
+              <h2 className="text-xl font-black text-gray-900 tracking-tighter">{t.topCategories || (isRTL ? 'أفضل الفئات' : 'Top Categories')}</h2>
+              {isLoading && !stats ? <Skeleton className="h-[250px] w-full" /> : <CategoryChart isRTL={isRTL} />}
+              <div className="pt-4 border-t border-gray-50 space-y-3">
+                  <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">{t.totalOrders}</span>
+                      <span className="text-sm font-black">{displayStats.totalOrders}</span>
+                  </div>
+              </div>
+          </div>
       </div>
 
       <div className="grid lg:grid-cols-3 gap-8">
         {/* Activity Feed */}
-        <div className="lg:col-span-2 bg-white rounded-3xl border-2 border-gray-100 overflow-hidden shadow-sm">
-          <div className="px-8 py-6 border-b border-gray-100 flex items-center justify-between">
+        <div className="lg:col-span-2 bg-white rounded-3xl border-2 border-gray-100 overflow-hidden shadow-sm flex flex-col">
+          <div className="px-8 py-6 border-b border-gray-100 flex items-center justify-between bg-gray-50/30">
             <div className="flex items-center gap-3">
               <Activity className="w-5 h-5 text-gray-900" />
               <h2 className="text-lg font-black text-gray-900 tracking-tighter">{t.recentActivities}</h2>
             </div>
             <Link to="/admin/activity" className="text-xs font-black uppercase tracking-widest text-gray-400 hover:text-black transition-colors">{t.fullLog}</Link>
           </div>
-          <div className="divide-y divide-gray-50 max-h-[400px] overflow-y-auto">
-            {stats?.recentActivities && stats.recentActivities.length > 0 ? stats.recentActivities.map((activity) => (
-              <div key={activity.id} className="px-8 py-5 flex items-start gap-4 hover:bg-gray-50/50 transition-colors">
-                <div className="w-10 h-10 bg-gray-900 text-white rounded-xl flex items-center justify-center flex-shrink-0 font-black text-sm">
-                  {activity.userName.charAt(0)}
+          <div className="divide-y divide-gray-50 flex-1 overflow-y-auto min-h-[400px]">
+            {isLoading && !stats ? (
+                <div className="p-8">
+                    <TableSkeleton />
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-bold text-gray-900">
-                    <span className="font-black underline decoration-gray-200 underline-offset-4">{activity.userName}</span> {activity.action}
-                  </p>
-                  <p className="text-xs text-gray-400 font-bold uppercase mt-1">
-                    {activity.details} • {new Date(activity.createdAt).toLocaleTimeString(language === 'ar' ? 'ar-SA' : 'en-US', { hour: '2-digit', minute: '2-digit' })}
-                  </p>
-                </div>
-              </div>
-            )) : (
-              <div className="p-20 text-center opacity-20">
-                <Activity className="w-12 h-12 mx-auto mb-4" />
-                <p className="font-black uppercase tracking-widest text-xs">{t.noRecentActivity}</p>
-              </div>
+            ) : (
+                stats?.recentActivities && stats.recentActivities.length > 0 ? stats.recentActivities.map((activity) => (
+                    <div key={activity.id} className="px-8 py-5 flex items-start gap-4 hover:bg-gray-50/50 transition-colors">
+                        <div className="w-10 h-10 bg-gray-900 text-white rounded-xl flex items-center justify-center flex-shrink-0 font-black text-sm shadow-md">
+                        {activity.userName.charAt(0)}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-gray-900">
+                            <span className="font-black underline decoration-gray-200 underline-offset-4">{activity.userName}</span> {activity.action}
+                        </p>
+                        <p className="text-xs text-gray-400 font-bold uppercase mt-1">
+                            {activity.details} • {new Date(activity.createdAt).toLocaleTimeString(language === 'ar' ? 'ar-SA' : 'en-US', { hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                        </div>
+                    </div>
+                )) : (
+                    <div className="p-20 text-center opacity-20">
+                        <Activity className="w-12 h-12 mx-auto mb-4" />
+                        <p className="font-black uppercase tracking-widest text-xs">{t.noRecentActivity}</p>
+                    </div>
+                )
             )}
           </div>
         </div>

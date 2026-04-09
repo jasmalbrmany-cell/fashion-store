@@ -20,6 +20,7 @@ import {
 import { productsService, categoriesService } from '@/services';
 import { Product, Category } from '@/types';
 import { useLanguage } from '@/context/LanguageContext';
+import { Skeleton, TableSkeleton } from '@/components/Common/Skeleton';
 
 const AdminProductsPage: React.FC = () => {
   const { t, language, isRTL } = useLanguage();
@@ -102,9 +103,12 @@ const AdminProductsPage: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
-        <Loader2 className="w-10 h-10 animate-spin text-black" />
-        <p className="font-bold text-gray-400 animate-pulse">{t.loadingProducts}</p>
+      <div className="space-y-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <Skeleton className="h-10 w-64 rounded-2xl" />
+          <Skeleton className="h-12 w-40 rounded-2xl" />
+        </div>
+        <TableSkeleton />
       </div>
     );
   }
@@ -210,6 +214,7 @@ const AdminProductsPage: React.FC = () => {
                                 src={product.images[0].url}
                                 alt={product.name}
                                 className="w-full h-full object-cover"
+                                loading="lazy"
                               />
                           ) : (
                               <div className="w-full h-full flex items-center justify-center text-gray-300">

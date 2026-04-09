@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { mockCategories } from '@/data/mockData';
 import { productsService } from '@/services';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { useLanguage } from '@/context/LanguageContext';
 
 interface ImportedProduct {
@@ -65,7 +66,6 @@ const ImportProductPage: React.FC = () => {
         'zahraah.com/ar', 'zahraah.com/en', 'aliexpress.com', 'amazon.com'
     ];
     
-    // Product page MUST have some identifiers
     const hasProductIdentifier = urlLower.includes('/products/') || 
                                   urlLower.includes('/p-') || 
                                   urlLower.includes('/item/') || 
@@ -86,83 +86,23 @@ const ImportProductPage: React.FC = () => {
     setSuccess('');
 
     try {
-      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
-      const response = await fetch(proxyUrl);
-      if (!response.ok) throw new Error('Proxy failed');
-      const data = await response.json();
+      // --- NEW POWERFUL MEDIATOR APPROACH ---
+      const { data: result, error: fetchError } = await supabase.functions.invoke('scrape-product', {
+        body: { url }
+      });
+
+      if (fetchError || !result?.success) {
+        throw new Error(fetchError?.message || 'Failed to fetch via powerful mediator');
+      }
       
-      let scrapedTitle = '';
-      let scrapedPrice = '';
-      let scrapedDesc = '';
-      let scrapedImages: string[] = [];
-
-      if (data.contents) {
-        const parser = new DOMParser();
-        const htmlDoc = parser.parseFromString(data.contents, 'text/html');
-        
-        // --- Store Specific Scrapers ---
-        
-        // 1. ZAHRAAH
-        if (url.includes('zahraah.com')) {
-           scrapedTitle = htmlDoc.querySelector('.products-details-conent-grid-data-title')?.textContent?.trim() || '';
-           scrapedPrice = htmlDoc.querySelector('.products-details-conent-grid-data-price')?.textContent?.replace(/[^\d]/g, '') || '';
-           scrapedDesc = htmlDoc.querySelector('.products-details-conent-grid-data-description')?.textContent?.trim() || '';
-           
-           Array.from(htmlDoc.querySelectorAll('img')).forEach(img => {
-              const src = img.getAttribute('src') || img.getAttribute('data-src');
-              if (src && src.includes('/products/') && !scrapedImages.includes(src)) {
-                  scrapedImages.push(src.startsWith('http') ? src : `https://zahraah.com${src}`);
-              }
-           });
-        }
-        
-        // 2. SHEIN
-        else if (url.includes('shein.com')) {
-           scrapedTitle = htmlDoc.querySelector('h1.product-intro__head-name')?.textContent?.trim() || '';
-           scrapedPrice = htmlDoc.querySelector('.product-intro__head-price')?.textContent?.replace(/[^\d.]/g, '') || '';
-           
-           // SHEIN images are often lazy loaded or in swipers
-           const sheinImages = Array.from(htmlDoc.querySelectorAll('.product-intro__main-img img, .swiper-slide img, .thumbs-picture__column img'));
-           sheinImages.forEach(img => {
-               const src = (img as HTMLImageElement).src || img.getAttribute('data-src');
-               if (src && !src.includes('base64') && !scrapedImages.includes(src)) {
-                   scrapedImages.push(src.startsWith('//') ? `https:${src}` : src);
-               }
-           });
-        }
-
-        // --- General Fallbacks ---
-        if (!scrapedTitle) scrapedTitle = htmlDoc.querySelector('h1')?.innerText || htmlDoc.title.split('|')[0].trim() || '';
-        if (!scrapedDesc) {
-            const metaDesc = htmlDoc.querySelector('meta[name="description"]')?.getAttribute('content') || 
-                             htmlDoc.querySelector('meta[property="og:description"]')?.getAttribute('content');
-            scrapedDesc = metaDesc || '';
-        }
-        
-        if (scrapedImages.length === 0) {
-            const ogImg = htmlDoc.querySelector('meta[property="og:image"]')?.getAttribute('content');
-            if (ogImg) scrapedImages.push(ogImg);
-            
-            Array.from(htmlDoc.querySelectorAll('img')).slice(0, 15).forEach(img => {
-                const src = img.src;
-                if (src && src.startsWith('http') && !src.includes('logo') && !src.includes('icon') && !src.includes('banner')) {
-                    scrapedImages.push(src);
-                }
-            });
-        }
-      }
-
-      // Final check - if we have nothing but a homepage-like title, throw
-      if (!scrapedTitle || scrapedTitle.length < 3) {
-          throw new Error('Minimal data found');
-      }
-
+      const scraped = result.data;
+      
       const productInfo: ImportedProduct = {
-        name: scrapedTitle,
-        description: scrapedDesc || (isRTL ? 'منتج حصري ومميز.' : 'Exclusive premium product.'),
-        price: scrapedPrice ? parseFloat(scrapedPrice) : 45000,
+        name: scraped.title || '',
+        description: scraped.description || (isRTL ? 'منتج حصري ومميز.' : 'Exclusive premium product.'),
+        price: scraped.price || 45000,
         currency: 'YER',
-        images: scrapedImages.filter(img => img).slice(0, 8),
+        images: scraped.images || [],
         sizes: [{ name: 'S' }, { name: 'M' }, { name: 'L' }, { name: 'XL' }],
         colors: [{ name: isRTL ? 'أسود' : 'Black', hex: '#1F2937' }],
         sourceUrl: url,
@@ -194,16 +134,16 @@ const ImportProductPage: React.FC = () => {
         isVisible: true,
       });
       
-      setSuccess(isRTL ? 'رائع! تم استخلاص البيانات بنجاح.' : 'Great! Data extracted successfully.');
-    } catch (err) {
+      setSuccess(isRTL ? 'رائع! تم استخلاص البيانات عبر الوسيط القوي بنجاح.' : 'Great! Data extracted via powerful mediator successfully.');
+    } catch (err: any) {
       console.error('Fetch error:', err);
-      // Even on error, show the manual form
+      // Fallback: If mediator fails (e.g. not deployed), some basic parsing might still be possible or just show form
       setImportedProduct({
         name: '', description: '', price: 0, currency: 'YER', images: [], sizes: [], colors: [], sourceUrl: url
       });
       setError(isRTL 
-        ? 'بعض المواقع العالمية مثل (شي إن) تحظر الجلب التلقائي أحياناً. لا توجد مشكلة، تفضل بإضافة الاسم والصور يدوياً لإتمام الحفظ.' 
-        : 'Some global sites like (SHEIN) block auto-fetching. No problem, please add the name and images manually to complete the save.');
+        ? 'الوسيط واجه صعوبة في جلب البيانات التلقائية لهذا الرابط تحديداً. يمكنك إكمال الإضافة يدوياً بكل سهولة.' 
+        : 'The mediator had difficulty auto-fetching data for this specific link. You can easily complete the addition manually.');
     } finally {
       setIsLoading(false);
     }

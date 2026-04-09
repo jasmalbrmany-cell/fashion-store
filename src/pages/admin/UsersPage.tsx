@@ -164,6 +164,7 @@ const UsersPage: React.FC = () => {
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 
       if (editingUser) {
+        // 1. Update Profile
         const { error: profileError } = await (supabase as any)
           .from('profiles')
           .update({
@@ -176,18 +177,24 @@ const UsersPage: React.FC = () => {
 
         if (profileError) throw new Error(profileError.message);
 
+        // 2. Update Permissions if Admin/Editor
+        if (isManagerRole) {
+            await (supabase as any)
+              .from('user_permissions')
+              .upsert({
+                user_id: editingUser.id,
+                ...permissions,
+                updated_at: new Date().toISOString(),
+              });
+        }
+
+        // 3. Update Password if provided
         if (formData.password && formData.password.length >= 6) {
           try {
             await fetch(`${supabaseUrl}/functions/v1/update-user`, {
               method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`,
-              },
-              body: JSON.stringify({
-                userId: editingUser.id,
-                password: formData.password,
-              }),
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+              body: JSON.stringify({ userId: editingUser.id, password: formData.password }),
             });
           } catch { }
         }
@@ -199,18 +206,17 @@ const UsersPage: React.FC = () => {
 
         let createdViaEdge = false;
         try {
+          // Send permissions too!
           const res = await fetch(`${supabaseUrl}/functions/v1/create-user`, {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`,
-            },
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
             body: JSON.stringify({
               email: formData.email.trim().toLowerCase(),
               password: formData.password,
               name: formData.name,
               phone: formData.phone,
               role: formData.role,
+              permissions: permissions // <--- CRITICAL FIX: Send permissions
             }),
           });
           const result = await res.json();
@@ -221,25 +227,26 @@ const UsersPage: React.FC = () => {
           const { data: newUser, error: signUpError } = await supabase.auth.signUp({
             email: formData.email.trim().toLowerCase(),
             password: formData.password,
-            options: {
-              data: { name: formData.name, phone: formData.phone },
-            },
+            options: { data: { name: formData.name, phone: formData.phone } },
           });
 
           if (signUpError) throw new Error(signUpError.message);
 
           if (newUser.user) {
-            await (supabase as any)
-              .from('profiles')
-              .upsert({
-                id: newUser.user.id,
-                email: formData.email.trim().toLowerCase(),
-                name: formData.name,
-                phone: formData.phone || null,
-                role: formData.role,
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString(),
-              });
+            await (supabase as any).from('profiles').upsert({
+              id: newUser.user.id,
+              email: formData.email.trim().toLowerCase(),
+              name: formData.name,
+              phone: formData.phone || null,
+              role: formData.role,
+            });
+            
+            if (isManagerRole) {
+                await (supabase as any).from('user_permissions').upsert({
+                    user_id: newUser.user.id,
+                    ...permissions
+                });
+            }
           }
         }
         showToast('success', t.userCreatedSuccess);
