@@ -36,6 +36,12 @@
     direction: rtl;
   }
 
+  .dark body {
+    background-image: none !important;
+    background-color: #111 !important;
+    color: #f3f4f6 !important;
+  }
+
   /* RTL Support */
   [dir="rtl"] {
     text-align: right;
