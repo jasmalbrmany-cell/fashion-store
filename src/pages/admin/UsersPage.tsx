@@ -7,7 +7,7 @@ import {
 import { User, UserRole } from '@/types';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
-import { usersService, hasValidCache, getCachedSync } from '@/services/api';
+import { usersService, hasValidCache, getCachedSync, clearCache } from '@/services/api';
 import { useLanguage } from '@/context/LanguageContext';
 
 interface UserPermissions {
@@ -166,40 +166,27 @@ const UsersPage: React.FC = () => {
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 
       if (editingUser) {
-        // 1. Update Profile
-        const { error: profileError } = await (supabase as any)
-          .from('profiles')
-          .update({
+        let updatePassword = formData.password && formData.password.length >= 6 ? formData.password : undefined;
+        
+        // Update user completely via edge function to bypass RLS safely
+        const res = await fetch(`${supabaseUrl}/functions/v1/update-user`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({
+            userId: editingUser.id,
             name: formData.name,
-            phone: formData.phone || null,
+            phone: formData.phone,
             role: formData.role,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', editingUser.id);
-
-        if (profileError) throw new Error(profileError.message);
-
-        // 2. Update Permissions if Admin/Editor
-        if (isManagerRole) {
-            await (supabase as any)
-              .from('user_permissions')
-              .upsert({
-                user_id: editingUser.id,
-                ...permissions,
-                updated_at: new Date().toISOString(),
-              });
+            password: updatePassword,
+            permissions: isManagerRole ? permissions : undefined
+          }),
+        });
+        
+        if (!res.ok) {
+           const errData = await res.json().catch(() => ({}));
+           throw new Error(errData.error || t.updateError || 'Failed to update user');
         }
 
-        // 3. Update Password if provided
-        if (formData.password && formData.password.length >= 6) {
-          try {
-            await fetch(`${supabaseUrl}/functions/v1/update-user`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-              body: JSON.stringify({ userId: editingUser.id, password: formData.password }),
-            });
-          } catch { }
-        }
         showToast('success', t.userUpdatedSuccess);
       } else {
         if (!formData.password || formData.password.length < 6) {
@@ -254,8 +241,9 @@ const UsersPage: React.FC = () => {
         showToast('success', t.userCreatedSuccess);
       }
 
+      clearCache('users_all');
       handleCloseModal();
-      setTimeout(() => fetchUsers(), 1000);
+      setTimeout(() => fetchUsers(), 100);
     } catch (err: any) {
       showToast('error', err.message);
     } finally {

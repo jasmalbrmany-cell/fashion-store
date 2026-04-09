@@ -84,7 +84,7 @@ const setToCache = (key: string, data: any) => {
   setStorageItem(`cache_${key}`, cacheEntry);
 };
 
-const clearCache = (key: string) => {
+export const clearCache = (key: string) => {
   delete memoryCache[key];
   if (typeof window !== 'undefined') {
     localStorage.removeItem(`cache_${key}`);
