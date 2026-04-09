@@ -264,6 +264,19 @@ function parseProduct(html: string, url: string) {
     }
   }
 
+  // Description fallback using paragraph tags
+  if (!description) {
+    const pTags = html.matchAll(/<p[^>]*>([\s\S]*?)<\/p>/gi);
+    let allText = '';
+    for (const m of pTags) {
+      const text = m[1].replace(/<[^>]+>/g, '').trim();
+      if (text.length > 30 && text.length < 500 && !text.includes('تسوق') && !text.includes('حقوق')) {
+        allText += text + '\n\n';
+      }
+    }
+    if (allText) description = allText.trim();
+  }
+
   // Jina.ai reader format parsing (markdown-like)
   if (!title && html.includes('Title:')) {
     title = html.match(/Title:\s*(.+)/)?.[1] || '';
@@ -277,6 +290,11 @@ function parseProduct(html: string, url: string) {
     // Look for product name patterns in text
     const h1 = html.match(/<h1[^>]*>([^<]+)<\/h1>/i)?.[1];
     if (h1) title = h1;
+  }
+
+  // Final fallback for description if user doesn't know what to write
+  if (!description) {
+    description = 'نقدم لك هذا المنتج المتميز بتصميمه العصري الذي يواكب أحدث صيحات الموضة. تم تصنيع هذا المنتج بعناية فائقة باستخدام خامات عالية الجودة لضمان الراحة والاستدامة. إضافة مثالية لإطلالتك اليومية أو في المناسبات الخاصة، مصمم ليمنحك مظهراً جذاباً وفريداً من نوعه.';
   }
 
   const images = extractImages(html, url);

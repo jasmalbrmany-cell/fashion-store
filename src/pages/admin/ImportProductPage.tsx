@@ -142,7 +142,21 @@ const ImportProductPage: React.FC = () => {
 
       // If still no data, show empty form for manual entry
       if (!scraped) {
-        scraped = { title: '', description: '', price: 0, images: [], sizes: [], colors: [], currency: 'YER' };
+        scraped = { 
+          title: '', 
+          description: isRTL 
+            ? 'نقدم لك هذا المنتج المتميز بتصميمه العصري الذي يواكب أحدث صيحات الموضة. تم تصنيع هذا المنتج بعناية فائقة باستخدام خامات عالية الجودة لضمان الراحة والاستدامة. إضافة مثالية لإطلالتك اليومية أو في المناسبات الخاصة، مصمم ليمنحك مظهراً جذاباً وفريداً من نوعه.'
+            : 'Introducing this premium product with a modern design that keeps up with the latest fashion trends. Carefully crafted using high-quality materials to ensure comfort and sustainability. A perfect addition to your daily look or special occasions, designed to give you an attractive and unique appearance.', 
+          price: 0, 
+          images: [], 
+          sizes: [], 
+          colors: [], 
+          currency: 'YER' 
+        };
+      } else if (!scraped.description) {
+        scraped.description = isRTL 
+          ? 'نقدم لك هذا المنتج المتميز بتصميمه العصري الذي يواكب أحدث صيحات الموضة. تم تصنيع هذا المنتج بعناية فائقة باستخدام خامات عالية الجودة لضمان الراحة والاستدامة. إضافة مثالية لإطلالتك اليومية أو في المناسبات الخاصة، مصمم ليمنحك مظهراً جذاباً وفريداً من نوعه.'
+          : 'Introducing this premium product with a modern design that keeps up with the latest fashion trends. Carefully crafted using high-quality materials to ensure comfort and sustainability. A perfect addition to your daily look or special occasions, designed to give you an attractive and unique appearance.';
       }
 
       // Use sizes from scraper or defaults
