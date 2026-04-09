@@ -78,19 +78,45 @@ const CheckoutPage: React.FC = () => {
 
     const orderNumber = `ORD-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`;
 
-    // Build WhatsApp message
-    const itemsList = items.map(item => 
-      `• ${item.product.name}\n  ${t.size}: ${item.size?.name || '-'}\n  ${t.color}: ${item.color?.name || '-'}\n  ${t.quantity}: ${item.quantity}\n  ${t.price}: ${formatPrice(item.price * item.quantity)} ${t.rial}`
-    ).join('\n\n');
+    const message = `🛍️ *${isRTL ? 'طلب جديد من المتجر' : 'New Order from Store'}*
+---------------------------
+🆔 *${t.orderNumber}:* ${orderNumber}
 
-    const message = `${t.newOrder}: ${orderNumber}\n\n${t.customerInfo}:\n${t.name}: ${formData.name}\n${t.phone}: ${formData.phone}\n${t.city}: ${selectedCity?.name}\n${t.address}: ${formData.address || '-'}\n\n${t.products}:\n${itemsList}\n\n${t.orderSummary}:\n${t.subtotal}: ${formatPrice(subtotal)} ${t.rial}\n${t.shipping}: ${formatPrice(shippingCost)} ${t.rial}\n${t.total}: ${formatPrice(total)} ${t.rial}\n\n${formData.notes ? `${t.additionalNotes}: ${formData.notes}` : ''}`;
+👤 *${t.customerInfo}:*
+• *${t.name}:* ${formData.name}
+• *${t.phone}:* ${formData.phone}
+• *${t.city}:* ${selectedCity?.name}
+• *${t.detailedAddress}:* ${formData.address || '-'}
 
-    const firstItemCategory = items[0]?.product.categoryId;
-    const whatsappNumber = settings && firstItemCategory && settings.socialLinks.whatsappCategory?.[firstItemCategory]
-      ? settings.socialLinks.whatsappCategory[firstItemCategory]
-      : settings?.socialLinks.whatsapp || '';
+🛒 *${t.products}:*
+${items.map((item, i) => `\n${i + 1}. *${item.product.name}*\n   📏 ${t.size}: ${item.size?.name || '-'}\n   🎨 ${t.color}: ${item.color?.name || '-'}\n   🔢 ${t.quantity}: ${item.quantity}\n   💰 ${t.price}: ${formatPrice(item.price * item.quantity)} ${t.rial}`).join('\n')}
 
-    window.open(`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`, '_blank');
+---------------------------
+📊 *${t.orderSummary}:*
+• *${t.subtotal}:* ${formatPrice(subtotal)} ${t.rial}
+• *${t.shipping}:* ${formatPrice(shippingCost)} ${t.rial}
+• *${t.total}:* ${formatPrice(total)} ${t.rial}
+
+${formData.notes ? `\n📝 *${t.additionalNotes}:*\n${formData.notes}` : ''}
+---------------------------
+🚀 *${isRTL ? 'شكراً لتعاملك معنا!' : 'Thank you for shopping with us!'}*`;
+
+    // Try to find the first category with a specific WhatsApp number
+    let whatsappNumber = settings?.socialLinks.whatsapp || '';
+    
+    // Check if any product category has a specific number
+    for (const item of items) {
+      const catId = item.product.categoryId;
+      if (settings?.socialLinks.whatsappCategory?.[catId]) {
+        whatsappNumber = settings.socialLinks.whatsappCategory[catId];
+        break; // Priority to the first specialized number found
+      }
+    }
+
+    const encodedMessage = encodeURIComponent(message);
+    const whatsappUrl = `https://wa.me/${whatsappNumber.replace(/[^0-9]/g, '')}?text=${encodedMessage}`;
+    
+    window.open(whatsappUrl, '_blank');
 
     setTimeout(() => {
       clearCart();
