@@ -78,7 +78,7 @@ const ImportProductPage: React.FC = () => {
     setSuccess('');
 
     try {
-      // Strategy 1: Use our Vercel API route
+      // Strategy 1: Use our Vercel API route (supports SPA rendering)
       let scraped: any = null;
       
       try {
@@ -88,15 +88,16 @@ const ImportProductPage: React.FC = () => {
           body: JSON.stringify({ url }),
         });
         const apiResult = await apiRes.json();
-        if (apiResult.success && apiResult.data?.title) {
+        if (apiResult.data) {
           scraped = apiResult.data;
+          // API returns sizes and colors arrays directly
         }
       } catch (apiErr) {
         console.warn('API route failed, trying client-side fallback...', apiErr);
       }
 
       // Strategy 2: Client-side CORS proxy fallback
-      if (!scraped || !scraped.title) {
+      if (!scraped || (!scraped.title && (!scraped.images || scraped.images.length === 0))) {
         try {
           const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
           const proxyRes = await fetch(proxyUrl, { signal: AbortSignal.timeout(12000) });
@@ -110,33 +111,28 @@ const ImportProductPage: React.FC = () => {
               const product = Array.isArray(jsonData) ? jsonData.find((d: any) => d['@type'] === 'Product') : (jsonData['@type'] === 'Product' ? jsonData : null);
               if (product) {
                 scraped = {
-                  title: product.name || '',
-                  description: product.description || '',
-                  price: parseFloat(product.offers?.price || product.offers?.lowPrice || '0'),
-                  images: (Array.isArray(product.image) ? product.image : product.image ? [product.image] : []),
+                  ...scraped,
+                  title: product.name || scraped?.title || '',
+                  description: product.description || scraped?.description || '',
+                  price: parseFloat(product.offers?.price || product.offers?.lowPrice || '0') || scraped?.price || 0,
+                  images: [...(scraped?.images || []), ...(Array.isArray(product.image) ? product.image : product.image ? [product.image] : [])],
                   currency: product.offers?.priceCurrency || 'YER',
                 };
               }
             } catch (e) {}
           }
-          
-          // Fallback to OG tags
-          if (!scraped || !scraped.title) {
-            const ogTitle = html.match(/property=["']og:title["'][^>]*content=["']([^"']+)["']/i)?.[1] ||
-                            html.match(/content=["']([^"']+)["'][^>]*property=["']og:title["']/i)?.[1] || '';
-            const ogImage = html.match(/property=["']og:image["'][^>]*content=["']([^"']+)["']/i)?.[1] ||
-                            html.match(/content=["']([^"']+)["'][^>]*property=["']og:image["']/i)?.[1] || '';
-            const ogDesc = html.match(/property=["']og:description["'][^>]*content=["']([^"']+)["']/i)?.[1] || '';
-            const priceMatch = html.match(/["']price["']\s*:\s*["']?(\d+[\.,]?\d*)["']?/i);
 
-            if (ogTitle || ogImage) {
-              scraped = {
-                title: ogTitle || html.match(/<title>([^<]+)<\/title>/i)?.[1] || '',
-                description: ogDesc || '',
-                price: priceMatch ? parseFloat(priceMatch[1]) : 0,
-                images: ogImage ? [ogImage] : [],
-                currency: 'YER',
-              };
+          // Extract additional images from HTML
+          if (!scraped?.images?.length) {
+            const imgMatches = html.matchAll(/(?:data-src|src)=["'](https?:\/\/[^"']+\.(?:jpg|jpeg|png|webp)[^"']*)["']/gi);
+            const foundImgs: string[] = [];
+            for (const m of imgMatches) {
+              if (!m[1].includes('icon') && !m[1].includes('logo') && !m[1].includes('favicon') && foundImgs.length < 8) {
+                foundImgs.push(m[1]);
+              }
+            }
+            if (foundImgs.length) {
+              scraped = { ...scraped, images: [...(scraped?.images || []), ...foundImgs] };
             }
           }
         } catch (proxyErr) {
@@ -146,17 +142,30 @@ const ImportProductPage: React.FC = () => {
 
       // If still no data, show empty form for manual entry
       if (!scraped) {
-        scraped = { title: '', description: '', price: 0, images: [], currency: 'YER' };
+        scraped = { title: '', description: '', price: 0, images: [], sizes: [], colors: [], currency: 'YER' };
       }
+
+      // Use sizes from scraper or defaults
+      const scrapedSizes = scraped.sizes && scraped.sizes.length > 0 
+        ? scraped.sizes.map((s: any) => typeof s === 'string' ? { name: s } : s)
+        : [{ name: 'S' }, { name: 'M' }, { name: 'L' }, { name: 'XL' }];
+
+      // Use colors from scraper or defaults  
+      const scrapedColors = scraped.colors && scraped.colors.length > 0
+        ? scraped.colors
+        : [{ name: isRTL ? 'أسود' : 'Black', hex: '#1F2937' }];
+
+      // Deduplicate images
+      const uniqueImages: string[] = [...new Set((scraped.images || []) as string[])].filter(Boolean) as string[];
 
       const productInfo: ImportedProduct = {
         name: scraped.title || '',
-        description: scraped.description || (isRTL ? 'منتج حصري ومميز.' : 'Exclusive premium product.'),
+        description: scraped.description || '',
         price: scraped.price || 0,
         currency: scraped.currency || 'YER',
-        images: scraped.images || [],
-        sizes: [{ name: 'S' }, { name: 'M' }, { name: 'L' }, { name: 'XL' }],
-        colors: [{ name: isRTL ? 'أسود' : 'Black', hex: '#1F2937' }],
+        images: uniqueImages,
+        sizes: scrapedSizes,
+        colors: scrapedColors,
         sourceUrl: url,
       };
 
@@ -166,32 +175,40 @@ const ImportProductPage: React.FC = () => {
         description: productInfo.description,
         price: productInfo.price > 0 ? productInfo.price.toString() : '',
         categoryId: '',
-        images: productInfo.images.length > 0 ? productInfo.images.map((img, i) => ({
+        images: uniqueImages.map((img: string, i: number) => ({
           id: `img-${Date.now()}-${i}`,
           url: img,
           isPrimary: i === 0
-        })) : [],
-        sizes: productInfo.sizes.map((s, i) => ({
+        })),
+        sizes: scrapedSizes.map((s: any, i: number) => ({
           id: `size-${i}`,
-          name: s.name,
+          name: typeof s === 'string' ? s : s.name,
           stock: 10,
           priceModifier: 0,
         })),
-        colors: productInfo.colors.map((c, i) => ({
+        colors: scrapedColors.map((c: any, i: number) => ({
           id: `color-${i}`,
           name: c.name,
-          hex: c.hex,
+          hex: c.hex || '#1F2937',
           stock: 10,
         })),
         isVisible: true,
       });
       
-      if (productInfo.name) {
-        setSuccess(isRTL ? 'رائع! تم استخلاص بيانات المنتج بنجاح. راجع البيانات وأكمل الحفظ.' : 'Great! Product data extracted successfully. Review and save.');
+      // Show appropriate message
+      const hasImages = uniqueImages.length > 0;
+      const hasTitle = !!productInfo.name;
+      
+      if (hasTitle && hasImages) {
+        setSuccess(isRTL ? 'رائع! تم استخلاص بيانات المنتج بالكامل. راجع البيانات وأكمل الحفظ.' : 'Great! Full product data extracted. Review and save.');
+      } else if (hasImages || scrapedSizes.length > 4) {
+        setSuccess(isRTL 
+          ? 'تم استخلاص الصور والمقاسات بنجاح! أكمل الاسم والسعر يدوياً ثم احفظ.' 
+          : 'Images and sizes extracted! Complete the name and price manually, then save.');
       } else {
         setError(isRTL 
-          ? 'هذا الموقع يستخدم حماية ضد الاستخراج التلقائي. تم فتح نموذج الإضافة اليدوياً - أدخل البيانات بنفسك بسهولة.' 
-          : 'This site uses anti-scraping protection. Manual form opened - enter the data yourself easily.');
+          ? 'هذا الموقع يستخدم حماية قوية. تم فتح نموذج الإضافة اليدوية - أدخل البيانات بنفسك.' 
+          : 'This site uses strong protection. Manual form opened - enter the data yourself.');
       }
     } catch (err: any) {
       console.error('Fetch error:', err);
