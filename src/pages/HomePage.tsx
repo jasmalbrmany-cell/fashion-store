@@ -4,6 +4,7 @@ import { ArrowLeft, ArrowRight, ChevronLeft, ChevronRight, Loader2 } from 'lucid
 import { ProductCard } from '@/components/Product';
 import { productsService, categoriesService, adsService, storeSettingsService } from '@/services/api';
 import { useLanguage, categoryNames } from '@/context/LanguageContext';
+import { Skeleton } from '@/components/Common/Skeleton';
 import type { Product, Category, Ad, StoreSettings } from '@/types';
 
 const categoryIcons: Record<string, string> = {
@@ -58,11 +59,24 @@ const HomePage: React.FC = () => {
 
   const isAr = language === 'ar';
 
-  if (loading) {
+  if (loading && products.length === 0) {
     return (
-      <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4">
-        <Loader2 className="w-10 h-10 animate-spin text-black" />
-        <p className="text-gray-500 font-medium">{t.loading}</p>
+      <div className="bg-white dark:bg-black min-h-screen animate-fadeIn">
+        <section className="container mx-auto px-4 py-8">
+          <Skeleton className="h-64 md:h-96 rounded-3xl w-full" />
+        </section>
+        <section className="container mx-auto px-4 py-8 overflow-hidden">
+          <div className="flex gap-4 mb-8">
+            {[1, 2, 3, 4, 5, 6].map(i => <Skeleton key={i} className="w-40 h-10 rounded-full flex-shrink-0" />)}
+          </div>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+            {[1, 2, 3, 4].map(i => <div key={i} className="space-y-4">
+              <Skeleton className="aspect-[3/4] w-full rounded-2xl" />
+              <Skeleton className="h-4 w-3/4" />
+              <Skeleton className="h-4 w-1/2" />
+            </div>)}
+          </div>
+        </section>
       </div>
     );
   }

@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Filter, Grid, List, Search, X, Loader2 } from 'lucide-react';
+import { Filter, Grid, List, Search, X } from 'lucide-react';
 import { ProductCard } from '@/components/Product';
 import { productsService, categoriesService } from '@/services/api';
 import { Product, Category } from '@/types';
 import { useLanguage, categoryNames } from '@/context/LanguageContext';
+import { ProductGridSkeleton } from '@/components/Common/Skeleton';
 
 const ProductsPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -22,11 +23,9 @@ const ProductsPage: React.FC = () => {
   const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
   const [selectedColors, setSelectedColors] = useState<string[]>([]);
 
-  // Derived Filter Data
   const availableSizes = Array.from(new Set(products.flatMap(p => p.sizes.map(s => s.name)))).sort();
   const availableColors = Array.from(new Map(products.flatMap(p => p.colors.map(c => [c.hex, c.name]))).entries());
 
-  // Fetch all products and categories once
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -46,7 +45,6 @@ const ProductsPage: React.FC = () => {
     fetchData();
   }, []);
 
-  // Initialize from URL params
   useEffect(() => {
     const category = searchParams.get('category') || '';
     const search = searchParams.get('search') || '';
@@ -57,18 +55,15 @@ const ProductsPage: React.FC = () => {
     setSortBy(sort);
   }, [searchParams]);
 
-  // Apply filters locally on the fetched products
   useEffect(() => {
     if (loading) return;
 
     let result = [...products];
 
-    // Category filter
     if (selectedCategory) {
       result = result.filter(p => p.categoryId === selectedCategory);
     }
 
-    // Search filter
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       result = result.filter(p =>
@@ -77,26 +72,16 @@ const ProductsPage: React.FC = () => {
       );
     }
 
-    // Size filter
     if (selectedSizes.length > 0) {
-      result = result.filter(p => 
-        p.sizes.some(s => selectedSizes.includes(s.name))
-      );
+      result = result.filter(p => p.sizes.some(s => selectedSizes.includes(s.name)));
     }
 
-    // Color filter
     if (selectedColors.length > 0) {
-      result = result.filter(p => 
-        p.colors.some(c => selectedColors.includes(c.hex))
-      );
+      result = result.filter(p => p.colors.some(c => selectedColors.includes(c.hex)));
     }
 
-    // Price filter
-    result = result.filter(p =>
-      p.price >= priceRange.min && p.price <= priceRange.max
-    );
+    result = result.filter(p => p.price >= priceRange.min && p.price <= priceRange.max);
 
-    // Sort
     switch (sortBy) {
       case 'newest':
         result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
@@ -118,22 +103,8 @@ const ProductsPage: React.FC = () => {
   const handleCategoryChange = (categoryId: string) => {
     setSelectedCategory(categoryId);
     const params = new URLSearchParams(searchParams);
-    if (categoryId) {
-      params.set('category', categoryId);
-    } else {
-      params.delete('category');
-    }
-    setSearchParams(params);
-  };
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    const params = new URLSearchParams(searchParams);
-    if (searchQuery) {
-      params.set('search', searchQuery);
-    } else {
-      params.delete('search');
-    }
+    if (categoryId) params.set('category', categoryId);
+    else params.delete('category');
     setSearchParams(params);
   };
 
@@ -151,43 +122,48 @@ const ProductsPage: React.FC = () => {
     ? (categoryNames[selectedCategory]?.[language] || categories.find(c => c.id === selectedCategory)?.name || t.allProducts)
     : t.allProducts;
 
+  if (loading && products.length === 0) {
+    return (
+      <div className="bg-gray-50 dark:bg-black min-h-screen py-8">
+        <div className="container mx-auto px-4">
+          <div className="h-10 w-48 bg-gray-200 dark:bg-gray-800 animate-pulse rounded-2xl mb-8"></div>
+          <ProductGridSkeleton />
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="bg-gray-50 min-h-screen py-8">
+    <div className="bg-gray-50 dark:bg-black min-h-screen py-8 transition-colors duration-500" dir={language === 'ar' ? 'rtl' : 'ltr'}>
       <div className="container mx-auto px-4">
-        {/* Page Header */}
         <div className="mb-8">
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
+          <h1 className="text-3xl md:text-4xl font-black text-gray-900 dark:text-white mb-2 uppercase tracking-tighter">
             {selectedCategory ? selectedCategoryName : t.allProducts}
           </h1>
-          <p className="text-gray-500">
+          <p className="text-gray-500 font-bold uppercase tracking-widest text-xs">
             {filteredProducts.length} {t.productCount}
           </p>
         </div>
 
-        {/* Search & Controls */}
-        <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
+        <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-sm p-4 mb-8 border border-gray-100 dark:border-gray-800 transition-colors">
           <div className="flex flex-col md:flex-row gap-4">
-            {/* Search */}
-            <form onSubmit={handleSearch} className="flex-1">
+            <div className="flex-1">
               <div className="relative">
                 <input
                   type="text"
                   placeholder={t.searchPlaceholder}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full px-4 py-2 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className="w-full px-5 py-3 pr-12 bg-gray-50 dark:bg-gray-800 border-0 rounded-2xl focus:ring-2 focus:ring-black dark:focus:ring-white transition-all font-bold outline-none dark:text-white"
                 />
-                <button type="submit" className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-primary-600">
-                  <Search className="w-5 h-5" />
-                </button>
+                <Search className={`absolute ${language === 'ar' ? 'left-4' : 'right-4'} top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5`} />
               </div>
-            </form>
+            </div>
 
-            {/* Sort */}
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+              className="px-6 py-3 bg-gray-50 dark:bg-gray-800 border-0 rounded-2xl focus:ring-2 focus:ring-black dark:focus:ring-white outline-none font-bold dark:text-white"
             >
               <option value="newest">{t.sortNewest}</option>
               <option value="price-low">{t.sortPriceLow}</option>
@@ -195,26 +171,24 @@ const ProductsPage: React.FC = () => {
               <option value="name">{t.sortName}</option>
             </select>
 
-            {/* View Mode */}
-            <div className="flex border border-gray-300 rounded-lg overflow-hidden">
+            <div className="flex bg-gray-50 dark:bg-gray-800 rounded-2xl overflow-hidden p-1">
               <button
                 onClick={() => setViewMode('grid')}
-                className={`p-2 ${viewMode === 'grid' ? 'bg-primary-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-100'}`}
+                className={`p-2 rounded-xl transition-all ${viewMode === 'grid' ? 'bg-black text-white shadow-lg' : 'text-gray-400 hover:text-black'}`}
               >
                 <Grid className="w-5 h-5" />
               </button>
               <button
                 onClick={() => setViewMode('list')}
-                className={`p-2 ${viewMode === 'list' ? 'bg-primary-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-100'}`}
+                className={`p-2 rounded-xl transition-all ${viewMode === 'list' ? 'bg-black text-white shadow-lg' : 'text-gray-400 hover:text-black'}`}
               >
                 <List className="w-5 h-5" />
               </button>
             </div>
 
-            {/* Filter Toggle - Mobile */}
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className="md:hidden flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 rounded-lg bg-white"
+              className="md:hidden flex items-center justify-center gap-2 px-6 py-3 bg-black text-white rounded-2xl font-bold shadow-xl active:scale-95 transition-all"
             >
               <Filter className="w-5 h-5" />
               <span>{t.filters}</span>
@@ -223,29 +197,19 @@ const ProductsPage: React.FC = () => {
         </div>
 
         <div className="flex gap-8">
-          {/* Sidebar Filters - Desktop */}
           <aside className="hidden md:block w-64 flex-shrink-0">
-            <div className="bg-white rounded-lg shadow-sm p-6 sticky top-24">
+            <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-3xl p-6 sticky top-24 transition-colors">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="font-semibold text-gray-900">{t.filters}</h3>
-                {(selectedCategory || searchQuery || selectedSizes.length > 0 || selectedColors.length > 0) && (
-                  <button
-                    onClick={clearFilters}
-                    className="text-sm text-primary-600 hover:text-primary-700 font-medium"
-                  >
-                    {t.clearAll}
-                  </button>
-                )}
+                <h3 className="font-black text-gray-900 dark:text-white uppercase tracking-widest text-xs">{t.filters}</h3>
               </div>
 
-              {/* Categories */}
-              <div className="mb-6">
-                <h4 className="font-medium text-gray-900 mb-3 border-b pb-2">{t.categories}</h4>
-                <div className="space-y-2">
+              <div className="mb-8">
+                <h4 className="font-black text-[10px] text-gray-400 dark:text-gray-500 mb-4 uppercase tracking-[0.2em]">{t.categories}</h4>
+                <div className="space-y-1">
                   <button
                     onClick={() => handleCategoryChange('')}
-                    className={`w-full text-right py-1.5 px-3 rounded-lg transition-colors ${
-                      !selectedCategory ? 'bg-black text-white' : 'text-gray-600 hover:bg-gray-100'
+                    className={`w-full text-start py-2.5 px-4 rounded-xl transition-all font-bold text-sm ${
+                      !selectedCategory ? 'bg-black text-white shadow-lg' : 'text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800'
                     }`}
                   >
                     {t.allProducts}
@@ -254,8 +218,8 @@ const ProductsPage: React.FC = () => {
                     <button
                       key={category.id}
                       onClick={() => handleCategoryChange(category.id)}
-                      className={`w-full text-right py-1.5 px-3 rounded-lg transition-colors ${
-                        selectedCategory === category.id ? 'bg-black text-white' : 'text-gray-600 hover:bg-gray-100'
+                      className={`w-full text-start py-2.5 px-4 rounded-xl transition-all font-bold text-sm ${
+                        selectedCategory === category.id ? 'bg-black text-white shadow-lg' : 'text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800'
                       }`}
                     >
                       {categoryNames[category.id]?.[language] || category.name}
@@ -264,32 +228,29 @@ const ProductsPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Price Range */}
-              <div className="mb-6">
-                <h4 className="font-medium text-gray-900 mb-3 border-b pb-2">{t.priceRange}</h4>
-                <div className="flex items-center gap-2">
+              <div className="mb-8">
+                <h4 className="font-black text-[10px] text-gray-400 dark:text-gray-500 mb-4 uppercase tracking-[0.2em]">{t.priceRange}</h4>
+                <div className="space-y-3">
                   <input
                     type="number"
                     placeholder={t.minPrice}
                     value={priceRange.min}
                     onChange={(e) => setPriceRange({ ...priceRange, min: Number(e.target.value) })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-1 focus:ring-black"
+                    className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-800 border-0 rounded-xl text-sm font-bold focus:ring-2 focus:ring-black dark:focus:ring-white outline-none dark:text-white"
                   />
-                  <span className="text-gray-400">-</span>
                   <input
                     type="number"
                     placeholder={t.maxPrice}
                     value={priceRange.max}
                     onChange={(e) => setPriceRange({ ...priceRange, max: Number(e.target.value) })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-1 focus:ring-black"
+                    className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-800 border-0 rounded-xl text-sm font-bold focus:ring-2 focus:ring-black dark:focus:ring-white outline-none dark:text-white"
                   />
                 </div>
               </div>
 
-              {/* Sizes */}
               {availableSizes.length > 0 && (
-                <div className="mb-6">
-                  <h4 className="font-medium text-gray-900 mb-3 border-b pb-2">{t.availableSizes}</h4>
+                <div className="mb-8">
+                  <h4 className="font-black text-[10px] text-gray-400 dark:text-gray-500 mb-4 uppercase tracking-[0.2em]">{t.availableSizes}</h4>
                   <div className="flex flex-wrap gap-2">
                     {availableSizes.map(size => (
                       <button
@@ -299,10 +260,10 @@ const ProductsPage: React.FC = () => {
                             prev.includes(size) ? prev.filter(s => s !== size) : [...prev, size]
                           );
                         }}
-                        className={`px-3 py-1.5 rounded-lg border text-sm font-medium transition-all ${
+                        className={`px-3 py-1.5 rounded-lg border-2 text-[10px] font-black transition-all ${
                           selectedSizes.includes(size) 
                             ? 'bg-black text-white border-black' 
-                            : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'
+                            : 'bg-white dark:bg-gray-800 text-gray-400 border-gray-100 dark:border-gray-700 hover:border-black'
                         }`}
                       >
                         {size}
@@ -312,10 +273,9 @@ const ProductsPage: React.FC = () => {
                 </div>
               )}
 
-              {/* Colors */}
               {availableColors.length > 0 && (
                 <div className="mb-6">
-                  <h4 className="font-medium text-gray-900 mb-3 border-b pb-2">{t.availableColors}</h4>
+                  <h4 className="font-black text-[10px] text-gray-400 dark:text-gray-500 mb-4 uppercase tracking-[0.2em]">{t.availableColors}</h4>
                   <div className="flex flex-wrap gap-2">
                     {availableColors.map(([hex, name]) => (
                       <button
@@ -326,14 +286,11 @@ const ProductsPage: React.FC = () => {
                             prev.includes(hex) ? prev.filter(c => c !== hex) : [...prev, hex]
                           );
                         }}
-                        className={`w-8 h-8 rounded-full border-2 transition-all flex items-center justify-center p-0.5 ${
-                          selectedColors.includes(hex) ? 'border-black scale-110' : 'border-transparent hover:border-gray-300'
+                        className={`w-7 h-7 rounded-full border-2 transition-all flex items-center justify-center p-0.5 ${
+                          selectedColors.includes(hex) ? 'border-black scale-110' : 'border-transparent hover:scale-105'
                         }`}
                       >
-                        <div 
-                          className="w-full h-full rounded-full border border-gray-200" 
-                          style={{ backgroundColor: hex }}
-                        ></div>
+                        <div className="w-full h-full rounded-full border border-gray-100 shadow-inner" style={{ backgroundColor: hex }}></div>
                       </button>
                     ))}
                   </div>
@@ -342,29 +299,17 @@ const ProductsPage: React.FC = () => {
             </div>
           </aside>
 
-          {/* Products Grid */}
           <div className="flex-1">
             {filteredProducts.length > 0 ? (
-              <div className={
-                viewMode === 'grid'
-                  ? 'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6'
-                  : 'space-y-4'
-              }>
-                {filteredProducts.map((product) => (
-                  <ProductCard key={product.id} product={product} />
-                ))}
+              <div className={viewMode === 'grid' ? 'grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6' : 'space-y-4'}>
+                {filteredProducts.map((product) => <ProductCard key={product.id} product={product} />)}
               </div>
             ) : (
-              <div className="bg-white rounded-lg shadow-sm p-12 text-center">
-                <div className="w-24 h-24 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
-                  <Search className="w-12 h-12 text-gray-400" />
-                </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">{t.noProducts}</h3>
-                <p className="text-gray-500 mb-8">{t.tryDiffSearch}</p>
-                <button
-                  onClick={clearFilters}
-                  className="px-10 py-3 bg-black text-white rounded-full hover:bg-gray-800 transition shadow-lg"
-                >
+              <div className="bg-white dark:bg-gray-900 rounded-[2.5rem] p-20 text-center border border-dashed border-gray-200 dark:border-gray-800">
+                <Search className="w-16 h-16 text-gray-200 dark:text-gray-700 mx-auto mb-6" />
+                <h3 className="text-xl font-black text-gray-900 dark:text-white mb-2">{t.noProducts}</h3>
+                <p className="text-gray-500 dark:text-gray-400 font-bold mb-8 uppercase tracking-widest text-[10px]">{t.tryDiffSearch}</p>
+                <button onClick={clearFilters} className="px-10 py-4 bg-black text-white rounded-2xl font-black shadow-xl hover:scale-105 transition-all outline-none">
                   {t.clearAll}
                 </button>
               </div>
@@ -373,119 +318,33 @@ const ProductsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Mobile Filters Modal */}
       {showFilters && (
-        <div className="fixed inset-0 bg-black/50 z-50 md:hidden">
-          <div className="bg-white h-full w-80 overflow-y-auto">
-            <div className="p-4 border-b flex items-center justify-between">
-              <h3 className="font-semibold text-gray-900">{language === 'ar' ? 'الفلاتر' : 'Filters'}</h3>
-              <button onClick={() => setShowFilters(false)}>
-                <X className="w-6 h-6" />
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 md:hidden animate-in fade-in duration-300">
+          <div className="absolute inset-y-0 end-0 w-80 bg-white dark:bg-black h-full shadow-2xl overflow-y-auto">
+            <div className="p-6 border-b dark:border-gray-800 flex items-center justify-between">
+              <h3 className="font-black text-gray-900 dark:text-white uppercase tracking-widest text-xs">{t.filters}</h3>
+              <button onClick={() => setShowFilters(false)} className="p-2 bg-gray-50 dark:bg-gray-900 rounded-xl">
+                <X className="w-5 h-5 dark:text-white" />
               </button>
             </div>
-            <div className="p-4">
-              {/* Categories */}
-              <div className="mb-6">
-                <h4 className="font-medium text-gray-900 mb-3 border-b pb-2">{t.categories}</h4>
-                <div className="space-y-2">
-                  <button
-                    onClick={() => { handleCategoryChange(''); setShowFilters(false); }}
-                    className={`w-full text-right py-2.5 px-4 rounded-xl transition-colors ${!selectedCategory ? 'bg-black text-white' : 'text-gray-600 hover:bg-gray-100'}`}
-                  >
-                    {t.allProducts}
-                  </button>
-                  {categories.map((category) => (
-                    <button
-                      key={category.id}
-                      onClick={() => { handleCategoryChange(category.id); setShowFilters(false); }}
-                      className={`w-full text-right py-2.5 px-4 rounded-xl transition-colors ${selectedCategory === category.id ? 'bg-black text-white' : 'text-gray-600 hover:bg-gray-100'}`}
-                    >
-                      {categoryNames[category.id]?.[language] || category.name}
-                    </button>
-                  ))}
+            <div className="p-6 space-y-8">
+              <div>
+                <h4 className="font-black text-[10px] text-gray-400 mb-4 uppercase tracking-[0.2em]">{t.categories}</h4>
+                <div className="grid grid-cols-1 gap-2">
+                   <button onClick={() => { handleCategoryChange(''); setShowFilters(false); }} className={`py-3 px-4 rounded-xl text-start font-bold text-sm ${!selectedCategory ? 'bg-black text-white' : 'bg-gray-50 dark:bg-gray-900 text-gray-500'}`}>{t.allProducts}</button>
+                   {categories.map(c => <button key={c.id} onClick={() => { handleCategoryChange(c.id); setShowFilters(false); }} className={`py-3 px-4 rounded-xl text-start font-bold text-sm ${selectedCategory === c.id ? 'bg-black text-white' : 'bg-gray-50 dark:bg-gray-900 text-gray-500'}`}>{categoryNames[c.id]?.[language] || c.name}</button>)}
                 </div>
               </div>
 
-              {/* Price Range */}
-              <div className="mb-8">
-                <h4 className="font-medium text-gray-900 mb-3 border-b pb-2">{t.priceRange}</h4>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="number"
-                    placeholder={t.minPrice}
-                    value={priceRange.min}
-                    onChange={(e) => setPriceRange({ ...priceRange, min: Number(e.target.value) })}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl outline-none focus:ring-1 focus:ring-black"
-                  />
-                  <span className="text-gray-400">-</span>
-                  <input
-                    type="number"
-                    placeholder={t.maxPrice}
-                    value={priceRange.max}
-                    onChange={(e) => setPriceRange({ ...priceRange, max: Number(e.target.value) })}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl outline-none focus:ring-1 focus:ring-black"
-                  />
+              <div>
+                <h4 className="font-black text-[10px] text-gray-400 mb-4 uppercase tracking-[0.2em]">{t.priceRange}</h4>
+                <div className="grid grid-cols-2 gap-3">
+                  <input type="number" placeholder={t.minPrice} value={priceRange.min} onChange={(e) => setPriceRange({ ...priceRange, min: Number(e.target.value) })} className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 rounded-xl outline-none font-bold text-sm dark:text-white" />
+                  <input type="number" placeholder={t.maxPrice} value={priceRange.max} onChange={(e) => setPriceRange({ ...priceRange, max: Number(e.target.value) })} className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 rounded-xl outline-none font-bold text-sm dark:text-white" />
                 </div>
               </div>
 
-              {/* Sizes Mobile */}
-              {availableSizes.length > 0 && (
-                <div className="mb-6">
-                  <h4 className="font-medium text-gray-900 mb-3 border-b pb-2">{t.availableSizes}</h4>
-                  <div className="flex flex-wrap gap-2 text-right" dir="rtl">
-                    {availableSizes.map(size => (
-                      <button
-                        key={size}
-                        onClick={() => {
-                          setSelectedSizes(prev => 
-                            prev.includes(size) ? prev.filter(s => s !== size) : [...prev, size]
-                          );
-                        }}
-                        className={`px-4 py-2 rounded-xl border text-base font-medium transition-all ${
-                          selectedSizes.includes(size) 
-                            ? 'bg-black text-white border-black' 
-                            : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'
-                        }`}
-                      >
-                        {size}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Colors Mobile */}
-              {availableColors.length > 0 && (
-                <div className="mb-8">
-                  <h4 className="font-medium text-gray-900 mb-3 border-b pb-2">{t.availableColors}</h4>
-                  <div className="flex flex-wrap gap-3">
-                    {availableColors.map(([hex, name]) => (
-                      <button
-                        key={hex}
-                        title={name}
-                        onClick={() => {
-                          setSelectedColors(prev => 
-                            prev.includes(hex) ? prev.filter(c => c !== hex) : [...prev, hex]
-                          );
-                        }}
-                        className={`w-10 h-10 rounded-full border-2 transition-all flex items-center justify-center p-0.5 ${
-                          selectedColors.includes(hex) ? 'border-black scale-110' : 'border-transparent hover:border-gray-300'
-                        }`}
-                      >
-                        <div 
-                          className="w-full h-full rounded-full border border-gray-200" 
-                          style={{ backgroundColor: hex }}
-                        ></div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <button
-                onClick={() => setShowFilters(false)}
-                className="w-full py-4 bg-black text-white rounded-xl font-bold shadow-lg"
-              >
+              <button onClick={() => setShowFilters(false)} className="w-full py-5 bg-black text-white rounded-2xl font-black text-sm uppercase tracking-widest shadow-2xl">
                 {t.applyFilters}
               </button>
             </div>

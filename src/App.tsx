@@ -1,38 +1,44 @@
+import React, { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { CartProvider } from '@/context/CartContext';
 import { AuthProvider } from '@/context/AuthContext';
 import { LanguageProvider } from '@/context/LanguageContext';
 import { ThemeProvider } from '@/context/ThemeContext';
 import { Layout } from '@/components/Layout';
+import { Loader2 } from 'lucide-react';
 
-// Pages
-import HomePage from '@/pages/HomePage';
-import ProductsPage from '@/pages/ProductsPage';
-import ProductDetailPage from '@/pages/ProductDetailPage';
-import CartPage from '@/pages/CartPage';
-import CheckoutPage from '@/pages/CheckoutPage';
-import LoginPage from '@/pages/LoginPage';
-import RegisterPage from '@/pages/RegisterPage';
-import OrderSuccessPage from '@/pages/OrderSuccessPage';
-import TrackOrderPage from '@/pages/TrackOrderPage';
-import MyOrdersPage from '@/pages/MyOrdersPage';
+// Lazy load pages for performance
+const HomePage = lazy(() => import('@/pages/HomePage'));
+const ProductsPage = lazy(() => import('@/pages/ProductsPage'));
+const ProductDetailPage = lazy(() => import('@/pages/ProductDetailPage'));
+const CartPage = lazy(() => import('@/pages/CartPage'));
+const CheckoutPage = lazy(() => import('@/pages/CheckoutPage'));
+const LoginPage = lazy(() => import('@/pages/LoginPage'));
+const RegisterPage = lazy(() => import('@/pages/RegisterPage'));
+const OrderSuccessPage = lazy(() => import('@/pages/OrderSuccessPage'));
+const TrackOrderPage = lazy(() => import('@/pages/TrackOrderPage'));
+const MyOrdersPage = lazy(() => import('@/pages/MyOrdersPage'));
 
-// Admin Pages
-import { 
-  AdminLayout, 
-  DashboardPage, 
-  AdminProductsPage, 
-  ImportProductPage, 
-  BulkImportPage, 
-  AdminOrdersPage, 
-  UsersPage, 
-  ActivityPage, 
-  SettingsPage, 
-  AdsPage, 
-  CitiesPage, 
-  CurrenciesPage 
-} from '@/pages/admin';
-import AddProductPage from '@/pages/admin/AddProductPage';
+// Admin Pages (Loaded only when needed)
+const AdminLayout = lazy(() => import('@/pages/admin/AdminLayout'));
+const DashboardPage = lazy(() => import('@/pages/admin/DashboardPage'));
+const AdminProductsPage = lazy(() => import('@/pages/admin/ProductsPage'));
+const AddProductPage = lazy(() => import('@/pages/admin/AddProductPage'));
+const ImportProductPage = lazy(() => import('@/pages/admin/ImportProductPage'));
+const BulkImportPage = lazy(() => import('@/pages/admin/BulkImportPage'));
+const AdminOrdersPage = lazy(() => import('@/pages/admin/OrdersPage'));
+const UsersPage = lazy(() => import('@/pages/admin/UsersPage'));
+const ActivityPage = lazy(() => import('@/pages/admin/ActivityPage'));
+const SettingsPage = lazy(() => import('@/pages/admin/SettingsPage'));
+const AdsPage = lazy(() => import('@/pages/admin/AdsPage'));
+const CitiesPage = lazy(() => import('@/pages/admin/CitiesPage'));
+const CurrenciesPage = lazy(() => import('@/pages/admin/CurrenciesPage'));
+
+const PageLoader = () => (
+  <div className="min-h-[60vh] flex items-center justify-center">
+    <div className="w-8 h-8 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
+  </div>
+);
 
 function App() {
   return (
@@ -41,41 +47,42 @@ function App() {
         <ThemeProvider>
           <AuthProvider>
             <CartProvider>
-              <Routes>
-                {/* صفحات المتجر العام */}
-                <Route path="/" element={<Layout />}>
-                  <Route index element={<HomePage />} />
-                  <Route path="products" element={<ProductsPage />} />
-                  <Route path="product/:id" element={<ProductDetailPage />} />
-                  <Route path="cart" element={<CartPage />} />
-                  <Route path="checkout" element={<CheckoutPage />} />
-                  <Route path="order-success" element={<OrderSuccessPage />} />
-                  <Route path="track-order" element={<TrackOrderPage />} />
-                  <Route path="my-orders" element={<MyOrdersPage />} />
-                  <Route path="login" element={<LoginPage />} />
-                  <Route path="register" element={<RegisterPage />} />
-                </Route>
+              <Suspense fallback={<PageLoader />}>
+                <Routes>
+                  {/* صفحات المتجر العام */}
+                  <Route path="/" element={<Layout />}>
+                    <Route index element={<HomePage />} />
+                    <Route path="products" element={<ProductsPage />} />
+                    <Route path="product/:id" element={<ProductDetailPage />} />
+                    <Route path="cart" element={<CartPage />} />
+                    <Route path="checkout" element={<CheckoutPage />} />
+                    <Route path="order-success" element={<OrderSuccessPage />} />
+                    <Route path="track-order" element={<TrackOrderPage />} />
+                    <Route path="my-orders" element={<MyOrdersPage />} />
+                    <Route path="login" element={<LoginPage />} />
+                    <Route path="register" element={<RegisterPage />} />
+                  </Route>
 
-                {/* صفحات لوحة التحكم */}
-                <Route path="/admin" element={<AdminLayout />}>
-                  <Route index element={<DashboardPage />} />
-                  <Route path="products" element={<AdminProductsPage />} />
-                  <Route path="products/add" element={<AddProductPage />} />
-                  <Route path="products/edit/:id" element={<AddProductPage />} />
-                  <Route path="products/import" element={<ImportProductPage />} />
-                  <Route path="products/bulk" element={<BulkImportPage />} />
-                  <Route path="orders" element={<AdminOrdersPage />} />
-                  <Route path="users" element={<UsersPage />} />
-                  <Route path="activity" element={<ActivityPage />} />
-                  <Route path="settings" element={<SettingsPage />} />
-                  <Route path="ads" element={<AdsPage />} />
-                  <Route path="cities" element={<CitiesPage />} />
-                  <Route path="currencies" element={<CurrenciesPage />} />
-                </Route>
+                  {/* صفحات لوحة التحكم */}
+                  <Route path="/admin" element={<AdminLayout />}>
+                    <Route index element={<DashboardPage />} />
+                    <Route path="products" element={<AdminProductsPage />} />
+                    <Route path="products/add" element={<AddProductPage />} />
+                    <Route path="products/edit/:id" element={<AddProductPage />} />
+                    <Route path="products/import" element={<ImportProductPage />} />
+                    <Route path="products/bulk" element={<BulkImportPage />} />
+                    <Route path="orders" element={<AdminOrdersPage />} />
+                    <Route path="users" element={<UsersPage />} />
+                    <Route path="activity" element={<ActivityPage />} />
+                    <Route path="settings" element={<SettingsPage />} />
+                    <Route path="ads" element={<AdsPage />} />
+                    <Route path="cities" element={<CitiesPage />} />
+                    <Route path="currencies" element={<CurrenciesPage />} />
+                  </Route>
 
-                {/* التقاط أي مسار غير موجود */}
-                <Route path="*" element={<Navigate to="/" replace />} />
-              </Routes>
+                  <Route path="*" element={<Navigate to="/" replace />} />
+                </Routes>
+              </Suspense>
             </CartProvider>
           </AuthProvider>
         </ThemeProvider>
