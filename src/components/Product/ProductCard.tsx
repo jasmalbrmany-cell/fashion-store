@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Heart, ShoppingCart, Eye } from 'lucide-react';
+import { Heart, ShoppingCart } from 'lucide-react';
 import { Product } from '@/types';
 import { useCart } from '@/context/CartContext';
-import { mockStoreSettings } from '@/data/mockData';
+import { useLanguage } from '@/context/LanguageContext';
 
 interface ProductCardProps {
   product: Product;
@@ -13,12 +13,12 @@ interface ProductCardProps {
 const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
   const navigate = useNavigate();
   const { addItem } = useCart();
+  const { t, language, isRTL } = useLanguage();
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
 
   const primaryImage = product.images.find(img => img.isPrimary) || product.images[0];
-  const currencySymbol = 'ر.ي';
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -50,16 +50,17 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
   };
 
   const formatPrice = (price: number) => {
-    return price.toLocaleString('ar-SA');
+    return price.toLocaleString(language === 'ar' ? 'ar-SA' : 'en-US');
   };
 
   return (
     <div
-      className="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-xl transition-all duration-300"
+      className="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-xl transition-all duration-300 h-full flex flex-col"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
+      dir={isRTL ? 'rtl' : 'ltr'}
     >
-      <Link to={`/product/${product.id}`} className="block">
+      <Link to={`/product/${product.id}`} className="block flex-1 flex flex-col">
         {/* Image */}
         <div className="relative aspect-[3/4] overflow-hidden bg-gray-100">
           {!imageLoaded && (
@@ -75,31 +76,31 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
           />
 
           {/* Badges */}
-          <div className="absolute top-3 right-3 flex flex-col gap-2">
+          <div className={`absolute top-3 ${isRTL ? 'right-3' : 'left-3'} flex flex-col gap-2`}>
             {product.sourceUrl && (
-              <span className="bg-black/80 backdrop-blur-sm text-white text-xs px-2.5 py-1 rounded-full">
-                مستورد
+              <span className="bg-black/80 backdrop-blur-sm text-white text-[10px] md:text-sm px-2.5 py-1 rounded-full uppercase tracking-tighter">
+                {t.imported}
               </span>
             )}
             {product.stock <= 3 && product.stock > 0 && (
-              <span className="bg-red-500 text-white text-xs px-2.5 py-1 rounded-full font-medium">
-               只剩 {product.stock}
+              <span className="bg-red-500 text-white text-[10px] md:text-sm px-2.5 py-1 rounded-full font-medium">
+                {t.onlyLeft.replace('{count}', product.stock.toString())}
               </span>
             )}
             {product.stock === 0 && (
-              <span className="bg-gray-800 text-white text-xs px-2.5 py-1 rounded-full">
-               نفدت
+              <span className="bg-gray-800 text-white text-[10px] md:text-sm px-2.5 py-1 rounded-full">
+                {t.outOfStock}
               </span>
             )}
           </div>
 
           {/* Actions */}
-          <div className="absolute top-3 left-3 flex flex-col gap-2">
+          <div className={`absolute top-3 ${isRTL ? 'left-3' : 'right-3'} flex flex-col gap-2`}>
             <button
               onClick={toggleWishlist}
               className={`w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-sm shadow-lg transition-all duration-200 ${
                 isWishlisted
-                  ? 'bg-red-500 text-white'
+                   ? 'bg-red-500 text-white'
                   : 'bg-white/90 text-gray-600 hover:bg-red-50'
               }`}
             >
@@ -113,14 +114,14 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
               <button
                 onClick={handleQuickBuy}
                 disabled={product.stock === 0}
-                className="flex-1 py-2.5 bg-white text-black rounded-lg font-semibold hover:bg-gray-100 transition disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                className="flex-1 py-2 bg-white text-black rounded-lg font-semibold hover:bg-gray-100 transition disabled:opacity-50 disabled:cursor-not-allowed text-xs sm:text-sm"
               >
-                شراء الآن
+                {t.buyNow}
               </button>
               <button
                 onClick={handleAddToCart}
                 disabled={product.stock === 0}
-                className="w-12 h-10 bg-white/90 rounded-lg flex items-center justify-center hover:bg-white transition disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-10 sm:w-12 h-8 sm:h-10 bg-white/90 rounded-lg flex items-center justify-center hover:bg-white transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <ShoppingCart className="w-5 h-5 text-gray-700" />
               </button>
@@ -129,49 +130,48 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
         </div>
 
         {/* Info */}
-        <div className="p-4">
-          <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2 hover:text-black transition text-sm leading-snug">
+        <div className="p-4 flex-1 flex flex-col">
+          <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2 hover:text-black transition text-sm leading-snug flex-1">
             {product.name}
           </h3>
-          <div className="flex items-center justify-between">
-            <span className="text-lg font-bold text-black">
-              {formatPrice(product.price)} {currencySymbol}
-            </span>
-            {/* Color Options */}
-            {product.colors.length > 0 && (
-              <div className="flex gap-1.5">
-                {product.colors.slice(0, 3).map((color) => (
-                  <div
-                    key={color.id}
-                    className="w-4 h-4 rounded-full border-2 border-gray-200"
-                    style={{ backgroundColor: color.hex }}
-                    title={color.name}
-                  />
+          <div className="mt-auto">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-base sm:text-lg font-bold text-black">
+                {formatPrice(product.price)} {t.rial}
+              </span>
+              {/* Color Options */}
+              {product.colors.length > 0 && (
+                <div className="flex gap-1">
+                  {product.colors.slice(0, 3).map((color) => (
+                    <div
+                      key={color.id}
+                      className="w-3.5 h-3.5 rounded-full border border-gray-200"
+                      style={{ backgroundColor: color.hex }}
+                      title={color.name}
+                    />
+                  ))}
+                  {product.colors.length > 3 && (
+                    <span className="text-[10px] text-gray-400">+{product.colors.length - 3}</span>
+                  )}
+                </div>
+              )}
+            </div>
+            {/* Sizes */}
+            {product.sizes.length > 0 && (
+              <div className="flex gap-1 flex-wrap">
+                {product.sizes.slice(0, 4).map((size) => (
+                  <span
+                    key={size.id}
+                    className={`text-[10px] px-1.5 py-0.5 rounded border ${
+                      size.stock > 0 ? 'bg-gray-50 border-gray-100 text-gray-600' : 'bg-gray-50 border-gray-100 text-gray-300 line-through'
+                    }`}
+                  >
+                    {size.name}
+                  </span>
                 ))}
-                {product.colors.length > 3 && (
-                  <span className="text-xs text-gray-400">+{product.colors.length - 3}</span>
-                )}
               </div>
             )}
           </div>
-          {/* Sizes */}
-          {product.sizes.length > 0 && (
-            <div className="mt-2 flex gap-1 flex-wrap">
-              {product.sizes.slice(0, 4).map((size) => (
-                <span
-                  key={size.id}
-                  className={`text-xs px-1.5 py-0.5 rounded ${
-                    size.stock > 0 ? 'bg-gray-100 text-gray-600' : 'bg-gray-100 text-gray-300 line-through'
-                  }`}
-                >
-                  {size.name}
-                </span>
-              ))}
-              {product.sizes.length > 4 && (
-                <span className="text-xs text-gray-400">+{product.sizes.length - 4}</span>
-              )}
-            </div>
-          )}
         </div>
       </Link>
     </div>

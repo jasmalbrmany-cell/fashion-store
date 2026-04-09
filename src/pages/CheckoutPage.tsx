@@ -1,13 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ChevronRight, MapPin, Phone, User, MessageCircle, Check, ArrowLeft } from 'lucide-react';
+import { MapPin, Phone, User, MessageCircle, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
-import { mockStoreSettings, mockCities } from '@/data/mockData';
+import { useLanguage } from '@/context/LanguageContext';
+import { citiesService, storeSettingsService } from '@/services/api';
+import { City, StoreSettings } from '@/types';
 
 const CheckoutPage: React.FC = () => {
   const navigate = useNavigate();
   const { items, getSubtotal, clearCart } = useCart();
+  const { t, language, isRTL } = useLanguage();
 
+  const [loading, setLoading] = useState(true);
+  const [cities, setCities] = useState<City[]>([]);
+  const [settings, setSettings] = useState<StoreSettings | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -18,11 +24,29 @@ const CheckoutPage: React.FC = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [citiesData, settingsData] = await Promise.all([
+          citiesService.getActive(),
+          storeSettingsService.get()
+        ]);
+        setCities(citiesData);
+        setSettings(settingsData);
+      } catch (error) {
+        console.error('Failed to fetch checkout data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
   const subtotal = getSubtotal();
-  const selectedCity = mockCities.find(c => c.id === formData.city);
+  const selectedCity = cities.find(c => c.id === formData.city);
   const shippingCost = selectedCity?.shippingCost || 0;
   const total = subtotal + shippingCost;
-  const currencySymbol = 'ر.ي';
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -35,19 +59,13 @@ const CheckoutPage: React.FC = () => {
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.name.trim()) {
-      newErrors.name = 'يرجى إدخال الاسم';
-    }
-
+    if (!formData.name.trim()) newErrors.name = t.enterFullName;
     if (!formData.phone.trim()) {
-      newErrors.phone = 'يرجى إدخال رقم الجوال';
-    } else if (!/^[0-9]{9}$/.test(formData.phone.replace(/\s/g, ''))) {
-      newErrors.phone = 'يرجى إدخال رقم جوال صحيح';
+      newErrors.phone = t.enterPhone;
+    } else if (!/^[0-9]{7,15}$/.test(formData.phone.replace(/\s/g, ''))) {
+      newErrors.phone = t.phoneValidation;
     }
-
-    if (!formData.city) {
-      newErrors.city = 'يرجى اختيار المدينة';
-    }
+    if (!formData.city) newErrors.city = t.chooseCity;
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -55,295 +73,259 @@ const CheckoutPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     if (!validateForm()) return;
-
     setIsSubmitting(true);
 
-    // Generate order number
     const orderNumber = `ORD-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`;
 
     // Build WhatsApp message
-    const itemsList = items
-      .map(
-        item =>
-          `• ${item.product.name}
-  المقاس: ${item.size?.name || '-'}
-  اللون: ${item.color?.name || '-'}
-  الكمية: ${item.quantity}
-  السعر: ${(item.price * item.quantity).toLocaleString('ar-SA')} ${currencySymbol}`
-      )
-      .join('\n\n');
+    const itemsList = items.map(item => 
+      `• ${item.product.name}\n  ${t.size}: ${item.size?.name || '-'}\n  ${t.color}: ${item.color?.name || '-'}\n  ${t.quantity}: ${item.quantity}\n  ${t.price}: ${formatPrice(item.price * item.quantity)} ${t.rial}`
+    ).join('\n\n');
 
-    const message = `طلب جديد رقم: ${orderNumber}
+    const message = `${t.newOrder}: ${orderNumber}\n\n${t.customerInfo}:\n${t.name}: ${formData.name}\n${t.phone}: ${formData.phone}\n${t.city}: ${selectedCity?.name}\n${t.address}: ${formData.address || '-'}\n\n${t.products}:\n${itemsList}\n\n${t.orderSummary}:\n${t.subtotal}: ${formatPrice(subtotal)} ${t.rial}\n${t.shipping}: ${formatPrice(shippingCost)} ${t.rial}\n${t.total}: ${formatPrice(total)} ${t.rial}\n\n${formData.notes ? `${t.additionalNotes}: ${formData.notes}` : ''}`;
 
-معلومات العميل:
-الاسم: ${formData.name}
-الجوال: ${formData.phone}
-المدينة: ${selectedCity?.name}
-العنوان: ${formData.address || '-'}
-
-المنتجات:
-${itemsList}
-
-الملخص:
-المجموع الفرعي: ${subtotal.toLocaleString('ar-SA')} ${currencySymbol}
-الشحن: ${shippingCost.toLocaleString('ar-SA')} ${currencySymbol}
-الإجمالي: ${total.toLocaleString('ar-SA')} ${currencySymbol}
-
-${formData.notes ? `ملاحظات: ${formData.notes}` : ''}`;
-
-    // Get WhatsApp number based on category
     const firstItemCategory = items[0]?.product.categoryId;
-    const whatsappNumber =
-      firstItemCategory && mockStoreSettings.socialLinks.whatsappCategory?.[firstItemCategory]
-        ? mockStoreSettings.socialLinks.whatsappCategory[firstItemCategory]
-        : mockStoreSettings.socialLinks.whatsapp;
+    const whatsappNumber = settings && firstItemCategory && settings.socialLinks.whatsappCategory?.[firstItemCategory]
+      ? settings.socialLinks.whatsappCategory[firstItemCategory]
+      : settings?.socialLinks.whatsapp || '';
 
-    // Open WhatsApp
-    window.open(
-      `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`,
-      '_blank'
-    );
+    window.open(`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`, '_blank');
 
-    // Clear cart and redirect
     setTimeout(() => {
       clearCart();
       navigate('/order-success', {
-        state: {
-          orderNumber,
-          total,
-          customerName: formData.name,
-          customerPhone: formData.phone,
-        },
+        state: { orderNumber, total, customerName: formData.name, customerPhone: formData.phone }
       });
       setIsSubmitting(false);
     }, 1500);
   };
 
   const formatPrice = (price: number) => {
-    return price.toLocaleString('ar-SA');
+    return price.toLocaleString(language === 'ar' ? 'ar-SA' : 'en-US');
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4">
+        <Loader2 className="w-10 h-10 animate-spin text-black" />
+        <p className="text-gray-500 font-medium">{t.loading}</p>
+      </div>
+    );
+  }
 
   if (items.length === 0) {
     return (
-      <div className="min-h-[60vh] flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">السلة فارغة</h2>
-          <Link
-            to="/products"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
-          >
-            تصفح المنتجات
+      <div className="min-h-[60vh] flex items-center justify-center bg-gray-50" dir={isRTL ? 'rtl' : 'ltr'}>
+        <div className="text-center p-8 bg-white rounded-3xl shadow-sm">
+          <h2 className="text-2xl font-black text-gray-900 mb-6">{t.emptyCart}</h2>
+          <Link to="/products" className="inline-flex items-center gap-2 px-8 py-4 bg-black text-white rounded-2xl font-black hover:bg-gray-800 transition shadow-xl">
+            {t.browseProducts}
           </Link>
         </div>
       </div>
     );
   }
 
+  const BreadcrumbIcon = isRTL ? ChevronLeft : ChevronRight;
+
   return (
-    <div className="bg-gray-50 min-h-screen py-8">
+    <div className="bg-gray-50 min-h-screen py-8" dir={isRTL ? 'rtl' : 'ltr'}>
       <div className="container mx-auto px-4">
         {/* Breadcrumb */}
-        <nav className="flex items-center gap-2 text-sm text-gray-500 mb-6">
-          <Link to="/" className="hover:text-primary-600">الرئيسية</Link>
-          <ChevronRight className="w-4 h-4" />
-          <Link to="/cart" className="hover:text-primary-600">السلة</Link>
-          <ChevronRight className="w-4 h-4" />
-          <span className="text-gray-900">إتمام الطلب</span>
+        <nav className="flex items-center gap-2 text-sm text-gray-400 mb-8 overflow-x-auto scrollbar-hide">
+          <Link to="/" className="hover:text-black whitespace-nowrap">{t.home}</Link>
+          <BreadcrumbIcon className="w-4 h-4" />
+          <Link to="/cart" className="hover:text-black whitespace-nowrap">{t.cart}</Link>
+          <BreadcrumbIcon className="w-4 h-4" />
+          <span className="text-black font-bold whitespace-nowrap">{t.checkout}</span>
         </nav>
 
-        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-8">إتمام الطلب</h1>
+        <h1 className="text-3xl lg:text-4xl font-black text-gray-900 mb-10">{t.checkout}</h1>
 
-        <div className="grid lg:grid-cols-3 gap-8">
-          {/* Form */}
-          <div className="lg:col-span-2">
-            <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-sm p-6 md:p-8 space-y-6">
-              <h2 className="text-lg font-bold text-gray-900">معلومات التوصيل</h2>
-
-              {/* Name */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  <User className="w-4 h-4 inline ml-1" />
-                  الاسم الكامل
-                </label>
-                <input
-                  type="text"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  placeholder="مثال: محمد أحمد علي"
-                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-                    errors.name ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                />
-                {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
+        <div className="grid lg:grid-cols-3 gap-10">
+          {/* Main Form */}
+          <div className="lg:col-span-2 space-y-8">
+            <form onSubmit={handleSubmit} className="bg-white rounded-3xl shadow-sm border p-6 md:p-10 space-y-8">
+              <div className="flex items-center gap-3 pb-4 border-b">
+                <div className="w-10 h-10 bg-black text-white rounded-xl flex items-center justify-center font-bold">1</div>
+                <h2 className="text-xl font-black text-gray-900">{t.deliveryInfo}</h2>
               </div>
 
-              {/* Phone */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  <Phone className="w-4 h-4 inline ml-1" />
-                  رقم الجوال
-                </label>
-                <input
-                  type="tel"
-                  name="phone"
-                  value={formData.phone}
-                  onChange={handleChange}
-                  placeholder="777123456"
-                  dir="ltr"
-                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-                    errors.phone ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                />
-                {errors.phone && <p className="text-red-500 text-sm mt-1">{errors.phone}</p>}
+              <div className="grid md:grid-cols-2 gap-6">
+                {/* Name */}
+                <div className="md:col-span-1">
+                  <label className="block text-xs font-black uppercase tracking-widest text-gray-500 mb-2">
+                    {t.fullName}
+                  </label>
+                  <div className="relative">
+                    <User className={`absolute ${isRTL ? 'right-4' : 'left-4'} top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400`} />
+                    <input
+                      type="text"
+                      name="name"
+                      value={formData.name}
+                      onChange={handleChange}
+                      placeholder={t.enterFullName}
+                      className={`w-full ${isRTL ? 'pr-12 pl-4' : 'pl-12 pr-4'} py-4 bg-gray-50 border rounded-2xl focus:ring-2 focus:ring-black focus:bg-white transition-all outline-none ${
+                        errors.name ? 'border-red-500' : 'border-gray-100'
+                      }`}
+                    />
+                  </div>
+                  {errors.name && <p className="text-red-500 text-xs mt-2 font-bold">{errors.name}</p>}
+                </div>
+
+                {/* Phone */}
+                <div className="md:col-span-1">
+                  <label className="block text-xs font-black uppercase tracking-widest text-gray-500 mb-2">
+                    {t.phone}
+                  </label>
+                  <div className="relative">
+                    <Phone className={`absolute ${isRTL ? 'right-4' : 'left-4'} top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400`} />
+                    <input
+                      type="tel"
+                      name="phone"
+                      value={formData.phone}
+                      onChange={handleChange}
+                      placeholder="777123456"
+                      dir="ltr"
+                      className={`w-full ${isRTL ? 'pr-12 pl-4' : 'pl-12 pr-4'} py-4 bg-gray-50 border rounded-2xl focus:ring-2 focus:ring-black focus:bg-white transition-all outline-none ${
+                        errors.phone ? 'border-red-500' : 'border-gray-100'
+                      }`}
+                    />
+                  </div>
+                  {errors.phone && <p className="text-red-500 text-xs mt-2 font-bold">{errors.phone}</p>}
+                </div>
+
+                {/* City */}
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-black uppercase tracking-widest text-gray-500 mb-2">
+                    {t.city}
+                  </label>
+                  <div className="relative">
+                    <MapPin className={`absolute ${isRTL ? 'right-4' : 'left-4'} top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none`} />
+                    <select
+                      name="city"
+                      value={formData.city}
+                      onChange={handleChange}
+                      className={`w-full ${isRTL ? 'pr-12 pl-4' : 'pl-12 pr-4'} py-4 bg-gray-50 border rounded-2xl focus:ring-2 focus:ring-black focus:bg-white transition-all outline-none appearance-none ${
+                        errors.city ? 'border-red-500' : 'border-gray-100'
+                      }`}
+                    >
+                      <option value="">{t.chooseCity}</option>
+                      {cities.map(city => (
+                        <option key={city.id} value={city.id}>
+                          {city.name} - {t.shipping}: {formatPrice(city.shippingCost)} {t.rial}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  {errors.city && <p className="text-red-500 text-xs mt-2 font-bold">{errors.city}</p>}
+                </div>
+
+                {/* Address */}
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-black uppercase tracking-widest text-gray-500 mb-2">
+                    {t.detailedAddress}
+                  </label>
+                  <input
+                    type="text"
+                    name="address"
+                    value={formData.address}
+                    onChange={handleChange}
+                    placeholder={t.addressPlaceholder}
+                    className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-black focus:bg-white transition-all outline-none"
+                  />
+                </div>
+
+                {/* Notes */}
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-black uppercase tracking-widest text-gray-500 mb-2">
+                    {t.additionalNotes}
+                  </label>
+                  <textarea
+                    name="notes"
+                    value={formData.notes}
+                    onChange={handleChange}
+                    rows={4}
+                    placeholder={t.notesPlaceholder}
+                    className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-black focus:bg-white transition-all outline-none resize-none"
+                  />
+                </div>
               </div>
 
-              {/* City */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  <MapPin className="w-4 h-4 inline ml-1" />
-                  المدينة
-                </label>
-                <select
-                  name="city"
-                  value={formData.city}
-                  onChange={handleChange}
-                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-                    errors.city ? 'border-red-500' : 'border-gray-300'
+              <div className="pt-6">
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className={`w-full py-5 rounded-2xl font-black text-xl flex items-center justify-center gap-3 transition-all shadow-xl hover:shadow-green-200 ${
+                    isSubmitting
+                      ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                      : 'bg-green-500 hover:bg-green-600 text-white'
                   }`}
                 >
-                  <option value="">اختر المدينة</option>
-                  {mockCities
-                    .filter(c => c.isActive)
-                    .map(city => (
-                      <option key={city.id} value={city.id}>
-                        {city.name} - شحن {city.shippingCost.toLocaleString('ar-SA')} {currencySymbol}
-                      </option>
-                    ))}
-                </select>
-                {errors.city && <p className="text-red-500 text-sm mt-1">{errors.city}</p>}
+                  {isSubmitting ? (
+                    <>
+                      <div className="w-6 h-6 border-4 border-white border-t-transparent rounded-full animate-spin" />
+                      {t.sending}
+                    </>
+                  ) : (
+                    <>
+                      <MessageCircle className="w-6 h-6" />
+                      {t.confirmViaWhatsapp}
+                    </>
+                  )}
+                </button>
               </div>
-
-              {/* Address */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  العنوان التفصيلي (اختياري)
-                </label>
-                <input
-                  type="text"
-                  name="address"
-                  value={formData.address}
-                  onChange={handleChange}
-                  placeholder="مثال: شارع الزبيري، بجوار المسجد"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                />
-              </div>
-
-              {/* Notes */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  ملاحظات إضافية (اختياري)
-                </label>
-                <textarea
-                  name="notes"
-                  value={formData.notes}
-                  onChange={handleChange}
-                  rows={3}
-                  placeholder="أي ملاحظات خاصة بالطلب..."
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className={`w-full py-4 rounded-lg font-semibold flex items-center justify-center gap-2 transition ${
-                  isSubmitting
-                    ? 'bg-gray-400 cursor-not-allowed'
-                    : 'bg-green-500 hover:bg-green-600 text-white'
-                }`}
-              >
-                {isSubmitting ? (
-                  <>
-                    <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    جاري الإرسال...
-                  </>
-                ) : (
-                  <>
-                    <MessageCircle className="w-5 h-5" />
-                    تأكيد الطلب عبر واتساب
-                  </>
-                )}
-              </button>
             </form>
           </div>
 
-          {/* Order Summary */}
+          {/* Sticky Summary */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg shadow-sm p-6 sticky top-24">
-              <h2 className="text-lg font-bold text-gray-900 mb-6">ملخص الطلب</h2>
+            <div className="bg-white rounded-3xl shadow-sm border p-6 md:p-8 sticky top-24 space-y-6">
+              <h2 className="text-xl font-black text-gray-900 border-b pb-4">{t.paymentSummaryLabel}</h2>
 
-              {/* Items */}
-              <div className="space-y-4 mb-6 max-h-64 overflow-y-auto">
+              {/* Scrollable Items List */}
+              <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
                 {items.map(item => (
-                  <div key={item.id} className="flex gap-3">
+                  <div key={item.id} className="flex gap-4 p-2 hover:bg-gray-50 rounded-xl transition-colors">
                     <img
                       src={item.product.images[0]?.url}
                       alt={item.product.name}
-                      className="w-16 h-16 object-cover rounded-lg"
+                      className="w-16 h-16 object-cover rounded-xl shadow-sm border border-gray-100"
                     />
-                    <div className="flex-1">
-                      <h4 className="font-medium text-gray-900 text-sm line-clamp-2">
-                        {item.product.name}
-                      </h4>
-                      <p className="text-xs text-gray-500">
-                        {item.size && `${item.size.name}`}
-                        {item.size && item.color && ' / '}
-                        {item.color && item.color.name}
-                      </p>
-                      <p className="text-xs text-gray-500">الكمية: {item.quantity}</p>
-                      <p className="font-semibold text-primary-600 text-sm">
-                        {formatPrice(item.price * item.quantity)} {currencySymbol}
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-bold text-gray-900 text-sm line-clamp-1">{item.product.name}</h4>
+                      <div className="flex gap-2 mt-1">
+                        <span className="text-[10px] text-gray-500">{item.size?.name || '-'} / {item.color?.name || '-'}</span>
+                      </div>
+                      <p className="text-xs font-bold text-black mt-1">
+                        {item.quantity} × {formatPrice(item.price)} {t.rial}
                       </p>
                     </div>
                   </div>
                 ))}
               </div>
 
-              <hr className="my-4" />
-
-              {/* Totals */}
-              <div className="space-y-3">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">المجموع الفرعي</span>
-                  <span>{formatPrice(subtotal)} {currencySymbol}</span>
+              <div className="space-y-4 pt-6 mt-6 border-t font-bold">
+                <div className="flex justify-between text-gray-400 text-sm">
+                  <span>{t.subtotal}</span>
+                  <span className="text-black">{formatPrice(subtotal)} {t.rial}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">الشحن</span>
-                  <span>
-                    {shippingCost > 0
-                      ? `${formatPrice(shippingCost)} ${currencySymbol}`
-                      : 'يُحسب'}
+                <div className="flex justify-between text-gray-400 text-sm">
+                  <span>{t.shipping}</span>
+                  <span className="text-black">
+                    {shippingCost > 0 ? `${formatPrice(shippingCost)} ${t.rial}` : t.calculatedAtCheckout}
                   </span>
                 </div>
-                <hr />
-                <div className="flex justify-between text-lg font-bold">
-                  <span>الإجمالي</span>
-                  <span className="text-primary-600">
-                    {total > shippingCost
-                      ? `${formatPrice(total)} ${currencySymbol}`
-                      : `${formatPrice(subtotal)} ${currencySymbol}`}
-                  </span>
+                <div className="flex justify-between text-2xl font-black text-black pt-4 border-t-2 border-gray-100">
+                  <span>{t.total}</span>
+                  <span className="text-primary-600">{formatPrice(total)} {t.rial}</span>
                 </div>
               </div>
 
-              {/* Info */}
-              <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-                <p className="text-sm text-blue-800">
-                  سيتم التواصل معك عبر واتساب لتأكيد طلبك واستكمال عملية الدفع
-                </p>
+              <div className="p-4 bg-gray-900 text-white rounded-2xl flex items-start gap-3">
+                <div className="mt-1 flex-shrink-0">🚀</div>
+                <p className="text-xs leading-relaxed opacity-90">{t.willContactYou}</p>
               </div>
             </div>
           </div>

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User, UserRole } from '@/types';
-import { mockUsers } from '@/data/mockData';
+import { usersService } from '@/services';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import type { Database } from '@/types/database';
 
@@ -40,40 +40,60 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   useEffect(() => {
     const initAuth = async () => {
-      // Check for saved session
-      const savedUser = localStorage.getItem('fashionHubUser');
-      if (savedUser) {
-        try {
-          setUser(JSON.parse(savedUser));
-        } catch (e) {
-          console.error('Error loading user:', e);
-        }
-      }
+      // Safety timeout to prevent infinite loading state
+      const timeoutId = setTimeout(() => {
+        setIsLoading(false);
+        console.warn('Auth initialization timed out after 8s');
+      }, 8000);
 
-      // If Supabase is configured, check for Supabase session
-      if (isSupabaseConfigured()) {
-        try {
-          const { data: { session } } = await supabase.auth.getSession();
-          if (session?.user) {
-            // Fetch user profile from database
-            const { data: profile } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('id', session.user.id)
-              .single();
-
-            if (profile) {
-              const userData = profileToUser(profile);
-              setUser(userData);
-              localStorage.setItem('fashionHubUser', JSON.stringify(userData));
-            }
+      try {
+        // Check for saved session
+        const savedUser = localStorage.getItem('fashionHubUser');
+        if (savedUser) {
+          try {
+            setUser(JSON.parse(savedUser));
+          } catch (e) {
+            console.error('Error loading user from localStorage:', e);
           }
-        } catch (e) {
-          console.error('Error fetching Supabase session:', e);
         }
-      }
 
-      setIsLoading(false);
+        // If Supabase is configured, check for Supabase session
+        if (isSupabaseConfigured()) {
+          try {
+            const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+            
+            if (sessionError) {
+              console.error('Supabase getSession error:', sessionError);
+            }
+
+            if (session?.user) {
+              // Fetch user profile from database
+              const { data: profile, error: profileError } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', session.user.id)
+                .single();
+
+              if (profileError) {
+                console.error('Error fetching Supabase profile:', profileError);
+              }
+
+              if (profile) {
+                const userData = profileToUser(profile);
+                setUser(userData);
+                localStorage.setItem('fashionHubUser', JSON.stringify(userData));
+              }
+            }
+          } catch (e) {
+            console.error('Error in Supabase initialization:', e);
+          }
+        }
+      } catch (globalError) {
+        console.error('Global error in initAuth:', globalError);
+      } finally {
+        clearTimeout(timeoutId);
+        setIsLoading(false);
+      }
     };
 
     initAuth();
@@ -191,8 +211,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     // Fallback demo login
     await new Promise(resolve => setTimeout(resolve, 500));
-    const foundUser = mockUsers.find(u => u.email === email);
-    if (foundUser && password === 'demo123') {
+    const allUsers = await usersService.getAll();
+    const foundUser = allUsers.find(u => u.email.toLowerCase().trim() === email.toLowerCase().trim());
+    
+    // We allow any password for newly created demo users to make testing easier
+    // or keep demo123 for initial mock users.
+    if (foundUser && (password === 'demo123' || foundUser.id.startsWith('user-'))) {
       setUser(foundUser);
       localStorage.setItem('fashionHubUser', JSON.stringify(foundUser));
       setIsLoading(false);

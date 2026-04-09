@@ -1,25 +1,71 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowLeft, ArrowRight, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { ProductCard } from '@/components/Product';
-import { mockProducts, mockCategories, mockAds, mockStoreSettings } from '@/data/mockData';
+import { productsService, categoriesService, adsService, storeSettingsService } from '@/services/api';
+import { useLanguage, categoryNames } from '@/context/LanguageContext';
+import type { Product, Category, Ad, StoreSettings } from '@/types';
+
+const categoryIcons: Record<string, string> = {
+  'cat-1': '👗',
+  'cat-2': '👔',
+  'cat-3': '👟',
+  'cat-4': '⌚',
+  'cat-5': '👜',
+  'cat-6': '🌸',
+};
 
 const HomePage: React.FC = () => {
   const [currentBanner, setCurrentBanner] = useState(0);
+  const { t, language } = useLanguage();
+  const [loading, setLoading] = useState(true);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [ads, setAds] = useState<Ad[]>([]);
+  const [settings, setSettings] = useState<StoreSettings | null>(null);
 
-  // Filter active ads
-  const activeBanners = mockAds.filter(ad => ad.isActive && ad.position === 'top');
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [productsData, categoriesData, adsData, settingsData] = await Promise.all([
+          productsService.getAll(),
+          categoriesService.getAll(),
+          adsService.getAll(),
+          storeSettingsService.get()
+        ]);
+        setProducts(productsData);
+        setCategories(categoriesData);
+        setAds(adsData);
+        setSettings(settingsData);
+      } catch (error) {
+        console.error('Failed to fetch homepage data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
 
-  const nextBanner = () => {
-    setCurrentBanner((prev) => (prev + 1) % activeBanners.length);
-  };
+  const activeBanners = ads.filter(ad => ad.isActive && ad.position === 'top');
+  const inlineAds = ads.filter(ad => ad.isActive && ad.position === 'inline');
 
-  const prevBanner = () => {
-    setCurrentBanner((prev) => (prev - 1 + activeBanners.length) % activeBanners.length);
-  };
+  const nextBanner = () => setCurrentBanner((prev) => (prev + 1) % activeBanners.length);
+  const prevBanner = () => setCurrentBanner((prev) => (prev - 1 + activeBanners.length) % activeBanners.length);
 
-  const featuredProducts = mockProducts.filter(p => p.isVisible).slice(0, 8);
-  const newArrivals = mockProducts.filter(p => p.isVisible).slice(0, 4);
+  const featuredProducts = products.filter(p => p.isVisible).slice(0, 8);
+  const newArrivals = products.filter(p => p.isVisible).slice(0, 4);
+
+  const isAr = language === 'ar';
+
+  if (loading) {
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4">
+        <Loader2 className="w-10 h-10 animate-spin text-black" />
+        <p className="text-gray-500 font-medium">{t.loading}</p>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -45,37 +91,26 @@ const HomePage: React.FC = () => {
                     to="/products"
                     className="inline-flex items-center gap-2 bg-white text-primary-900 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition"
                   >
-                    تسوق الآن
-                    <ArrowLeft className="w-5 h-5" />
+                    {t.shopNow}
+                    {isAr ? <ArrowLeft className="w-5 h-5" /> : <ArrowRight className="w-5 h-5" />}
                   </Link>
                 </div>
               </div>
 
-              {/* Navigation Arrows */}
               {activeBanners.length > 1 && (
                 <>
-                  <button
-                    onClick={prevBanner}
-                    className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 hover:bg-white rounded-full flex items-center justify-center shadow-lg transition"
-                  >
+                  <button onClick={prevBanner}
+                    className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 hover:bg-white rounded-full flex items-center justify-center shadow-lg transition">
                     <ChevronRight className="w-6 h-6" />
                   </button>
-                  <button
-                    onClick={nextBanner}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 hover:bg-white rounded-full flex items-center justify-center shadow-lg transition"
-                  >
+                  <button onClick={nextBanner}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 hover:bg-white rounded-full flex items-center justify-center shadow-lg transition">
                     <ChevronLeft className="w-6 h-6" />
                   </button>
-
-                  {/* Dots */}
                   <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
                     {activeBanners.map((_, index) => (
-                      <button
-                        key={index}
-                        onClick={() => setCurrentBanner(index)}
-                        className={`w-3 h-3 rounded-full transition ${
-                          index === currentBanner ? 'bg-white' : 'bg-white/50'
-                        }`}
+                      <button key={index} onClick={() => setCurrentBanner(index)}
+                        className={`w-3 h-3 rounded-full transition ${index === currentBanner ? 'bg-white' : 'bg-white/50'}`}
                       />
                     ))}
                   </div>
@@ -83,17 +118,34 @@ const HomePage: React.FC = () => {
               )}
             </div>
           ) : (
-            <div className="h-64 md:h-96 bg-gradient-to-r from-primary-600 to-primary-800 rounded-xl flex items-center justify-center text-white">
-              <div className="text-center">
-                <h1 className="text-3xl md:text-5xl font-bold mb-4">مرحباً بك في {mockStoreSettings.name}</h1>
-                <p className="text-lg mb-6 opacity-90">أحدث الصيحات العصرية بأسعار منافسة</p>
-                <Link
-                  to="/products"
-                  className="inline-flex items-center gap-2 bg-white text-primary-900 px-8 py-4 rounded-lg font-semibold hover:bg-gray-100 transition"
-                >
-                  تصفح المنتجات
-                  <ArrowLeft className="w-5 h-5" />
-                </Link>
+            <div className="relative h-72 md:h-[450px] rounded-3xl overflow-hidden bg-black flex items-center justify-center text-white shadow-2xl">
+              {/* Abstract Animated Glows */}
+              <div className="absolute top-0 left-0 w-full h-full overflow-hidden">
+                <div className="absolute -top-20 -left-20 w-72 h-72 bg-purple-600/30 blur-[80px] rounded-full mix-blend-screen animate-pulse"></div>
+                <div className="absolute bottom-10 right-10 w-96 h-96 bg-pink-600/20 blur-[100px] rounded-full mix-blend-screen animate-pulse" style={{ animationDelay: '1s' }}></div>
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-gradient-to-r from-gray-900 to-black rounded-full blur-[120px] opacity-80"></div>
+              </div>
+
+              {/* Content Box with Glassmorphism */}
+              <div className="relative z-10 text-center px-6 py-10 md:p-14 backdrop-blur-sm border border-white/10 rounded-3xl bg-black/40 shadow-2xl overflow-hidden transform hover:scale-[1.02] transition-transform duration-500">
+                <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent pointer-events-none"></div>
+                <h1 className="text-4xl md:text-6xl font-black mb-6 tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-gray-200 to-gray-400">
+                  {t.welcomeTo} {settings?.name || 'Fashion Hub'}
+                </h1>
+                <p className="text-lg md:text-xl mb-8 text-gray-300 font-medium max-w-xl mx-auto leading-relaxed">
+                  اكتشف أحدث صيحات الموضة والأزياء العصرية مع تشكيلة واسعة وأسعار لا تقبل المنافسة
+                </p>
+                <div className="flex justify-center">
+                  <Link to="/products"
+                    className="group relative inline-flex items-center gap-3 bg-white text-black px-10 py-4 rounded-full font-bold text-lg hover:bg-gray-100 transition-all shadow-[0_0_40px_rgba(255,255,255,0.3)] overflow-hidden">
+                    <span className="relative z-10">{t.browseProducts}</span>
+                    <span className="relative z-10 transform group-hover:translate-x-1 transition-transform">
+                      {isAr ? <ArrowLeft className="w-5 h-5" /> : <ArrowRight className="w-5 h-5" />}
+                    </span>
+                    {/* Hover effect glow */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-gray-100 to-white opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                  </Link>
+                </div>
               </div>
             </div>
           )}
@@ -103,26 +155,28 @@ const HomePage: React.FC = () => {
       {/* Categories */}
       <section className="py-12 bg-white">
         <div className="container mx-auto px-4">
-          <h2 className="text-2xl font-bold text-gray-900 mb-8 text-center">الأقسام</h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            {mockCategories.map((category) => (
+          <div className="flex items-center justify-center gap-3 mb-12">
+            <div className="h-px bg-gray-200 flex-1 max-w-[100px]"></div>
+            <h2 className="text-3xl font-black text-gray-900 text-center tracking-tight">{t.categories}</h2>
+            <div className="h-px bg-gray-200 flex-1 max-w-[100px]"></div>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
+            {categories.map((category, index) => (
               <Link
                 key={category.id}
                 to={`/products?category=${category.id}`}
-                className="bg-gray-50 rounded-xl p-6 text-center hover:bg-primary-50 hover:shadow-md transition group"
+                className="group flex flex-col items-center justify-center p-6 bg-white rounded-3xl border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300 relative overflow-hidden"
               >
-                <div className="w-16 h-16 mx-auto mb-3 bg-primary-100 rounded-full flex items-center justify-center group-hover:bg-primary-200 transition">
-                  <span className="text-3xl">
-                    {category.name === 'ملابس نسائية' && '👗'}
-                    {category.name === 'ملابس رجالية' && '👔'}
-                    {category.name === 'أحذية' && '👟'}
-                    {category.name === 'إكسسوارات' && '⌚'}
-                    {category.name === 'حقائب' && '👜'}
-                    {category.name === 'عطور' && '🌸'}
-                  </span>
+                {/* Decorative background gradient on hover */}
+                <div className="absolute inset-0 bg-gradient-to-br from-gray-50 to-gray-100 opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10"></div>
+                
+                <div className={`w-20 h-20 mb-4 rounded-2xl flex items-center justify-center transform group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-inner
+                  ${['bg-purple-100 text-purple-600', 'bg-blue-100 text-blue-600', 'bg-pink-100 text-pink-600', 'bg-indigo-100 text-indigo-600', 'bg-rose-100 text-rose-600', 'bg-teal-100 text-teal-600'][index % 6]}
+                `}>
+                  <span className="text-4xl drop-shadow-sm filter">{categoryIcons[category.id]}</span>
                 </div>
-                <h3 className="font-semibold text-gray-900 group-hover:text-primary-600 transition">
-                  {category.name}
+                <h3 className="font-bold text-gray-800 group-hover:text-black transition">
+                  {categoryNames[category.id]?.[language] || category.name}
                 </h3>
               </Link>
             ))}
@@ -134,10 +188,10 @@ const HomePage: React.FC = () => {
       <section className="py-12 bg-gray-50">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between mb-8">
-            <h2 className="text-2xl font-bold text-gray-900">المنتجات المميزة</h2>
+            <h2 className="text-2xl font-bold text-gray-900">{t.featuredProducts}</h2>
             <Link to="/products" className="text-primary-600 hover:text-primary-700 font-medium flex items-center gap-1">
-              عرض الكل
-              <ArrowLeft className="w-4 h-4" />
+              {t.viewAll}
+              {isAr ? <ArrowLeft className="w-4 h-4" /> : <ArrowRight className="w-4 h-4" />}
             </Link>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
@@ -148,39 +202,32 @@ const HomePage: React.FC = () => {
         </div>
       </section>
 
-      {/* Promo Banner */}
-      <section className="py-12 bg-primary-900 text-white">
-        <div className="container mx-auto px-4">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-8">
-            <div>
-              <h2 className="text-3xl font-bold mb-2">اشترِ عبر واتساب</h2>
-              <p className="text-primary-200 text-lg">
-                تسوق بسهولة وأرسل لنا طلبك مباشرة عبر واتساب
-              </p>
+      {/* Inline Ad Section */}
+      {inlineAds.length > 0 && (
+        <section className="py-6 bg-white">
+          <div className="container mx-auto px-4">
+            <div className="rounded-3xl overflow-hidden shadow-xl border border-gray-100 flex justify-center items-center relative min-h-[150px] md:min-h-[250px]">
+              {inlineAds[0].imageUrl ? (
+                <img src={inlineAds[0].imageUrl} alt={inlineAds[0].title} className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-r from-gray-900 to-black text-white p-10 text-center">
+                  <h2 className="text-2xl md:text-4xl font-bold mb-4">{inlineAds[0].title}</h2>
+                  <p className="text-gray-300">{inlineAds[0].content}</p>
+                </div>
+              )}
             </div>
-            <a
-              href={`https://wa.me/${mockStoreSettings.socialLinks.whatsapp}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="bg-green-500 hover:bg-green-600 text-white px-8 py-4 rounded-lg font-semibold flex items-center gap-2 transition"
-            >
-              <span>تواصل الآن</span>
-              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-              </svg>
-            </a>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* New Arrivals */}
       <section className="py-12 bg-white">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between mb-8">
-            <h2 className="text-2xl font-bold text-gray-900">وصل حديثاً</h2>
+            <h2 className="text-2xl font-bold text-gray-900">{t.newArrivals}</h2>
             <Link to="/products?sort=newest" className="text-primary-600 hover:text-primary-700 font-medium flex items-center gap-1">
-              عرض الكل
-              <ArrowLeft className="w-4 h-4" />
+              {t.viewAll}
+              {isAr ? <ArrowLeft className="w-4 h-4" /> : <ArrowRight className="w-4 h-4" />}
             </Link>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
@@ -195,34 +242,20 @@ const HomePage: React.FC = () => {
       <section className="py-12 bg-gray-50">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            <div className="text-center">
-              <div className="w-16 h-16 mx-auto mb-4 bg-primary-100 rounded-full flex items-center justify-center">
-                <span className="text-3xl">🚚</span>
+            {[
+              { icon: '🚚', title: t.fastShipping, desc: t.fastShippingDesc },
+              { icon: '🔒', title: t.securePay, desc: t.securePayDesc },
+              { icon: '↩️', title: t.easyReturn, desc: t.easyReturnDesc },
+              { icon: '💬', title: t.support, desc: t.supportDesc },
+            ].map((item, i) => (
+              <div key={i} className="text-center">
+                <div className="w-16 h-16 mx-auto mb-4 bg-primary-100 rounded-full flex items-center justify-center">
+                  <span className="text-3xl">{item.icon}</span>
+                </div>
+                <h3 className="font-semibold text-gray-900 mb-1">{item.title}</h3>
+                <p className="text-sm text-gray-500">{item.desc}</p>
               </div>
-              <h3 className="font-semibold text-gray-900 mb-1">شحن سريع</h3>
-              <p className="text-sm text-gray-500">توصيل لجميع المدن</p>
-            </div>
-            <div className="text-center">
-              <div className="w-16 h-16 mx-auto mb-4 bg-primary-100 rounded-full flex items-center justify-center">
-                <span className="text-3xl">🔒</span>
-              </div>
-              <h3 className="font-semibold text-gray-900 mb-1">دفع آمن</h3>
-              <p className="text-sm text-gray-500">طرق دفع متعددة</p>
-            </div>
-            <div className="text-center">
-              <div className="w-16 h-16 mx-auto mb-4 bg-primary-100 rounded-full flex items-center justify-center">
-                <span className="text-3xl">↩️</span>
-              </div>
-              <h3 className="font-semibold text-gray-900 mb-1">استرجاع سهل</h3>
-              <p className="text-sm text-gray-500">ضمان استرجاع المنتج</p>
-            </div>
-            <div className="text-center">
-              <div className="w-16 h-16 mx-auto mb-4 bg-primary-100 rounded-full flex items-center justify-center">
-                <span className="text-3xl">💬</span>
-              </div>
-              <h3 className="font-semibold text-gray-900 mb-1">دعم فني</h3>
-              <p className="text-sm text-gray-500">24/7 عبر واتساب</p>
-            </div>
+            ))}
           </div>
         </div>
       </section>

@@ -26,7 +26,13 @@
   }
 
   body {
-    @apply text-gray-900 bg-gray-50;
+    @apply text-gray-900;
+    background-image: url('/app-bg.png');
+    background-attachment: fixed;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-color: #fef08a; /* Fallback yellow */
     direction: rtl;
   }
 

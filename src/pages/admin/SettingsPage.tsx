@@ -1,234 +1,260 @@
-import React, { useState } from 'react';
-import { Save, Building2, Globe, Bell, Palette, Mail, Phone, Link as LinkIcon } from 'lucide-react';
-import { mockStoreSettings } from '@/data/mockData';
+import React, { useState, useEffect } from 'react';
+import { Save, Building2, Globe, Palette, Mail, Phone, Link as LinkIcon, CheckCircle2, Loader2, Share2, Instagram, Facebook } from 'lucide-react';
+import { storeSettingsService, categoriesService } from '@/services/api';
+import { StoreSettings, Category } from '@/types';
+import { useLanguage } from '@/context/LanguageContext';
 
 const SettingsPage: React.FC = () => {
-  const [settings, setSettings] = useState(mockStoreSettings);
+  const { isRTL, t } = useLanguage();
+  const [settings, setSettings] = useState<StoreSettings | null>(null);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setIsLoading(true);
+        const [settingsData, categoriesData] = await Promise.all([
+          storeSettingsService.get(),
+          categoriesService.getAll()
+        ]);
+        setSettings(settingsData);
+        setCategories(categoriesData);
+      } catch (error) {
+        console.error('Failed to load settings data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadData();
+  }, []);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!settings) return;
+    
     setIsSaving(true);
-    // Simulate save
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    const result = await storeSettingsService.update(settings);
     setIsSaving(false);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+    
+    if (result) {
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    }
   };
 
   const updateSocialLink = (field: string, value: string) => {
-    setSettings(prev => ({
+    if (!settings) return;
+    setSettings(prev => prev ? ({
       ...prev,
       socialLinks: {
         ...prev.socialLinks,
         [field]: value,
       },
-    }));
+    }) : null);
   };
 
+  if (isLoading || !settings) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
+        <Loader2 className="w-10 h-10 animate-spin text-black" />
+        <p className="font-bold text-gray-400 animate-pulse">{t.loading}</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-6">
+    <div className="max-w-4xl mx-auto space-y-8 pb-12" dir={isRTL ? 'rtl' : 'ltr'}>
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">إعدادات المتجر</h1>
-          <p className="text-gray-500">إدارة إعدادات المتجر ووسائل التواصل</p>
+          <h1 className="text-3xl font-black text-gray-900">{t.identitySettings}</h1>
+          <p className="text-gray-500 font-bold">{t.identitySettingsDesc}</p>
         </div>
+        <button
+          onClick={handleSave}
+          disabled={isSaving}
+          className="flex items-center justify-center gap-2 px-8 py-4 bg-black text-white rounded-2xl font-black hover:bg-gray-800 transition shadow-xl shadow-gray-200 disabled:opacity-50 min-w-[160px]"
+        >
+          {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+          {isSaving ? t.saving : t.saveChanges}
+        </button>
       </div>
 
-      <form onSubmit={handleSave} className="space-y-6">
-        {/* Store Info */}
-        <div className="bg-white rounded-xl shadow-sm p-6">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center">
-              <Building2 className="w-5 h-5 text-primary-600" />
+      <form onSubmit={handleSave} className="grid gap-8">
+        {/* Store Brand */}
+        <div className="bg-white rounded-3xl shadow-sm border p-6 md:p-8 space-y-8 overflow-hidden relative">
+          <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none">
+             <Building2 className="w-32 h-32" />
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 bg-gray-900 text-white rounded-xl flex items-center justify-center shadow-lg shadow-gray-200">
+              <Building2 className="w-6 h-6" />
             </div>
-            <h2 className="text-lg font-semibold text-gray-900">معلومات المتجر</h2>
+            <h2 className="text-xl font-black text-gray-900">{t.branding}</h2>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">اسم المتجر</label>
+          <div className="grid md:grid-cols-2 gap-8 relative z-10">
+            <div className="space-y-3">
+              <label className="block text-xs font-black uppercase tracking-widest text-gray-400 px-2">{t.officialStoreName}</label>
               <input
                 type="text"
                 value={settings.name}
-                onChange={(e) => setSettings(prev => ({ ...prev, name: e.target.value }))}
-                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
+                onChange={(e) => setSettings(prev => prev ? ({ ...prev, name: e.target.value }) : null)}
+                className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-black focus:bg-white transition-all outline-none font-bold"
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">العملة الأساسية</label>
-              <select
-                value={settings.currency}
-                onChange={(e) => setSettings(prev => ({ ...prev, currency: e.target.value }))}
-                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
-              >
-                <option value="YER">ريال يمني (ر.ي)</option>
-                <option value="SAR">ريال سعودي (ر.س)</option>
-                <option value="USD">دولار أمريكي ($)</option>
-              </select>
+            <div className="space-y-3">
+              <label className="block text-xs font-black uppercase tracking-widest text-gray-400 px-2">{t.logoUrl}</label>
+              <input
+                type="text"
+                value={settings.logo}
+                onChange={(e) => setSettings(prev => prev ? ({ ...prev, logo: e.target.value }) : null)}
+                placeholder="https://..."
+                className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-black focus:bg-white transition-all outline-none font-medium"
+                dir="ltr"
+              />
             </div>
           </div>
         </div>
 
-        {/* Social Links */}
-        <div className="bg-white rounded-xl shadow-sm p-6">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-              <LinkIcon className="w-5 h-5 text-green-600" />
+        {/* Global Connections */}
+        <div className="bg-white rounded-3xl shadow-sm border p-6 md:p-8 space-y-8">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 bg-blue-500 text-white rounded-xl flex items-center justify-center shadow-lg shadow-blue-100">
+              <Share2 className="w-6 h-6" />
             </div>
-            <h2 className="text-lg font-semibold text-gray-900">روابط التواصل</h2>
+            <h2 className="text-xl font-black text-gray-900">{t.socialChannels}</h2>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-6">
+          <div className="grid md:grid-cols-2 gap-8">
             {/* WhatsApp */}
-            <div>
-              <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                <Phone className="w-4 h-4 text-green-600" />
-                رقم الواتساب العام
+            <div className="space-y-3">
+              <label className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-gray-400 px-2">
+                <Phone className="w-4 h-4 text-green-500" />
+                {t.mainWhatsapp}
               </label>
               <input
                 type="tel"
                 value={settings.socialLinks.whatsapp}
                 onChange={(e) => updateSocialLink('whatsapp', e.target.value)}
                 placeholder="967777123456"
-                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
+                className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-black focus:bg-white transition-all outline-none font-black"
                 dir="ltr"
-              />
-              <p className="text-xs text-gray-500 mt-1">بدون + أو 00 في البداية</p>
-            </div>
-
-            {/* Facebook */}
-            <div>
-              <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                <Globe className="w-4 h-4 text-blue-600" />
-                رابط فيسبوك
-              </label>
-              <input
-                type="url"
-                value={settings.socialLinks.facebook || ''}
-                onChange={(e) => updateSocialLink('facebook', e.target.value)}
-                placeholder="https://facebook.com/..."
-                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
               />
             </div>
 
             {/* Instagram */}
-            <div>
-              <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                <Palette className="w-4 h-4 text-pink-600" />
-                رابط إنستجرام
+            <div className="space-y-3">
+              <label className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-gray-400 px-2">
+                <Instagram className="w-4 h-4 text-pink-500" />
+                Instagram
               </label>
               <input
                 type="url"
                 value={settings.socialLinks.instagram || ''}
                 onChange={(e) => updateSocialLink('instagram', e.target.value)}
                 placeholder="https://instagram.com/..."
-                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
+                className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-black focus:bg-white transition-all outline-none font-medium"
+                dir="ltr"
               />
             </div>
 
-            {/* TikTok */}
-            <div>
-              <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                <LinkIcon className="w-4 h-4 text-gray-800" />
-                رابط تيك توك
+            {/* Facebook */}
+            <div className="space-y-3">
+              <label className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-gray-400 px-2">
+                <Facebook className="w-4 h-4 text-blue-600" />
+                Facebook
               </label>
               <input
                 type="url"
-                value={settings.socialLinks.tiktok || ''}
-                onChange={(e) => updateSocialLink('tiktok', e.target.value)}
-                placeholder="https://tiktok.com/@..."
-                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
+                value={settings.socialLinks.facebook || ''}
+                onChange={(e) => updateSocialLink('facebook', e.target.value)}
+                placeholder="https://facebook.com/..."
+                className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-black focus:bg-white transition-all outline-none font-medium"
+                dir="ltr"
               />
             </div>
 
             {/* Email */}
-            <div>
-              <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                <Mail className="w-4 h-4 text-blue-600" />
-                البريد الإلكتروني
+            <div className="space-y-3">
+              <label className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-gray-400 px-2">
+                <Mail className="w-4 h-4 text-orange-500" />
+                {t.officialEmail}
               </label>
               <input
                 type="email"
                 value={settings.socialLinks.email || ''}
                 onChange={(e) => updateSocialLink('email', e.target.value)}
-                placeholder="info@fashionhub.com"
-                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
+                placeholder="info@yourstore.com"
+                className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-black focus:bg-white transition-all outline-none font-medium"
                 dir="ltr"
               />
             </div>
           </div>
         </div>
 
-        {/* WhatsApp Categories */}
-        <div className="bg-white rounded-xl shadow-sm p-6">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-              <Phone className="w-5 h-5 text-green-600" />
-            </div>
-            <h2 className="text-lg font-semibold text-gray-900">أرقام الواتساب للأقسام</h2>
-          </div>
-
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">ملابس نسائية</label>
-              <input
-                type="tel"
-                value={settings.socialLinks.whatsappCategory?.['cat-1'] || ''}
-                onChange={(e) => setSettings(prev => ({
-                  ...prev,
-                  socialLinks: {
-                    ...prev.socialLinks,
-                    whatsappCategory: {
-                      ...prev.socialLinks.whatsappCategory,
-                      'cat-1': e.target.value,
-                    },
-                  },
-                }))}
-                placeholder="967777111111"
-                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
-                dir="ltr"
-              />
+        {/* WhatsApp Routers */}
+        <div className="bg-white rounded-3xl shadow-sm border p-6 md:p-8 space-y-8">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 bg-green-50 text-green-600 border border-green-100 rounded-xl flex items-center justify-center">
+              <Phone className="w-6 h-6" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">ملابس رجالية</label>
-              <input
-                type="tel"
-                value={settings.socialLinks.whatsappCategory?.['cat-2'] || ''}
-                onChange={(e) => setSettings(prev => ({
-                  ...prev,
-                  socialLinks: {
-                    ...prev.socialLinks,
-                    whatsappCategory: {
-                      ...prev.socialLinks.whatsappCategory,
-                      'cat-2': e.target.value,
-                    },
-                  },
-                }))}
-                placeholder="967777222222"
-                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
-                dir="ltr"
-              />
+              <h2 className="text-xl font-black text-gray-900">{t.categoryRouting}</h2>
+              <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">{t.categoryRoutingDesc}</p>
             </div>
+          </div>
+
+          <div className="grid gap-4">
+            {categories.map((cat) => (
+              <div key={cat.id} className="flex flex-col md:flex-row md:items-center gap-4 p-6 bg-gray-50 rounded-[2rem] border border-gray-100 transition-all hover:bg-white hover:shadow-md group">
+                <div className="min-w-[150px] flex items-center gap-3">
+                  <div className="w-2 h-2 rounded-full bg-black group-hover:scale-150 transition-transform"></div>
+                  <span className="font-black text-gray-900 text-lg">
+                    {cat.name}
+                  </span>
+                </div>
+                <input
+                  type="tel"
+                  value={settings.socialLinks.whatsappCategory?.[cat.id as keyof typeof settings.socialLinks.whatsappCategory] || ''}
+                  onChange={(e) => setSettings(prev => {
+                    if (!prev) return null;
+                    const catMap = { ...(prev.socialLinks.whatsappCategory || {}) };
+                    catMap[cat.id as keyof typeof catMap] = e.target.value;
+                    return {
+                      ...prev,
+                      socialLinks: {
+                        ...prev.socialLinks,
+                        whatsappCategory: catMap
+                      }
+                    };
+                  })}
+                  placeholder="967777XXXXXX"
+                  className="flex-1 px-6 py-3 bg-white border border-gray-100 rounded-2xl focus:ring-2 focus:ring-black outline-none font-black shadow-sm"
+                  dir="ltr"
+                />
+              </div>
+            ))}
+            {categories.length === 0 && (
+              <div className="py-12 text-center bg-gray-50 rounded-3xl border border-dashed border-gray-200">
+                <p className="text-gray-400 font-black">{t.noCategories}</p>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Save Button */}
-        <div className="flex items-center justify-end gap-4">
-          {saved && (
-            <span className="text-green-600 text-sm">تم الحفظ بنجاح!</span>
-          )}
-          <button
-            type="submit"
-            disabled={isSaving}
-            className="flex items-center gap-2 px-6 py-2.5 bg-black text-white rounded-lg hover:bg-gray-800 transition disabled:opacity-50"
-          >
-            <Save className="w-5 h-5" />
-            {isSaving ? 'جاري الحفظ...' : 'حفظ الإعدادات'}
-          </button>
-        </div>
+        {/* Floating Success Indicator */}
+        {saved && (
+          <div className={`fixed bottom-10 ${isRTL ? 'left-10' : 'right-10'} flex items-center gap-3 bg-black text-white px-8 py-5 rounded-2xl shadow-2xl animate-in slide-in-from-bottom-10 z-50 border border-white/10`}>
+            <div className="p-1 bg-green-500 rounded-full">
+                <CheckCircle2 className="w-5 h-5 text-white" />
+            </div>
+            <span className="font-black uppercase tracking-widest text-sm">{t.savedSuccessfully}</span>
+          </div>
+        )}
       </form>
     </div>
   );

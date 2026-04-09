@@ -18,7 +18,7 @@ import TrackOrderPage from '@/pages/TrackOrderPage';
 import MyOrdersPage from '@/pages/MyOrdersPage';
 
 // Admin Pages
-import { AdminLayout, DashboardPage, AdminProductsPage, ImportProductPage, AdminOrdersPage, UsersPage, ActivityPage, SettingsPage, AdsPage, CitiesPage, CurrenciesPage } from '@/pages/admin';
+import { AdminLayout, DashboardPage, AdminProductsPage, ImportProductPage, BulkImportPage, AdminOrdersPage, UsersPage, ActivityPage, SettingsPage, AdsPage, CitiesPage, CurrenciesPage } from '@/pages/admin';
 import AddProductPage from '@/pages/admin/AddProductPage';
 
 function App() {
@@ -47,7 +47,9 @@ function App() {
                 <Route index element={<DashboardPage />} />
                 <Route path="products" element={<AdminProductsPage />} />
                 <Route path="products/add" element={<AddProductPage />} />
+                <Route path="products/edit/:id" element={<AddProductPage />} />
                 <Route path="products/import" element={<ImportProductPage />} />
+                <Route path="products/bulk" element={<BulkImportPage />} />
                 <Route path="orders" element={<AdminOrdersPage />} />
                 <Route path="users" element={<UsersPage />} />
                 <Route path="activity" element={<ActivityPage />} />

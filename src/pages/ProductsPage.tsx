@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Filter, Grid, List, Search, X } from 'lucide-react';
+import { Filter, Grid, List, Search, X, Loader2 } from 'lucide-react';
 import { ProductCard } from '@/components/Product';
-import { mockProducts, mockCategories } from '@/data/mockData';
-import { Product } from '@/types';
+import { productsService, categoriesService } from '@/services/api';
+import { Product, Category } from '@/types';
 import { useLanguage, categoryNames } from '@/context/LanguageContext';
 
 const ProductsPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { t, language } = useLanguage();
+  const [loading, setLoading] = useState(true);
   const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showFilters, setShowFilters] = useState(false);
@@ -17,6 +19,26 @@ const ProductsPage: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [sortBy, setSortBy] = useState<string>('newest');
   const [priceRange, setPriceRange] = useState<{ min: number; max: number }>({ min: 0, max: 1000000 });
+
+  // Fetch all products and categories once
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [productsData, categoriesData] = await Promise.all([
+          productsService.getAll(),
+          categoriesService.getAll()
+        ]);
+        setProducts(productsData);
+        setCategories(categoriesData);
+      } catch (error) {
+        console.error('Failed to fetch products page data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
 
   // Initialize from URL params
   useEffect(() => {
@@ -29,9 +51,11 @@ const ProductsPage: React.FC = () => {
     setSortBy(sort);
   }, [searchParams]);
 
-  // Filter products
+  // Apply filters locally on the fetched products
   useEffect(() => {
-    let result = mockProducts.filter(p => p.isVisible);
+    if (loading) return;
+
+    let result = [...products];
 
     // Category filter
     if (selectedCategory) {
@@ -43,7 +67,7 @@ const ProductsPage: React.FC = () => {
       const query = searchQuery.toLowerCase();
       result = result.filter(p =>
         p.name.toLowerCase().includes(query) ||
-        p.description.toLowerCase().includes(query)
+        (p.description || '').toLowerCase().includes(query)
       );
     }
 
@@ -69,8 +93,7 @@ const ProductsPage: React.FC = () => {
     }
 
     setFilteredProducts(result);
-    setProducts(result);
-  }, [selectedCategory, searchQuery, sortBy, priceRange]);
+  }, [selectedCategory, searchQuery, sortBy, priceRange, products, loading]);
 
   const handleCategoryChange = (categoryId: string) => {
     setSelectedCategory(categoryId);
@@ -103,7 +126,7 @@ const ProductsPage: React.FC = () => {
   };
 
   const selectedCategoryName = selectedCategory
-    ? (categoryNames[selectedCategory]?.[language] || mockCategories.find(c => c.id === selectedCategory)?.name || t.allProducts)
+    ? (categoryNames[selectedCategory]?.[language] || categories.find(c => c.id === selectedCategory)?.name || t.allProducts)
     : t.allProducts;
 
   return (
@@ -142,12 +165,12 @@ const ProductsPage: React.FC = () => {
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
             >
-              <option value="newest">{language === 'ar' ? 'الأحدث' : 'Newest'}</option>
-              <option value="price-low">{language === 'ar' ? 'السعر: من الأقل للأعلى' : 'Price: Low to High'}</option>
-              <option value="price-high">{language === 'ar' ? 'السعر: من الأعلى للأقل' : 'Price: High to Low'}</option>
-              <option value="name">{language === 'ar' ? 'الاسم: أ-ي' : 'Name: A-Z'}</option>
+              <option value="newest">{t.sortNewest}</option>
+              <option value="price-low">{t.sortPriceLow}</option>
+              <option value="price-high">{t.sortPriceHigh}</option>
+              <option value="name">{t.sortName}</option>
             </select>
 
             {/* View Mode */}
@@ -169,10 +192,10 @@ const ProductsPage: React.FC = () => {
             {/* Filter Toggle - Mobile */}
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className="md:hidden flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg"
+              className="md:hidden flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 rounded-lg bg-white"
             >
               <Filter className="w-5 h-5" />
-              {language === 'ar' ? 'الفلاتر' : 'Filters'}
+              <span>{t.filters}</span>
             </button>
           </div>
         </div>
@@ -182,35 +205,35 @@ const ProductsPage: React.FC = () => {
           <aside className="hidden md:block w-64 flex-shrink-0">
             <div className="bg-white rounded-lg shadow-sm p-6 sticky top-24">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="font-semibold text-gray-900">{language === 'ar' ? 'الفلاتر' : 'Filters'}</h3>
+                <h3 className="font-semibold text-gray-900">{t.filters}</h3>
                 {(selectedCategory || searchQuery) && (
                   <button
                     onClick={clearFilters}
-                    className="text-sm text-primary-600 hover:text-primary-700"
+                    className="text-sm text-primary-600 hover:text-primary-700 font-medium"
                   >
-                    {language === 'ar' ? 'مسح الكل' : 'Clear All'}
+                    {t.clearAll}
                   </button>
                 )}
               </div>
 
               {/* Categories */}
               <div className="mb-6">
-                <h4 className="font-medium text-gray-900 mb-3">{language === 'ar' ? 'الأقسام' : 'Categories'}</h4>
+                <h4 className="font-medium text-gray-900 mb-3 border-b pb-2">{t.categories}</h4>
                 <div className="space-y-2">
                   <button
                     onClick={() => handleCategoryChange('')}
-                    className={`w-full text-right py-1 px-2 rounded ${
-                      !selectedCategory ? 'bg-primary-100 text-primary-700' : 'text-gray-600 hover:bg-gray-100'
+                    className={`w-full text-right py-1.5 px-3 rounded-lg transition-colors ${
+                      !selectedCategory ? 'bg-black text-white' : 'text-gray-600 hover:bg-gray-100'
                     }`}
                   >
                     {t.allProducts}
                   </button>
-                  {mockCategories.map((category) => (
+                  {categories.map((category) => (
                     <button
                       key={category.id}
                       onClick={() => handleCategoryChange(category.id)}
-                      className={`w-full text-right py-1 px-2 rounded ${
-                        selectedCategory === category.id ? 'bg-primary-100 text-primary-700' : 'text-gray-600 hover:bg-gray-100'
+                      className={`w-full text-right py-1.5 px-3 rounded-lg transition-colors ${
+                        selectedCategory === category.id ? 'bg-black text-white' : 'text-gray-600 hover:bg-gray-100'
                       }`}
                     >
                       {categoryNames[category.id]?.[language] || category.name}
@@ -221,22 +244,22 @@ const ProductsPage: React.FC = () => {
 
               {/* Price Range */}
               <div className="mb-6">
-                <h4 className="font-medium text-gray-900 mb-3">{language === 'ar' ? 'نطاق السعر' : 'Price Range'}</h4>
+                <h4 className="font-medium text-gray-900 mb-3 border-b pb-2">{t.priceRange}</h4>
                 <div className="flex items-center gap-2">
                   <input
                     type="number"
-                    placeholder={language === 'ar' ? 'من' : 'Min'}
+                    placeholder={t.minPrice}
                     value={priceRange.min}
                     onChange={(e) => setPriceRange({ ...priceRange, min: Number(e.target.value) })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-1 focus:ring-black"
                   />
                   <span className="text-gray-400">-</span>
                   <input
                     type="number"
-                    placeholder={language === 'ar' ? 'إلى' : 'Max'}
+                    placeholder={t.maxPrice}
                     value={priceRange.max}
                     onChange={(e) => setPriceRange({ ...priceRange, max: Number(e.target.value) })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-1 focus:ring-black"
                   />
                 </div>
               </div>
@@ -261,12 +284,12 @@ const ProductsPage: React.FC = () => {
                   <Search className="w-12 h-12 text-gray-400" />
                 </div>
                 <h3 className="text-xl font-semibold text-gray-900 mb-2">{t.noProducts}</h3>
-                <p className="text-gray-500 mb-4">{language === 'ar' ? 'جرب تغيير الفلاتر أو البحث بكلمات مختلفة' : 'Try changing filters or search with different keywords'}</p>
+                <p className="text-gray-500 mb-8">{t.tryDiffSearch}</p>
                 <button
                   onClick={clearFilters}
-                  className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
+                  className="px-10 py-3 bg-black text-white rounded-full hover:bg-gray-800 transition shadow-lg"
                 >
-                  {language === 'ar' ? 'مسح الفلاتر' : 'Clear Filters'}
+                  {t.clearAll}
                 </button>
               </div>
             )}
@@ -287,19 +310,19 @@ const ProductsPage: React.FC = () => {
             <div className="p-4">
               {/* Categories */}
               <div className="mb-6">
-                <h4 className="font-medium text-gray-900 mb-3">{language === 'ar' ? 'الأقسام' : 'Categories'}</h4>
+                <h4 className="font-medium text-gray-900 mb-3 border-b pb-2">{t.categories}</h4>
                 <div className="space-y-2">
                   <button
                     onClick={() => { handleCategoryChange(''); setShowFilters(false); }}
-                    className={`w-full text-right py-2 px-3 rounded ${!selectedCategory ? 'bg-primary-100 text-primary-700' : 'text-gray-600'}`}
+                    className={`w-full text-right py-2.5 px-4 rounded-xl transition-colors ${!selectedCategory ? 'bg-black text-white' : 'text-gray-600 hover:bg-gray-100'}`}
                   >
                     {t.allProducts}
                   </button>
-                  {mockCategories.map((category) => (
+                  {categories.map((category) => (
                     <button
                       key={category.id}
                       onClick={() => { handleCategoryChange(category.id); setShowFilters(false); }}
-                      className={`w-full text-right py-2 px-3 rounded ${selectedCategory === category.id ? 'bg-primary-100 text-primary-700' : 'text-gray-600'}`}
+                      className={`w-full text-right py-2.5 px-4 rounded-xl transition-colors ${selectedCategory === category.id ? 'bg-black text-white' : 'text-gray-600 hover:bg-gray-100'}`}
                     >
                       {categoryNames[category.id]?.[language] || category.name}
                     </button>
@@ -308,32 +331,32 @@ const ProductsPage: React.FC = () => {
               </div>
 
               {/* Price Range */}
-              <div className="mb-6">
-                <h4 className="font-medium text-gray-900 mb-3">{language === 'ar' ? 'نطاق السعر' : 'Price Range'}</h4>
+              <div className="mb-8">
+                <h4 className="font-medium text-gray-900 mb-3 border-b pb-2">{t.priceRange}</h4>
                 <div className="flex items-center gap-2">
                   <input
                     type="number"
-                    placeholder={language === 'ar' ? 'من' : 'Min'}
+                    placeholder={t.minPrice}
                     value={priceRange.min}
                     onChange={(e) => setPriceRange({ ...priceRange, min: Number(e.target.value) })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl outline-none focus:ring-1 focus:ring-black"
                   />
                   <span className="text-gray-400">-</span>
                   <input
                     type="number"
-                    placeholder={language === 'ar' ? 'إلى' : 'Max'}
+                    placeholder={t.maxPrice}
                     value={priceRange.max}
                     onChange={(e) => setPriceRange({ ...priceRange, max: Number(e.target.value) })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl outline-none focus:ring-1 focus:ring-black"
                   />
                 </div>
               </div>
 
               <button
                 onClick={() => setShowFilters(false)}
-                className="w-full py-3 bg-primary-600 text-white rounded-lg"
+                className="w-full py-4 bg-black text-white rounded-xl font-bold shadow-lg"
               >
-                {language === 'ar' ? 'تطبيق الفلاتر' : 'Apply Filters'}
+                {t.applyFilters}
               </button>
             </div>
           </div>

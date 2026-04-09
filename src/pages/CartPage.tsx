@@ -16,7 +16,7 @@ const CartPage: React.FC = () => {
   const [suggestedProducts, setSuggestedProducts] = useState<Product[]>([]);
 
   const subtotal = getSubtotal();
-  const currencySymbol = 'ر.ي';
+  const currencySymbol = t.rial;
 
   // جلب المنتجات المقترحة
   useEffect(() => {
@@ -38,11 +38,11 @@ const CartPage: React.FC = () => {
     const itemsList = items
       .map(
         item =>
-          `- ${item.product.name}\n  المقاس: ${item.size?.name || '-'}\n  اللون: ${item.color?.name || '-'}\n  الكمية: ${item.quantity}\n  السعر: ${(item.price * item.quantity).toLocaleString('ar-SA')} ${currencySymbol}`
+          `- ${item.product.name}\n  ${t.size}: ${item.size?.name || '-'}\n  ${t.color}: ${item.color?.name || '-'}\n  ${t.quantityLabel}: ${item.quantity}\n  ${t.price}: ${formatPrice(item.price * item.quantity)} ${currencySymbol}`
       )
       .join('\n\n');
 
-    const message = `مرحباً! أريد إتمام الطلب التالي:\n\n${itemsList}\n\nالإجمالي: ${subtotal.toLocaleString('ar-SA')} ${currencySymbol}`;
+    const message = `${t.whatsappOrderTemplate}:\n\n${itemsList}\n\n${t.total}: ${formatPrice(subtotal)} ${currencySymbol}`;
 
     window.open(
       `https://wa.me/${mockStoreSettings.socialLinks.whatsapp}?text=${encodeURIComponent(message)}`,
@@ -55,38 +55,38 @@ const CartPage: React.FC = () => {
   // --- حالة: السلة فارغة ---
   if (items.length === 0) {
     return (
-      <div className="min-h-screen bg-gray-50" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+      <div className="min-h-[80vh] bg-gray-50 flex flex-col" dir={language === 'ar' ? 'rtl' : 'ltr'}>
         {/* رأس الصفحة */}
-        <div className="bg-white border-b px-4 py-4">
-          <h1 className="text-xl font-bold text-gray-900 text-center">{t.cartTitle}</h1>
+        <div className="bg-white border-b px-4 py-8 shadow-sm">
+          <h1 className="text-2xl font-bold text-gray-900 text-center">{t.cartTitle}</h1>
         </div>
 
         {/* منطقة السلة الفارغة */}
-        <div className="bg-white mx-4 mt-4 rounded-2xl shadow-sm p-8 text-center">
-          <div className="w-20 h-20 mx-auto mb-4 flex items-center justify-center">
-            <ShoppingBag className="w-16 h-16 text-gray-300" strokeWidth={1} />
+        <div className="bg-white mx-4 mt-10 rounded-3xl shadow-xl p-12 text-center max-w-2xl md:mx-auto">
+          <div className="w-24 h-24 mx-auto mb-6 flex items-center justify-center bg-gray-50 rounded-full">
+            <ShoppingBag className="w-12 h-12 text-gray-300" strokeWidth={1} />
           </div>
-          <h2 className="text-xl font-bold text-gray-900 mb-1">{t.emptyCart}</h2>
-          <p className="text-gray-500 text-sm mb-6">
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">{t.emptyCart}</h2>
+          <p className="text-gray-500 mb-10">
             {isAuthenticated
               ? t.emptyCartNote
               : t.loginToSeeCart}
           </p>
 
           {/* أزرار تسجيل الدخول / التسوق */}
-          <div className="flex gap-3 justify-center">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
             {!isAuthenticated ? (
               <>
                 <Link
                   to="/login"
-                  className="flex-1 max-w-[180px] py-3 bg-black text-white rounded-xl font-semibold text-center hover:bg-gray-800 transition flex items-center justify-center gap-2"
+                  className="px-10 py-4 bg-black text-white rounded-full font-bold text-center hover:bg-gray-800 transition flex items-center justify-center gap-2 shadow-lg"
                 >
-                  <User className="w-4 h-4" />
+                  <User className="w-5 h-5" />
                   {t.loginRegister}
                 </Link>
                 <Link
                   to="/products"
-                  className="flex-1 max-w-[180px] py-3 border-2 border-gray-300 text-gray-700 rounded-xl font-semibold text-center hover:bg-gray-50 transition"
+                  className="px-10 py-4 border-2 border-gray-200 text-gray-700 rounded-full font-bold text-center hover:bg-gray-50 transition"
                 >
                   {t.shopByCategory}
                 </Link>
@@ -94,9 +94,9 @@ const CartPage: React.FC = () => {
             ) : (
               <Link
                 to="/products"
-                className="px-8 py-3 bg-black text-white rounded-xl font-semibold hover:bg-gray-800 transition"
+                className="px-12 py-4 bg-black text-white rounded-full font-bold hover:bg-gray-800 transition shadow-lg"
               >
-                {language === 'ar' ? 'تصفح المنتجات' : 'Browse Products'}
+                {t.browseProducts}
               </Link>
             )}
           </div>
@@ -224,7 +224,7 @@ const CartPage: React.FC = () => {
 
             <div className="flex justify-between items-center bg-white rounded-xl shadow-sm p-4">
               <button onClick={clearCart} className="text-red-600 hover:text-red-700 font-medium">
-                {language === 'ar' ? 'إفراغ السلة' : 'Clear Cart'}
+                {t.clearCart}
               </button>
               <Link to="/products" className="text-gray-700 hover:text-black font-medium flex items-center gap-1">
                 <ArrowLeft className="w-4 h-4" />
@@ -271,7 +271,7 @@ const CartPage: React.FC = () => {
               </div>
 
               <p className="mt-4 text-sm text-gray-500 text-center">
-                {language === 'ar' ? 'سيتم التواصل معك عبر واتساب لتأكيد الطلب' : 'We will contact you via WhatsApp to confirm your order'}
+                {t.whatsappConfirmNote}
               </p>
             </div>
           </div>

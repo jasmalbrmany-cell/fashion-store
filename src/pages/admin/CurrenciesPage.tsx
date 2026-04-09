@@ -1,13 +1,17 @@
-import React, { useState } from 'react';
-import { Plus, Edit, Trash2, Search, DollarSign, X } from 'lucide-react';
-import { mockCurrencies } from '@/data/mockData';
+import React, { useState, useEffect } from 'react';
+import { Plus, Edit, Trash2, Search, DollarSign, X, Loader2, Info } from 'lucide-react';
+import { currenciesService } from '@/services/api';
 import { Currency } from '@/types';
+import { useLanguage } from '@/context/LanguageContext';
 
 const CurrenciesPage: React.FC = () => {
-  const [currencies, setCurrencies] = useState<Currency[]>(mockCurrencies);
+  const { t, language, isRTL } = useLanguage();
+  const [currencies, setCurrencies] = useState<Currency[]>([]);
+  const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCurrency, setEditingCurrency] = useState<Currency | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [formData, setFormData] = useState({
     code: '',
     name: '',
@@ -15,10 +19,33 @@ const CurrenciesPage: React.FC = () => {
     symbol: '',
   });
 
-  const filteredCurrencies = currencies.filter(currency =>
-    currency.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    currency.code.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const showToast = (type: 'success' | 'error', message: string) => {
+    setToast({ type, message });
+    setTimeout(() => setToast(null), 4000);
+  };
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const data = await currenciesService.getAll();
+      setCurrencies(data);
+    } catch (error) {
+      console.error('Failed to load currencies:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const filteredCurrencies = currencies.filter(currency => {
+    const nameStr = currency.name || '';
+    const codeStr = currency.code || '';
+    return nameStr.toLowerCase().includes(searchQuery.toLowerCase()) ||
+           codeStr.toLowerCase().includes(searchQuery.toLowerCase());
+  });
 
   const handleOpenModal = (currency?: Currency) => {
     if (currency) {
@@ -41,214 +68,264 @@ const CurrenciesPage: React.FC = () => {
     setEditingCurrency(null);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (editingCurrency) {
-      setCurrencies(prev =>
-        prev.map(c =>
-          c.id === editingCurrency.id
-            ? { ...c, code: formData.code, name: formData.name, exchangeRate: Number(formData.exchangeRate), symbol: formData.symbol }
-            : c
-        )
-      );
-    } else {
-      const newCurrency: Currency = {
-        id: `cur-${Date.now()}`,
-        code: formData.code,
-        name: formData.name,
-        exchangeRate: Number(formData.exchangeRate),
-        symbol: formData.symbol,
-      };
-      setCurrencies(prev => [...prev, newCurrency]);
+    try {
+      if (editingCurrency) {
+        const updated = await currenciesService.update(editingCurrency.id, {
+          code: formData.code,
+          name: formData.name,
+          exchangeRate: Number(formData.exchangeRate),
+          symbol: formData.symbol
+        });
+        if (updated) {
+          setCurrencies(prev => prev.map(c => c.id === editingCurrency.id ? updated : c));
+        }
+      } else {
+        const created = await currenciesService.create({
+          code: formData.code,
+          name: formData.name,
+          exchangeRate: Number(formData.exchangeRate),
+          symbol: formData.symbol
+        });
+        if (created) {
+          setCurrencies(prev => [...prev, created]);
+        }
+      }
+      handleCloseModal();
+      showToast('success', editingCurrency ? (isRTL ? 'تم تحديث العملة بنجاح' : 'Currency updated successfully') : (isRTL ? 'تم إضافة العملة بنجاح' : 'Currency added successfully'));
+    } catch (error) {
+      console.error('Failed to save currency:', error);
+      showToast('error', isRTL ? 'فشل في حفظ العملة' : 'Failed to save currency');
     }
-    handleCloseModal();
   };
 
-  const handleDelete = (id: string) => {
-    if (id === 'cur-1') {
-      alert('لا يمكن حذف العملة الأساسية');
+  const handleDelete = async (id: string) => {
+    if (id === 'cur-1' || id === '1') { // Protect base currency
+      alert(t.cannotDeleteBaseCurrency);
       return;
     }
-    if (confirm('هل أنت متأكد من حذف هذه العملة؟')) {
-      setCurrencies(prev => prev.filter(c => c.id !== id));
+    if (window.confirm(t.confirmDeleteCurrency)) {
+      const success = await currenciesService.delete(id);
+      if (success) {
+        setCurrencies(prev => prev.filter(c => c.id !== id));
+        showToast('success', isRTL ? 'تم حذف العملة بنجاح' : 'Currency deleted successfully');
+      } else {
+        showToast('error', isRTL ? 'فشل في حذف العملة' : 'Failed to delete currency');
+      }
     }
   };
 
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
+        <Loader2 className="w-10 h-10 animate-spin text-black" />
+        <p className="font-bold text-gray-400 animate-pulse">{t.loading}</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" dir={isRTL ? 'rtl' : 'ltr'}>
+      {/* Toast */}
+      {toast && (
+        <div className={`fixed top-12 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-3 px-8 py-4 rounded-[1.5rem] shadow-2xl text-white font-black uppercase tracking-widest text-xs animate-in slide-in-from-top-12 ${
+          toast.type === 'success' ? 'bg-black border border-white/10' : 'bg-red-600'
+        }`}>
+          {toast.type === 'success' ? <CheckCircle2 className="w-5 h-5 text-green-500" /> : <AlertCircle className="w-5 h-5 text-white" />}
+          {toast.message}
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">العملات</h1>
-          <p className="text-gray-500">إدارة أسعار الصرف</p>
+          <h1 className="text-3xl font-black text-gray-900">{t.currenciesTitle}</h1>
+          <p className="text-gray-500 font-bold">{t.manageExchangeRates}</p>
         </div>
         <button
           onClick={() => handleOpenModal()}
-          className="flex items-center gap-2 px-4 py-2.5 bg-black text-white rounded-lg hover:bg-gray-800 transition"
+          className="flex items-center gap-2 px-6 py-3 bg-black text-white rounded-2xl hover:bg-gray-800 transition shadow-xl shadow-gray-100 font-black uppercase text-sm tracking-widest"
         >
           <Plus className="w-5 h-5" />
-          إضافة عملة
+          {t.addCurrency}
         </button>
       </div>
 
       {/* Info Card */}
-      <div className="bg-blue-50 rounded-xl p-4 border border-blue-100">
-        <p className="text-blue-800 text-sm">
-          <strong>ملاحظة:</strong> العملة الأساسية هي الريال اليمني (YER). جميع الأسعار في المتجر تُعرض بهذه العملة.
-          يتم تحويل أسعار المنتجات المستوردة تلقائياً حسب سعر الصرف المحدد.
-        </p>
+      <div className="bg-blue-50/50 rounded-3xl p-6 border border-blue-100 flex gap-4 items-start shadow-sm">
+        <div className="p-2 bg-blue-100 rounded-xl">
+           <Info className="w-5 h-5 text-blue-600" />
+        </div>
+        <div>
+           <p className="text-blue-900 font-black text-sm uppercase tracking-widest">{isRTL ? 'ملاحظة هامة' : 'Important Note'}</p>
+           <p className="text-blue-700 text-sm font-bold mt-1 leading-relaxed">
+             {t.currencyInfoNote}
+           </p>
+        </div>
       </div>
 
       {/* Search */}
-      <div className="bg-white rounded-xl shadow-sm p-4">
+      <div className="bg-white rounded-3xl shadow-sm border p-4">
         <div className="relative">
-          <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+          <Search className={`absolute ${isRTL ? 'right-4' : 'left-4'} top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5`} />
           <input
             type="text"
-            placeholder="ابحث عن عملة..."
+            placeholder={t.searchCurrency}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pr-10 pl-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
+            className={`w-full ${isRTL ? 'pr-12' : 'pl-12'} py-3 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-black outline-none font-bold`}
           />
         </div>
       </div>
 
       {/* Currencies List */}
-      <div className="grid gap-4">
-        {filteredCurrencies.map((currency, index) => (
-          <div
-            key={currency.id}
-            className="bg-white rounded-xl shadow-sm p-6 flex items-center justify-between"
-          >
-            <div className="flex items-center gap-4">
-              <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                index === 0 ? 'bg-yellow-100' : 'bg-gray-100'
-              }`}>
-                <DollarSign className={`w-6 h-6 ${index === 0 ? 'text-yellow-600' : 'text-gray-600'}`} />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h3 className="font-semibold text-gray-900">{currency.name}</h3>
-                  <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">{currency.code}</span>
-                  {index === 0 && (
-                    <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded">أساسية</span>
-                  )}
+      <div className="grid gap-6 md:grid-cols-2">
+        {filteredCurrencies.map((currency, index) => {
+          const isBase = currency.id === 'cur-1' || currency.id === '1';
+          return (
+            <div
+              key={currency.id}
+              className={`bg-white rounded-[2rem] shadow-sm p-8 flex flex-col gap-6 border transition-all hover:shadow-md ${
+                isBase ? 'border-yellow-200 bg-yellow-50/10' : 'border-gray-100'
+              }`}
+            >
+              <div className="flex items-start justify-between">
+                <div className="flex items-center gap-4">
+                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 border ${
+                    isBase ? 'bg-yellow-100 border-yellow-200 shadow-sm shadow-yellow-100' : 'bg-gray-50 border-gray-100'
+                  }`}>
+                    <DollarSign className={`w-7 h-7 ${isBase ? 'text-yellow-600' : 'text-gray-400'}`} />
+                  </div>
+                  <div>
+                    <h3 className="font-black text-gray-900 text-xl leading-tight">{currency.name}</h3>
+                    <div className="flex items-center gap-2 mt-1">
+                        <span className="text-[10px] font-black bg-black text-white px-2 py-0.5 rounded tracking-widest uppercase">{currency.code}</span>
+                        {isBase && (
+                          <span className="text-[10px] font-black bg-yellow-400 text-black px-2 py-0.5 rounded tracking-widest uppercase">{t.baseCurrency}</span>
+                        )}
+                    </div>
+                  </div>
                 </div>
-                <p className="text-gray-500 text-sm">
-                  سعر الصرف: <span className="font-medium">1 {currency.code} = {(1 / currency.exchangeRate).toFixed(2)} YER</span>
-                </p>
+                {!isBase && (
+                    <div className="flex gap-2">
+                    <button
+                        onClick={() => handleOpenModal(currency)}
+                        className="p-2 hover:bg-black hover:text-white rounded-xl text-gray-400 transition border border-transparent hover:border-black"
+                    >
+                        <Edit className="w-4 h-4" />
+                    </button>
+                    <button
+                        onClick={() => handleDelete(currency.id)}
+                        className="p-2 hover:bg-red-50 text-gray-400 hover:text-red-600 rounded-xl transition border border-transparent hover:border-red-100"
+                    >
+                        <Trash2 className="w-4 h-4" />
+                    </button>
+                    </div>
+                )}
+              </div>
+              
+              <div className="p-6 bg-gray-50 rounded-3xl border border-gray-100 divide-y divide-gray-200/50">
+                  <div className="pb-3 flex justify-between items-center text-sm">
+                      <span className="text-gray-400 font-black uppercase tracking-widest text-[10px]">{isRTL ? 'الارتباط' : 'Relative to Base'}</span>
+                      <span className="font-black text-gray-900">1 {currency.code} = {currency.exchangeRate > 0 ? (1 / currency.exchangeRate).toFixed(2) : 1} YER</span>
+                  </div>
+                  <div className="pt-3 flex justify-between items-center text-sm">
+                      <span className="text-gray-400 font-black uppercase tracking-widest text-[10px]">{t.symbolLabel}</span>
+                      <span className="text-2xl font-black text-black">{currency.symbol}</span>
+                  </div>
               </div>
             </div>
-            <div className="flex items-center gap-3">
-              <div className="text-left">
-                <p className="font-bold text-lg text-gray-900">{currency.symbol}</p>
-                <p className="text-xs text-gray-500">الرمز</p>
-              </div>
-              {index !== 0 && (
-                <>
-                  <button
-                    onClick={() => handleOpenModal(currency)}
-                    className="p-2 hover:bg-gray-100 rounded-lg text-gray-600 transition"
-                  >
-                    <Edit className="w-5 h-5" />
-                  </button>
-                  <button
-                    onClick={() => handleDelete(currency.id)}
-                    className="p-2 hover:bg-red-50 rounded-lg text-red-600 transition"
-                  >
-                    <Trash2 className="w-5 h-5" />
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {filteredCurrencies.length === 0 && (
-        <div className="bg-white rounded-xl shadow-sm p-12 text-center">
-          <DollarSign className="w-12 h-12 mx-auto text-gray-300 mb-4" />
-          <p className="text-gray-500">لا توجد عملات</p>
+        <div className="bg-white rounded-[2.5rem] shadow-sm p-20 text-center border border-dashed border-gray-200">
+          <DollarSign className="w-16 h-16 mx-auto text-gray-200 mb-6 animate-bounce" />
+          <p className="text-gray-400 font-black text-xl">{t.noCurrenciesFound}</p>
         </div>
       )}
 
       {/* Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
-            <div className="flex items-center justify-between p-6 border-b">
-              <h2 className="text-xl font-bold text-gray-900">
-                {editingCurrency ? 'تعديل عملة' : 'إضافة عملة'}
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95">
+            <div className="flex items-center justify-between p-8 border-b bg-gray-50/50">
+              <h2 className="text-2xl font-black text-gray-900 leading-tight">
+                {editingCurrency ? t.editCurrency : t.addCurrency}
               </h2>
-              <button onClick={handleCloseModal} className="p-2 hover:bg-gray-100 rounded-lg">
-                <X className="w-5 h-5 text-gray-500" />
+              <button onClick={handleCloseModal} className="p-3 hover:bg-white rounded-2xl transition-all border border-transparent hover:border-gray-100">
+                <X className="w-6 h-6 text-gray-400" />
               </button>
             </div>
-            <form onSubmit={handleSubmit} className="p-6 space-y-5">
+            <form onSubmit={handleSubmit} className="p-8 space-y-6">
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">كود العملة</label>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 px-2">{t.currencyCode}</label>
                   <input
                     type="text"
                     value={formData.code}
                     onChange={(e) => setFormData(prev => ({ ...prev, code: e.target.value.toUpperCase() }))}
-                    placeholder="مثال: USD"
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
+                    placeholder="USD"
+                    className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-black outline-none font-bold"
                     required
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">الرمز</label>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 px-2">{t.symbolLabel}</label>
                   <input
                     type="text"
                     value={formData.symbol}
                     onChange={(e) => setFormData(prev => ({ ...prev, symbol: e.target.value }))}
-                    placeholder="مثال: $"
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
+                    placeholder="$"
+                    className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-black outline-none font-bold"
                     required
                   />
                 </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">اسم العملة</label>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 px-2">{t.currencyName}</label>
                 <input
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                  placeholder="مثال: دولار أمريكي"
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
+                  placeholder={t.currencyNamePlaceholder}
+                  className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-black outline-none font-bold"
                   required
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">سعر الصرف (مقابل الريال اليمني)</label>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 px-2">{t.exchangeRateLabel}</label>
                 <input
                   type="number"
-                  step="0.0001"
+                  step="0.000001"
                   value={formData.exchangeRate}
                   onChange={(e) => setFormData(prev => ({ ...prev, exchangeRate: e.target.value }))}
-                  placeholder="مثال: 0.004"
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
+                  placeholder="0.004"
+                  className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-black outline-none font-bold"
                   required
                 />
-                <p className="text-xs text-gray-500 mt-1">
-                  مثال: إذا كان سعر صرف الدولار = 0.004، يعني 1 دولار = 250 ريال يمني
-                </p>
+                <div className="p-4 bg-yellow-50 border border-yellow-100 rounded-2xl mt-4">
+                    <p className="text-[10px] text-yellow-800 font-bold leading-relaxed">
+                        {t.exchangeRateInfo}
+                    </p>
+                </div>
               </div>
-              <div className="flex gap-3 pt-4">
+              <div className="flex gap-4 pt-4">
                 <button
                   type="button"
                   onClick={handleCloseModal}
-                  className="flex-1 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+                  className="flex-1 py-4 text-gray-400 font-black uppercase tracking-widest text-sm hover:text-red-500 transition-colors"
                 >
-                  إلغاء
+                  {t.cancel}
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2.5 bg-black text-white rounded-lg hover:bg-gray-800 transition"
+                  className="flex-1 py-4 bg-black text-white rounded-2xl hover:bg-gray-800 transition shadow-2xl shadow-gray-200 font-black uppercase tracking-widest text-sm"
                 >
-                  {editingCurrency ? 'حفظ التغييرات' : 'إضافة'}
+                  {editingCurrency ? t.saveChanges : t.addCurrency}
                 </button>
               </div>
             </form>

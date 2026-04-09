@@ -6,11 +6,18 @@ import {
   Loader,
   Check,
   AlertCircle,
-  Image,
+  Image as ImageIcon,
   X,
   Plus,
+  Zap,
+  Globe,
+  Info,
+  Sparkles,
+  Search
 } from 'lucide-react';
 import { mockCategories } from '@/data/mockData';
+import { productsService } from '@/services';
+import { useLanguage } from '@/context/LanguageContext';
 
 interface ImportedProduct {
   name: string;
@@ -25,18 +32,20 @@ interface ImportedProduct {
 
 const ImportProductPage: React.FC = () => {
   const navigate = useNavigate();
+  const { isRTL, t } = useLanguage();
   const [url, setUrl] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [importedProduct, setImportedProduct] = useState<ImportedProduct | null>(null);
 
-  // Form state
   const [formData, setFormData] = useState({
     name: '',
     description: '',
     price: '',
     categoryId: '',
-    images: [] as string[],
+    images: [] as { id: string; url: string; isPrimary: boolean }[],
     sizes: [] as { id: string; name: string; stock: number; priceModifier: number }[],
     colors: [] as { id: string; name: string; hex: string; stock: number }[],
     isVisible: true,
@@ -44,422 +53,360 @@ const ImportProductPage: React.FC = () => {
 
   const handleFetchProduct = async () => {
     if (!url.trim()) {
-      setError('يرجى إدخال رابط المنتج');
+      setError(isRTL ? 'يرجى إدخال رابط منتج محدد' : 'Please enter a specific product URL');
+      return;
+    }
+
+    const urlLower = url.toLowerCase();
+    
+    // Improved detection for Home Pages vs Product Pages
+    const homePatterns = [
+        'shein.com/?', 'shein.com/ar/?', 'shein.com/ar', 'shein.com/en', 
+        'zahraah.com/ar', 'zahraah.com/en', 'aliexpress.com', 'amazon.com'
+    ];
+    
+    // Product page MUST have some identifiers
+    const hasProductIdentifier = urlLower.includes('/products/') || 
+                                  urlLower.includes('/p-') || 
+                                  urlLower.includes('/item/') || 
+                                  urlLower.includes('/dp/') || 
+                                  urlLower.includes('/product/');
+
+    const isHomePage = homePatterns.some(p => urlLower.includes(p)) && !hasProductIdentifier;
+    
+    if (isHomePage) {
+      setError(isRTL 
+        ? 'عذراً! لقد أدخلت رابط الصفحة الرئيسية للمتجر. لجلب البيانات، يجب عليك الدخول لصفحة "منتج معين" ونسخ الرابط الخاص به من الأعلى.' 
+        : 'Oops! You entered the store home page. To fetch data, you must go to a specific "product page" and copy its link from the address bar.');
       return;
     }
 
     setIsLoading(true);
     setError('');
+    setSuccess('');
 
-    // Simulate fetching product data
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    try {
+      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+      const response = await fetch(proxyUrl);
+      if (!response.ok) throw new Error('Proxy failed');
+      const data = await response.json();
+      
+      let scrapedTitle = '';
+      let scrapedPrice = '';
+      let scrapedDesc = '';
+      let scrapedImages: string[] = [];
 
-    // Mock imported data
-    const mockData: ImportedProduct = {
-      name: 'فستان سهرة أنيق - موديل 2024',
-      description: 'فستان سهرة فاخر مصنوع من الحرير الطبيعي، مناسب للمناسبات الرسمية والسهرات. يتميز بتصميم عصري وأنيق.',
-      price: 45000,
-      currency: 'YER',
-      images: [
-        'https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=500',
-        'https://images.unsplash.com/photo-1566174053879-31528523f8ae?w=500',
-      ],
-      sizes: [
-        { name: 'S' },
-        { name: 'M' },
-        { name: 'L' },
-        { name: 'XL' },
-      ],
-      colors: [
-        { name: 'أحمر', hex: '#DC2626' },
-        { name: 'أزرق', hex: '#2563EB' },
-        { name: 'أسود', hex: '#1F2937' },
-      ],
-      sourceUrl: url,
-    };
+      if (data.contents) {
+        const parser = new DOMParser();
+        const htmlDoc = parser.parseFromString(data.contents, 'text/html');
+        
+        // --- Store Specific Scrapers ---
+        
+        // 1. ZAHRAAH
+        if (url.includes('zahraah.com')) {
+           scrapedTitle = htmlDoc.querySelector('.products-details-conent-grid-data-title')?.textContent?.trim() || '';
+           scrapedPrice = htmlDoc.querySelector('.products-details-conent-grid-data-price')?.textContent?.replace(/[^\d]/g, '') || '';
+           scrapedDesc = htmlDoc.querySelector('.products-details-conent-grid-data-description')?.textContent?.trim() || '';
+           
+           Array.from(htmlDoc.querySelectorAll('img')).forEach(img => {
+              const src = img.getAttribute('src') || img.getAttribute('data-src');
+              if (src && src.includes('/products/') && !scrapedImages.includes(src)) {
+                  scrapedImages.push(src.startsWith('http') ? src : `https://zahraah.com${src}`);
+              }
+           });
+        }
+        
+        // 2. SHEIN
+        else if (url.includes('shein.com')) {
+           scrapedTitle = htmlDoc.querySelector('h1.product-intro__head-name')?.textContent?.trim() || '';
+           scrapedPrice = htmlDoc.querySelector('.product-intro__head-price')?.textContent?.replace(/[^\d.]/g, '') || '';
+           
+           // SHEIN images are often lazy loaded or in swipers
+           const sheinImages = Array.from(htmlDoc.querySelectorAll('.product-intro__main-img img, .swiper-slide img, .thumbs-picture__column img'));
+           sheinImages.forEach(img => {
+               const src = (img as HTMLImageElement).src || img.getAttribute('data-src');
+               if (src && !src.includes('base64') && !scrapedImages.includes(src)) {
+                   scrapedImages.push(src.startsWith('//') ? `https:${src}` : src);
+               }
+           });
+        }
 
-    setImportedProduct(mockData);
-    setFormData({
-      name: mockData.name,
-      description: mockData.description,
-      price: mockData.price.toString(),
-      categoryId: '',
-      images: mockData.images,
-      sizes: mockData.sizes.map((s, i) => ({
-        id: `size-${i}`,
-        name: s.name,
-        stock: 10,
-        priceModifier: 0,
-      })),
-      colors: mockData.colors.map((c, i) => ({
-        id: `color-${i}`,
-        name: c.name,
-        hex: c.hex,
-        stock: 10,
-      })),
-      isVisible: true,
-    });
+        // --- General Fallbacks ---
+        if (!scrapedTitle) scrapedTitle = htmlDoc.querySelector('h1')?.innerText || htmlDoc.title.split('|')[0].trim() || '';
+        if (!scrapedDesc) {
+            const metaDesc = htmlDoc.querySelector('meta[name="description"]')?.getAttribute('content') || 
+                             htmlDoc.querySelector('meta[property="og:description"]')?.getAttribute('content');
+            scrapedDesc = metaDesc || '';
+        }
+        
+        if (scrapedImages.length === 0) {
+            const ogImg = htmlDoc.querySelector('meta[property="og:image"]')?.getAttribute('content');
+            if (ogImg) scrapedImages.push(ogImg);
+            
+            Array.from(htmlDoc.querySelectorAll('img')).slice(0, 15).forEach(img => {
+                const src = img.src;
+                if (src && src.startsWith('http') && !src.includes('logo') && !src.includes('icon') && !src.includes('banner')) {
+                    scrapedImages.push(src);
+                }
+            });
+        }
+      }
 
-    setIsLoading(false);
-  };
+      // Final check - if we have nothing but a homepage-like title, throw
+      if (!scrapedTitle || scrapedTitle.length < 3) {
+          throw new Error('Minimal data found');
+      }
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    // In real app, send to backend
-    alert('تم استيراد المنتج بنجاح!');
-    navigate('/admin/products');
-  };
+      const productInfo: ImportedProduct = {
+        name: scrapedTitle,
+        description: scrapedDesc || (isRTL ? 'منتج حصري ومميز.' : 'Exclusive premium product.'),
+        price: scrapedPrice ? parseFloat(scrapedPrice) : 45000,
+        currency: 'YER',
+        images: scrapedImages.filter(img => img).slice(0, 8),
+        sizes: [{ name: 'S' }, { name: 'M' }, { name: 'L' }, { name: 'XL' }],
+        colors: [{ name: isRTL ? 'أسود' : 'Black', hex: '#1F2937' }],
+        sourceUrl: url,
+      };
 
-  const addImage = () => {
-    const imageUrl = prompt('أدخل رابط الصورة:');
-    if (imageUrl) {
-      setFormData(prev => ({
-        ...prev,
-        images: [...prev.images, imageUrl],
-      }));
+      setImportedProduct(productInfo);
+      setFormData({
+        name: productInfo.name,
+        description: productInfo.description,
+        price: productInfo.price.toString(),
+        categoryId: '',
+        images: productInfo.images.length > 0 ? productInfo.images.map((img, i) => ({
+          id: `img-${Date.now()}-${i}`,
+          url: img,
+          isPrimary: i === 0
+        })) : [{ id: 'img-def', url: 'https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=800', isPrimary: true }],
+        sizes: productInfo.sizes.map((s, i) => ({
+          id: `size-${i}`,
+          name: s.name,
+          stock: 10,
+          priceModifier: 0,
+        })),
+        colors: productInfo.colors.map((c, i) => ({
+          id: `color-${i}`,
+          name: c.name,
+          hex: c.hex,
+          stock: 10,
+        })),
+        isVisible: true,
+      });
+      
+      setSuccess(isRTL ? 'رائع! تم استخلاص البيانات بنجاح.' : 'Great! Data extracted successfully.');
+    } catch (err) {
+      console.error('Fetch error:', err);
+      // Even on error, show the manual form
+      setImportedProduct({
+        name: '', description: '', price: 0, currency: 'YER', images: [], sizes: [], colors: [], sourceUrl: url
+      });
+      setError(isRTL 
+        ? 'بعض المواقع العالمية مثل (شي إن) تحظر الجلب التلقائي أحياناً. لا توجد مشكلة، تفضل بإضافة الاسم والصور يدوياً لإتمام الحفظ.' 
+        : 'Some global sites like (SHEIN) block auto-fetching. No problem, please add the name and images manually to complete the save.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const removeImage = (index: number) => {
-    setFormData(prev => ({
-      ...prev,
-      images: prev.images.filter((_, i) => i !== index),
-    }));
-  };
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.categoryId) {
+      setError(isRTL ? 'يرجى اختيار القسم أولاً' : 'Please select a category first');
+      return;
+    }
 
-  const addSize = () => {
-    setFormData(prev => ({
-      ...prev,
-      sizes: [
-        ...prev.sizes,
-        { id: `size-${Date.now()}`, name: '', stock: 0, priceModifier: 0 },
-      ],
-    }));
-  };
+    setIsSaving(true);
+    const result = await productsService.create({
+      ...formData,
+      price: parseFloat(formData.price),
+      sourceUrl: url,
+      stock: formData.sizes.reduce((acc, s) => acc + s.stock, 0) || 10
+    });
+    setIsSaving(false);
 
-  const updateSize = (index: number, field: string, value: string | number) => {
-    setFormData(prev => ({
-      ...prev,
-      sizes: prev.sizes.map((s, i) =>
-        i === index ? { ...s, [field]: value } : s
-      ),
-    }));
-  };
-
-  const removeSize = (index: number) => {
-    setFormData(prev => ({
-      ...prev,
-      sizes: prev.sizes.filter((_, i) => i !== index),
-    }));
-  };
-
-  const addColor = () => {
-    setFormData(prev => ({
-      ...prev,
-      colors: [
-        ...prev.colors,
-        { id: `color-${Date.now()}`, name: '', hex: '#000000', stock: 0 },
-      ],
-    }));
-  };
-
-  const updateColor = (index: number, field: string, value: string | number) => {
-    setFormData(prev => ({
-      ...prev,
-      colors: prev.colors.map((c, i) =>
-        i === index ? { ...c, [field]: value } : c
-      ),
-    }));
-  };
-
-  const removeColor = (index: number) => {
-    setFormData(prev => ({
-      ...prev,
-      colors: prev.colors.filter((_, i) => i !== index),
-    }));
+    if (result) {
+      alert(isRTL ? 'تم الحفظ بنجاح!' : 'Saved successfully!');
+      navigate('/admin/products');
+    }
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <Link
-          to="/admin/products"
-          className="p-2 hover:bg-gray-100 rounded-lg"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </Link>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">استيراد منتج</h1>
-          <p className="text-gray-500">استورد منتجات من أي موقع خارجي</p>
-        </div>
-      </div>
-
-      {/* URL Input */}
-      <div className="bg-white rounded-lg shadow-sm p-6">
-        <h2 className="font-semibold text-gray-900 mb-4">رابط المنتج</h2>
-        <div className="flex gap-4">
-          <div className="relative flex-1">
-            <LinkIcon className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
-            <input
-              type="url"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              placeholder="https://www.aliexpress.com/item/..."
-              className="w-full pr-10 pl-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-            />
-          </div>
-          <button
-            onClick={handleFetchProduct}
-            disabled={isLoading}
-            className="px-6 py-3 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 disabled:opacity-50 flex items-center gap-2"
-          >
-            {isLoading ? (
-              <>
-                <Loader className="w-5 h-5 animate-spin" />
-                جاري الجلب...
-              </>
-            ) : (
-              'استيراد البيانات'
-            )}
-          </button>
-        </div>
-
-        {error && (
-          <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3 text-red-700">
-            <AlertCircle className="w-5 h-5" />
-            {error}
-          </div>
-        )}
-
-        <p className="mt-4 text-sm text-gray-500">
-          يمكنك استيراد المنتجات من: AliExpress، Amazon، نون، شي إن، وجميع المواقع الأخرى
-        </p>
-      </div>
-
-      {/* Product Form */}
-      {importedProduct && (
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <h2 className="font-semibold text-gray-900 mb-4">تفاصيل المنتج</h2>
-
-            <div className="grid md:grid-cols-2 gap-6">
-              {/* Name */}
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">اسم المنتج</label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                  required
-                />
-              </div>
-
-              {/* Description */}
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">الوصف</label>
-                <textarea
-                  value={formData.description}
-                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                  rows={4}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                  required
-                />
-              </div>
-
-              {/* Price */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">السعر (ريال يمني)</label>
-                <input
-                  type="number"
-                  value={formData.price}
-                  onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                  required
-                />
-              </div>
-
-              {/* Category */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">القسم</label>
-                <select
-                  value={formData.categoryId}
-                  onChange={(e) => setFormData(prev => ({ ...prev, categoryId: e.target.value }))}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                  required
-                >
-                  <option value="">اختر القسم</option>
-                  {mockCategories.map(category => (
-                    <option key={category.id} value={category.id}>
-                      {category.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Source URL */}
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">رابط المصدر</label>
-                <input
-                  type="url"
-                  value={importedProduct.sourceUrl}
-                  readOnly
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg bg-gray-50"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Images */}
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="font-semibold text-gray-900">الصور</h2>
-              <button
-                type="button"
-                onClick={addImage}
-                className="flex items-center gap-2 text-primary-600 hover:text-primary-700"
-              >
-                <Plus className="w-5 h-5" />
-                إضافة صورة
-              </button>
-            </div>
-
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {formData.images.map((image, index) => (
-                <div key={index} className="relative group">
-                  <img
-                    src={image}
-                    alt={`صورة ${index + 1}`}
-                    className="w-full aspect-square object-cover rounded-lg"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => removeImage(index)}
-                    className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Sizes */}
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="font-semibold text-gray-900">المقاسات</h2>
-              <button
-                type="button"
-                onClick={addSize}
-                className="flex items-center gap-2 text-primary-600 hover:text-primary-700"
-              >
-                <Plus className="w-5 h-5" />
-                إضافة مقاس
-              </button>
-            </div>
-
-            <div className="space-y-3">
-              {formData.sizes.map((size, index) => (
-                <div key={size.id} className="flex items-center gap-4">
-                  <input
-                    type="text"
-                    value={size.name}
-                    onChange={(e) => updateSize(index, 'name', e.target.value)}
-                    placeholder="المقاس (مثال: M)"
-                    className="w-32 px-3 py-2 border border-gray-300 rounded-lg"
-                  />
-                  <input
-                    type="number"
-                    value={size.stock}
-                    onChange={(e) => updateSize(index, 'stock', parseInt(e.target.value) || 0)}
-                    placeholder="المخزون"
-                    className="w-32 px-3 py-2 border border-gray-300 rounded-lg"
-                  />
-                  <input
-                    type="number"
-                    value={size.priceModifier}
-                    onChange={(e) => updateSize(index, 'priceModifier', parseInt(e.target.value) || 0)}
-                    placeholder="تعديل السعر"
-                    className="w-32 px-3 py-2 border border-gray-300 rounded-lg"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => removeSize(index)}
-                    className="p-2 text-red-500 hover:bg-red-50 rounded-lg"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Colors */}
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="font-semibold text-gray-900">الألوان</h2>
-              <button
-                type="button"
-                onClick={addColor}
-                className="flex items-center gap-2 text-primary-600 hover:text-primary-700"
-              >
-                <Plus className="w-5 h-5" />
-                إضافة لون
-              </button>
-            </div>
-
-            <div className="space-y-3">
-              {formData.colors.map((color, index) => (
-                <div key={color.id} className="flex items-center gap-4">
-                  <input
-                    type="color"
-                    value={color.hex}
-                    onChange={(e) => updateColor(index, 'hex', e.target.value)}
-                    className="w-12 h-10 border border-gray-300 rounded cursor-pointer"
-                  />
-                  <input
-                    type="text"
-                    value={color.name}
-                    onChange={(e) => updateColor(index, 'name', e.target.value)}
-                    placeholder="اسم اللون"
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg"
-                  />
-                  <input
-                    type="number"
-                    value={color.stock}
-                    onChange={(e) => updateColor(index, 'stock', parseInt(e.target.value) || 0)}
-                    placeholder="المخزون"
-                    className="w-32 px-3 py-2 border border-gray-300 rounded-lg"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => removeColor(index)}
-                    className="p-2 text-red-500 hover:bg-red-50 rounded-lg"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Submit */}
-          <div className="flex justify-end gap-4">
-            <Link
-              to="/admin/products"
-              className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-            >
-              إلغاء
+    <div className="space-y-8 pb-12" dir={isRTL ? 'rtl' : 'ltr'}>
+      {/* Premium Header */}
+      <div className="bg-white rounded-3xl p-6 border border-gray-100 flex items-center justify-between shadow-sm">
+        <div className="flex items-center gap-4">
+            <Link to="/admin/products" className="w-12 h-12 flex items-center justify-center bg-gray-50 border border-gray-100 rounded-2xl hover:bg-black hover:text-white transition-all">
+                <ArrowLeft className={`w-5 h-5 ${isRTL ? '' : 'rotate-180'}`} />
             </Link>
-            <button
-              type="submit"
-              className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 flex items-center gap-2"
-            >
-              <Check className="w-5 h-5" />
-              استيراد المنتج
-            </button>
-          </div>
+            <div>
+                <h1 className="text-2xl font-black text-gray-900 tracking-tighter uppercase">{isRTL ? 'الاستيراد العابر للحدود' : 'Cross-Border Import'}</h1>
+                <div className="flex items-center gap-2 mt-1">
+                    <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                    <span className="text-[10px] font-black text-gray-400 tracking-widest uppercase">{isRTL ? 'الذكاء الاصطناعي نشط' : 'Scraper engine active'}</span>
+                </div>
+            </div>
+        </div>
+      </div>
+
+      {/* Main Input Card */}
+      <div className="bg-gray-900 rounded-[2.5rem] p-10 text-white relative overflow-hidden shadow-2xl">
+        <div className="absolute top-0 right-0 p-10 opacity-10">
+            <Zap className="w-40 h-40 text-white fill-white" />
+        </div>
+        
+        <div className="relative z-10 max-w-4xl space-y-8">
+            <div className="space-y-2">
+                <h2 className="text-3xl font-black tracking-tighter">{isRTL ? 'حول أي منتج إلى متجرك في ثوانٍ' : 'Transform any product in seconds'}</h2>
+                <p className="text-white/40 font-bold max-w-xl">{isRTL ? 'يدعم المتصفح الذكي سحب البيانات من المتاجر العالمية الكبيرة، في حال الحظر يمكنك الإكمال يدوياً.' : 'The smart scraper supports fetching from major global stores. If blocked, you can complete manually.'}</p>
+            </div>
+
+            <div className="flex flex-col md:flex-row gap-4 p-2 bg-white/5 rounded-[2rem] border border-white/10 backdrop-blur-xl">
+                <div className="flex-1 relative">
+                    <input
+                        type="url"
+                        value={url}
+                        onChange={(e) => setUrl(e.target.value)}
+                        placeholder="https://ar.shein.com/product/..."
+                        className="w-full pl-12 pr-6 py-5 bg-transparent rounded-3xl transition-all outline-none font-bold text-white placeholder:text-white/20"
+                    />
+                    <Globe className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-white/20" />
+                </div>
+                <button
+                    onClick={handleFetchProduct}
+                    disabled={isLoading}
+                    className="px-14 py-5 bg-white text-black rounded-[1.5rem] font-black hover:bg-amber-400 transition-all active:scale-95 flex items-center justify-center gap-3 shadow-xl whitespace-nowrap"
+                >
+                    {isLoading ? <Loader className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5 text-black" />}
+                    {isRTL ? 'استيراد الآن' : 'Import Now'}
+                </button>
+            </div>
+
+            {error && (
+                <div className="flex items-start gap-4 p-6 bg-red-500/10 border border-red-500/20 rounded-[2rem] text-red-200 animate-in zoom-in-95 duration-300">
+                    <AlertCircle className="w-6 h-6 flex-shrink-0" />
+                    <div className="space-y-1">
+                        <p className="font-black text-sm">{error}</p>
+                        {url.includes('shein') && !url.includes('/product/') && (
+                             <p className="text-xs font-bold text-red-300 italic">{isRTL ? 'تنبيه: لقد استخدمت رابط المتجر العام، يرجى اختيار منتج معين.' : 'Note: You used the general store link, please select a specific product.'}</p>
+                        )}
+                    </div>
+                </div>
+            )}
+        </div>
+      </div>
+
+      {/* Product Form Editor */}
+      {importedProduct && (
+        <form onSubmit={handleSubmit} className="space-y-8 animate-in fade-in slide-in-from-bottom-12 duration-1000">
+            <div className="bg-white rounded-[2.5rem] shadow-sm border border-gray-100 p-8 md:p-12">
+                <div className="flex items-center gap-3 mb-10 pb-6 border-b border-gray-50">
+                    <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center text-amber-600">
+                        <Info className="w-5 h-5" />
+                    </div>
+                    <div>
+                        <h2 className="text-xl font-black text-gray-900 tracking-tighter">{isRTL ? 'تخصيص بيانات المنتج المستورد' : 'Tailor Imported Specifications'}</h2>
+                        <p className="text-gray-400 text-[10px] font-black uppercase tracking-widest">{isRTL ? 'تعديل البيانات النهائية قبل العرض' : 'Edit final details before display'}</p>
+                    </div>
+                </div>
+
+                <div className="grid lg:grid-cols-2 gap-12">
+                    <div className="space-y-8">
+                        <div className="space-y-2">
+                             <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">{isRTL ? 'اسم المنتج في متجرك' : 'Product Brand Name'}</label>
+                             <input
+                                type="text"
+                                value={formData.name}
+                                onChange={(e) => setFormData(p => ({ ...p, name: e.target.value }))}
+                                className="w-full px-8 py-5 bg-gray-50 border border-transparent focus:border-black focus:bg-white rounded-[1.5rem] transition-all outline-none font-black text-xl"
+                                placeholder={isRTL ? 'عنوان المنتج هنا...' : 'Product title here...'}
+                                required
+                             />
+                        </div>
+
+                        <div className="space-y-2">
+                             <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">{isRTL ? 'الوصف التسويقي' : 'Marketing Description'}</label>
+                             <textarea
+                                value={formData.description}
+                                onChange={(e) => setFormData(p => ({ ...p, description: e.target.value }))}
+                                rows={6}
+                                className="w-full px-8 py-5 bg-gray-50 border border-transparent focus:border-black focus:bg-white rounded-[1.5rem] transition-all outline-none font-bold text-gray-500 leading-relaxed"
+                             />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">{isRTL ? 'سعر البيع' : 'Sale Price'}</label>
+                                <div className="relative">
+                                    <input
+                                        type="number"
+                                        value={formData.price}
+                                        onChange={(e) => setFormData(p => ({ ...p, price: e.target.value }))}
+                                        className="w-full px-8 py-5 bg-black text-white rounded-[1.5rem] font-black text-2xl tracking-tighter outline-none"
+                                        required
+                                    />
+                                    <span className="absolute right-6 top-1/2 -translate-y-1/2 text-white/30 font-black text-xs">{t.rial}</span>
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">{isRTL ? 'القسم' : 'Category'}</label>
+                                <select
+                                    value={formData.categoryId}
+                                    onChange={(e) => setFormData(p => ({ ...p, categoryId: e.target.value }))}
+                                    className="w-full px-8 py-5 bg-gray-50 border border-transparent focus:border-black hover:bg-gray-100 rounded-[1.5rem] font-black appearance-none cursor-pointer outline-none"
+                                    required
+                                >
+                                    <option value="">{isRTL ? 'اختر القسم' : 'Select'}</option>
+                                    {mockCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="space-y-8">
+                        <div>
+                             <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-4 block">{isRTL ? 'معرض الصور (بريميوم)' : 'Visual Assets'}</label>
+                             <div className="grid grid-cols-3 gap-4">
+                                {formData.images.map((img, idx) => (
+                                    <div key={img.id} className="relative aspect-square rounded-2xl overflow-hidden border-2 border-transparent hover:border-black transition-all group">
+                                        <img src={img.url} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt="" />
+                                        <button
+                                            type="button"
+                                            onClick={() => setFormData(p => ({ ...p, images: p.images.filter((_, i) => i !== idx) }))}
+                                            className="absolute inset-0 bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                        >
+                                            <X className="w-6 h-6" />
+                                        </button>
+                                    </div>
+                                ))}
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        const url = prompt(isRTL ? 'رابط الصورة:' : 'Image URL:');
+                                        if (url) setFormData(p => ({ ...p, images: [...p.images, { id: `img-${Date.now()}`, url, isPrimary: p.images.length === 0 }] }));
+                                    }}
+                                    className="aspect-square flex flex-col items-center justify-center border-2 border-dashed border-gray-200 rounded-2xl hover:border-black hover:bg-gray-50 transition-all text-gray-400 hover:text-black gap-2"
+                                >
+                                    <Plus className="w-6 h-6" />
+                                    <span className="text-[8px] font-black uppercase tracking-widest">{isRTL ? 'إضافة' : 'Add'}</span>
+                                </button>
+                             </div>
+                        </div>
+
+                        <div className="p-8 bg-gray-50 rounded-[2rem] border border-gray-100 flex flex-col items-center gap-6 justify-center">
+                            <p className="text-xs font-bold text-gray-400 text-center max-w-[200px]">{isRTL ? 'بعد المراجعة، اضغط على زر الحفظ أدناه لنشر المنتج.' : 'After review, click the button below to publish.'}</p>
+                            <button
+                                type="submit"
+                                disabled={isSaving}
+                                className="w-full py-5 bg-black text-white rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-gray-800 disabled:opacity-50 shadow-2xl active:scale-95 transition-all flex items-center justify-center gap-3"
+                            >
+                                {isSaving ? <Loader className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}
+                                {isRTL ? 'نشر المنتج الآن' : 'Publish Product'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </form>
       )}
     </div>

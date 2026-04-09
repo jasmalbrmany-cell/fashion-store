@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Search, ShoppingCart, User, Heart, Menu, X, LayoutDashboard, Store, Languages } from 'lucide-react';
+import { Search, ShoppingCart, User, Heart, Menu, X, LayoutDashboard, Store, Languages, Download } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
@@ -10,10 +10,29 @@ const Header: React.FC = () => {
   const location = useLocation();
   const { getItemCount } = useCart();
   const { isAuthenticated, user, logout, isAdmin } = useAuth();
-  const { language, toggleLanguage, t } = useLanguage();
+  const { language, toggleLanguage, t, isRTL } = useLanguage();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+  }, []);
+
+  const handleInstallApp = () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      deferredPrompt.userChoice.then(() => {
+        setDeferredPrompt(null);
+      });
+    }
+  };
 
   const isAdminPage = location.pathname.startsWith('/admin');
   const cartCount = getItemCount();
@@ -38,6 +57,15 @@ const Header: React.FC = () => {
               </a>
             </div>
             <div className="flex items-center gap-3">
+              {deferredPrompt && (
+                <button
+                  onClick={handleInstallApp}
+                  className="hidden sm:flex items-center gap-1.5 px-3 py-1 bg-white text-black font-bold hover:bg-gray-200 rounded-full text-xs transition shadow-md shadow-white/10 animate-bounce"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>{isRTL ? 'تثبيت التطبيق' : 'Install App'}</span>
+                </button>
+              )}
               {/* زر تبديل اللغة */}
               <button
                 onClick={toggleLanguage}
@@ -268,6 +296,14 @@ const Header: React.FC = () => {
                 {t.perfumes}
               </Link>
               <hr className="my-3" />
+              {deferredPrompt && (
+                <button
+                  onClick={() => { handleInstallApp(); setIsMobileMenuOpen(false); }}
+                  className="py-3 px-4 bg-gradient-to-r from-gray-900 to-black text-white hover:from-black hover:to-gray-800 rounded-lg flex items-center gap-3 transition font-bold"
+                >
+                  <Download className="w-5 h-5 animate-bounce" /> {isRTL ? 'تثبيت التطبيق' : 'Install App'}
+                </button>
+              )}
               <Link to="/favorites" className="py-3 px-4 text-gray-700 hover:bg-gray-100 rounded-lg flex items-center gap-3 transition" onClick={() => setIsMobileMenuOpen(false)}>
                 <Heart className="w-5 h-5" /> {t.favorites}
               </Link>

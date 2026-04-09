@@ -159,6 +159,7 @@ export interface SocialLinks {
   twitter?: string;
   tiktok?: string;
   website?: string;
+  email?: string;
 }
 
 // Activity Log Types

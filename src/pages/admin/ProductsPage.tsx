@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Plus,
@@ -10,40 +10,85 @@ import {
   Filter,
   MoreVertical,
   ExternalLink,
-  Copy,
+  Image as ImageIcon,
   Upload,
+  Loader2,
+  AlertCircle,
+  RefreshCw,
+  CheckCircle2
 } from 'lucide-react';
-import { mockProducts, mockCategories } from '@/data/mockData';
-import { Product } from '@/types';
+import { productsService, categoriesService } from '@/services';
+import { Product, Category } from '@/types';
 import { useLanguage } from '@/context/LanguageContext';
 
 const AdminProductsPage: React.FC = () => {
-  const { t, language } = useLanguage();
-  const [products, setProducts] = useState<Product[]>(mockProducts);
+  const { t, language, isRTL } = useLanguage();
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
-  const [showFilters, setShowFilters] = useState(false);
   const [menuOpen, setMenuOpen] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  const showToast = (type: 'success' | 'error', message: string) => {
+    setToast({ type, message });
+    setTimeout(() => setToast(null), 4000);
+  };
+
+  const loadData = async () => {
+    setIsLoading(true);
+    try {
+      const [prods, cats] = await Promise.all([
+        productsService.getAllAdmin(),
+        categoriesService.getAll()
+      ]);
+      setProducts(prods || []);
+      setCategories(cats || []);
+    } catch (err) {
+      console.error('Failed to load data', err);
+      setProducts([]);
+      setCategories([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
 
   const filteredProducts = products.filter(product => {
-    const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase());
+    const nameStr = product.name || '';
+    const matchesSearch = nameStr.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = !selectedCategory || product.categoryId === selectedCategory;
     return matchesSearch && matchesCategory;
   });
 
-  const toggleVisibility = (productId: string) => {
-    setProducts(prev =>
-      prev.map(p =>
-        p.id === productId ? { ...p, isVisible: !p.isVisible } : p
-      )
-    );
+  const toggleVisibility = async (product: Product) => {
+    try {
+        const updated = await productsService.toggleVisibility(product.id);
+        if (updated) {
+            setProducts(prev => prev.map(p => p.id === product.id ? updated : p));
+            showToast('success', updated.isVisible ? (isRTL ? 'المنتج الآن مرئي للجميع' : 'Product is now visible') : (isRTL ? 'تم إخفاء المنتج بنجاح' : 'Product is now hidden'));
+        }
+    } catch (err) {
+        console.error('Failed to toggle visibility', err);
+    }
   };
 
-  const deleteProduct = (productId: string) => {
-    if (confirm(t.confirmDeleteProduct)) {
-      setProducts(prev => prev.filter(p => p.id !== productId));
+  const deleteProduct = async (productId: string) => {
+    if (window.confirm(t.confirmDeleteProduct)) {
+      try {
+        const success = await productsService.delete(productId);
+        if (success) {
+            setProducts(prev => prev.filter(p => p.id !== productId));
+            showToast('success', isRTL ? 'تم حذف المنتج بنجاح' : 'Product deleted successfully');
+        }
+      } catch (err) {
+        console.error('Failed to delete product', err);
+      }
     }
-    setMenuOpen(null);
   };
 
   const formatPrice = (price: number) => {
@@ -51,28 +96,55 @@ const AdminProductsPage: React.FC = () => {
   };
 
   const formatDate = (dateString: string) => {
+    if (!dateString) return '-';
     return new Date(dateString).toLocaleDateString(language === 'ar' ? 'ar-SA' : 'en-US');
   };
 
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
+        <Loader2 className="w-10 h-10 animate-spin text-black" />
+        <p className="font-bold text-gray-400 animate-pulse">{t.loadingProducts}</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 pb-10" dir={isRTL ? 'rtl' : 'ltr'}>
+      {/* Toast */}
+      {toast && (
+        <div className={`fixed top-12 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-3 px-8 py-4 rounded-[1.5rem] shadow-2xl text-white font-black uppercase tracking-widest text-xs animate-in slide-in-from-top-12 ${
+          toast.type === 'success' ? 'bg-black border border-white/10' : 'bg-red-600'
+        }`}>
+          {toast.type === 'success' ? <CheckCircle2 className="w-5 h-5 text-green-500" /> : <AlertCircle className="w-5 h-5 text-white" />}
+          {toast.message}
+        </div>
+      )}
+
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">{t.adminProducts}</h1>
-          <p className="text-gray-500">{products.length} {t.productCount}</p>
+          <h1 className="text-3xl font-black text-gray-900">{t.manageProducts}</h1>
+          <p className="text-gray-500 font-bold">{products.length} {t.availableProducts}</p>
         </div>
         <div className="flex gap-3">
+          <button
+            onClick={loadData}
+            className="p-3 bg-white border border-gray-100 rounded-2xl hover:border-black transition-all"
+            title={t.refresh}
+          >
+            <RefreshCw className={`w-5 h-5 text-gray-500 ${isLoading ? 'animate-spin' : ''}`} />
+          </button>
           <Link
             to="/admin/products/import"
-            className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700"
+            className="flex items-center gap-2 px-6 py-3 bg-white border-2 border-gray-100 rounded-2xl hover:border-black transition-all font-black text-sm"
           >
             <Upload className="w-5 h-5" />
             {t.importFromUrl}
           </Link>
           <Link
             to="/admin/products/add"
-            className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
+            className="flex items-center gap-2 px-6 py-3 bg-black text-white rounded-2xl hover:bg-gray-800 transition-all font-black text-sm shadow-xl shadow-gray-200"
           >
             <Plus className="w-5 h-5" />
             {t.addProduct}
@@ -80,18 +152,18 @@ const AdminProductsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="bg-white rounded-lg shadow-sm p-4">
+      {/* Control Bar */}
+      <div className="bg-white rounded-3xl shadow-sm border p-4 md:p-6 sticky top-20 z-10 backdrop-blur-md bg-white/90">
         <div className="flex flex-col md:flex-row gap-4">
           {/* Search */}
           <div className="flex-1 relative">
-            <Search className="absolute ltr:left-3 rtl:right-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <Search className={`absolute ${isRTL ? 'right-4' : 'left-4'} top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5`} />
             <input
               type="text"
-              placeholder={t.searchProducts}
+              placeholder={t.searchByProductName}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full ltr:pl-10 ltr:pr-4 rtl:pr-10 rtl:pl-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              className={`w-full ${isRTL ? 'pr-12' : 'pl-12'} py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-black focus:bg-white transition-all outline-none font-bold`}
             />
           </div>
 
@@ -99,88 +171,74 @@ const AdminProductsPage: React.FC = () => {
           <select
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+            className="px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-black outline-none font-bold appearance-none min-w-[200px]"
           >
             <option value="">{t.allCategories}</option>
-            {mockCategories.map(category => (
+            {categories.map(category => (
               <option key={category.id} value={category.id}>
                 {category.name}
               </option>
             ))}
           </select>
-
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-          >
-            <Filter className="w-5 h-5" />
-            {t.moreFilters}
-          </button>
         </div>
       </div>
 
-      {/* Products Table */}
-      <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+      {/* Table Interface */}
+      <div className="bg-white rounded-3xl shadow-sm border overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">{t.adminProducts}</th>
-                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">{t.category}</th>
-                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">{t.price}</th>
-                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">{t.stockQuantity}</th>
-                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">{t.dateAdded}</th>
-                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">{t.status}</th>
-                <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">{t.actions}</th>
+            <thead>
+              <tr className="bg-gray-50/50 border-b border-gray-100">
+                <th className="px-6 py-5 text-start text-xs font-black text-gray-400 uppercase tracking-widest">{t.productName}</th>
+                <th className="px-6 py-5 text-start text-xs font-black text-gray-400 uppercase tracking-widest">{t.productCategory}</th>
+                <th className="px-6 py-5 text-start text-xs font-black text-gray-400 uppercase tracking-widest">{t.productPrice}</th>
+                <th className="px-6 py-5 text-start text-xs font-black text-gray-400 uppercase tracking-widest">{t.stockLabel}</th>
+                <th className="px-6 py-5 text-start text-xs font-black text-gray-400 uppercase tracking-widest">{t.visibilityStatus}</th>
+                <th className="px-6 py-5 text-center text-xs font-black text-gray-400 uppercase tracking-widest">{t.actions}</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
+            <tbody className="divide-y divide-gray-100">
               {filteredProducts.map((product) => {
-                const category = mockCategories.find(c => c.id === product.categoryId);
+                const category = categories.find(c => c.id === product.categoryId);
                 return (
-                  <tr key={product.id} className="hover:bg-gray-50">
+                  <tr key={product.id} className="hover:bg-gray-50/50 transition-colors">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-4">
-                        <img
-                          src={product.images[0]?.url}
-                          alt={product.name}
-                          className="w-16 h-16 object-cover rounded-lg"
-                        />
-                        <div>
-                          <p className="font-medium text-gray-900">{product.name}</p>
-                          {product.sourceUrl && (
-                            <a
-                              href={product.sourceUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-xs text-blue-600 hover:underline flex items-center gap-1"
-                            >
-                              <ExternalLink className="w-3 h-3" />
-                              {t.source}
-                            </a>
+                        <div className="w-16 h-16 rounded-xl overflow-hidden border border-gray-100 shadow-sm flex-shrink-0 bg-gray-50">
+                          {product.images?.[0]?.url ? (
+                              <img
+                                src={product.images[0].url}
+                                alt={product.name}
+                                className="w-full h-full object-cover"
+                              />
+                          ) : (
+                              <div className="w-full h-full flex items-center justify-center text-gray-300">
+                                <ImageIcon className="w-6 h-6" />
+                              </div>
                           )}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-black text-gray-900 truncate max-w-[200px]">{product.name}</p>
+                          <p className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter">{t.addedAt} {formatDate(product.createdAt)}</p>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-600">
-                      {category?.name}
-                    </td>
-                    <td className="px-6 py-4 text-sm font-medium text-gray-900">
-                      {formatPrice(product.price)} {t.rial}
+                    <td className="px-6 py-4">
+                      <span className="text-sm font-bold text-gray-600 px-3 py-1 bg-gray-100 rounded-lg">{category?.name || '-'}</span>
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`text-sm ${
+                      <span className="font-black text-black">{formatPrice(product.price)} {t.rial}</span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`text-sm font-black ${
                         product.stock > 10 ? 'text-green-600' :
                         product.stock > 0 ? 'text-orange-600' : 'text-red-600'
                       }`}>
-                        {product.stock} {t.units}
+                        {product.stock} {t.stockUnits}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-500">
-                      {formatDate(product.createdAt)}
-                    </td>
                     <td className="px-6 py-4">
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                      <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
                         product.isVisible
                           ? 'bg-green-100 text-green-700'
                           : 'bg-gray-100 text-gray-600'
@@ -189,62 +247,28 @@ const AdminProductsPage: React.FC = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="relative">
-                        <button
-                          onClick={() => setMenuOpen(menuOpen === product.id ? null : product.id)}
-                          className="p-2 hover:bg-gray-100 rounded-lg"
+                      <div className="flex justify-center gap-2">
+                         <Link
+                          to={`/admin/products/edit/${product.id}`}
+                          className="p-2 hover:bg-black hover:text-white rounded-xl transition-all border border-gray-100"
+                          title={t.edit}
                         >
-                          <MoreVertical className="w-5 h-5 text-gray-500" />
+                          <Edit className="w-4 h-4" />
+                        </Link>
+                        <button
+                          onClick={() => toggleVisibility(product)}
+                          className={`p-2 rounded-xl transition-all border border-gray-100 ${product.isVisible ? 'hover:bg-orange-50 text-gray-400 hover:text-orange-600' : 'hover:bg-green-50 text-gray-400 hover:text-green-600'}`}
+                          title={product.isVisible ? t.hidden : t.visible}
+                        >
+                          {product.isVisible ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                         </button>
-
-                        {menuOpen === product.id && (
-                          <>
-                            <div
-                              className="fixed inset-0 z-10"
-                              onClick={() => setMenuOpen(null)}
-                            />
-                            <div className="absolute ltr:right-0 rtl:left-0 mt-2 w-48 bg-white rounded-lg shadow-lg border z-20">
-                              <Link
-                                to={`/admin/products/edit/${product.id}`}
-                                className="flex items-center gap-2 px-4 py-2 hover:bg-gray-100 text-gray-700"
-                              >
-                                <Edit className="w-4 h-4" />
-                                {t.edit}
-                              </Link>
-                              <button
-                                onClick={() => toggleVisibility(product.id)}
-                                className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-100 text-gray-700"
-                              >
-                                {product.isVisible ? (
-                                  <>
-                                    <EyeOff className="w-4 h-4" />
-                                    {t.hidden}
-                                  </>
-                                ) : (
-                                  <>
-                                    <Eye className="w-4 h-4" />
-                                    {t.show}
-                                  </>
-                                )}
-                              </button>
-                              <Link
-                                to={`/product/${product.id}`}
-                                target="_blank"
-                                className="flex items-center gap-2 px-4 py-2 hover:bg-gray-100 text-gray-700"
-                              >
-                                <ExternalLink className="w-4 h-4" />
-                                {t.viewProduct}
-                              </Link>
-                              <button
-                                onClick={() => deleteProduct(product.id)}
-                                className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-100 text-red-600"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                                {t.delete}
-                              </button>
-                            </div>
-                          </>
-                        )}
+                        <button
+                          onClick={() => deleteProduct(product.id)}
+                          className="p-2 hover:bg-red-50 text-gray-400 hover:text-red-600 rounded-xl transition-all border border-gray-100"
+                          title={t.delete}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -255,8 +279,11 @@ const AdminProductsPage: React.FC = () => {
         </div>
 
         {filteredProducts.length === 0 && (
-          <div className="p-12 text-center">
-            <p className="text-gray-500">{t.noProducts}</p>
+          <div className="p-20 text-center space-y-4">
+            <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto">
+              <AlertCircle className="w-10 h-10 text-gray-300" />
+            </div>
+            <p className="text-gray-400 font-bold">{isRTL ? 'لا توجد منتجات تطابق بحثك' : 'No products found matching your criteria'}</p>
           </div>
         )}
       </div>
