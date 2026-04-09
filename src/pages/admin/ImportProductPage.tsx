@@ -61,18 +61,10 @@ const ImportProductPage: React.FC = () => {
     const urlLower = url.toLowerCase();
     
     // Improved detection for Home Pages vs Product Pages
-    const homePatterns = [
-        'shein.com/?', 'shein.com/ar/?', 'shein.com/ar', 'shein.com/en', 
-        'zahraah.com/ar', 'zahraah.com/en', 'aliexpress.com', 'amazon.com'
-    ];
-    
-    const hasProductIdentifier = urlLower.includes('/products/') || 
-                                  urlLower.includes('/p-') || 
-                                  urlLower.includes('/item/') || 
-                                  urlLower.includes('/dp/') || 
-                                  urlLower.includes('/product/');
-
-    const isHomePage = homePatterns.some(p => urlLower.includes(p)) && !hasProductIdentifier;
+    const isHomePage = (
+      (urlLower.match(/zahraah\.com\/(ar|en)\/?$/) || urlLower.match(/shein\.com\/(ar)?\/?$/)) &&
+      !urlLower.includes('/products/') && !urlLower.includes('/product/') && !urlLower.includes('/p-') && !urlLower.includes('/item/')
+    );
     
     if (isHomePage) {
       setError(isRTL 
@@ -86,22 +78,82 @@ const ImportProductPage: React.FC = () => {
     setSuccess('');
 
     try {
-      // --- NEW POWERFUL MEDIATOR APPROACH ---
-      const { data: result, error: fetchError } = await supabase.functions.invoke('scrape-product', {
-        body: { url }
-      });
-
-      if (fetchError || !result?.success) {
-        throw new Error(fetchError?.message || 'Failed to fetch via powerful mediator');
+      // Strategy 1: Use our Vercel API route
+      let scraped: any = null;
+      
+      try {
+        const apiRes = await fetch('/api/scrape', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url }),
+        });
+        const apiResult = await apiRes.json();
+        if (apiResult.success && apiResult.data?.title) {
+          scraped = apiResult.data;
+        }
+      } catch (apiErr) {
+        console.warn('API route failed, trying client-side fallback...', apiErr);
       }
-      
-      const scraped = result.data;
-      
+
+      // Strategy 2: Client-side CORS proxy fallback
+      if (!scraped || !scraped.title) {
+        try {
+          const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+          const proxyRes = await fetch(proxyUrl, { signal: AbortSignal.timeout(12000) });
+          const html = await proxyRes.text();
+          
+          // Parse JSON-LD
+          const jsonLdMatch = html.match(/<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/i);
+          if (jsonLdMatch) {
+            try {
+              const jsonData = JSON.parse(jsonLdMatch[1]);
+              const product = Array.isArray(jsonData) ? jsonData.find((d: any) => d['@type'] === 'Product') : (jsonData['@type'] === 'Product' ? jsonData : null);
+              if (product) {
+                scraped = {
+                  title: product.name || '',
+                  description: product.description || '',
+                  price: parseFloat(product.offers?.price || product.offers?.lowPrice || '0'),
+                  images: (Array.isArray(product.image) ? product.image : product.image ? [product.image] : []),
+                  currency: product.offers?.priceCurrency || 'YER',
+                };
+              }
+            } catch (e) {}
+          }
+          
+          // Fallback to OG tags
+          if (!scraped || !scraped.title) {
+            const ogTitle = html.match(/property=["']og:title["'][^>]*content=["']([^"']+)["']/i)?.[1] ||
+                            html.match(/content=["']([^"']+)["'][^>]*property=["']og:title["']/i)?.[1] || '';
+            const ogImage = html.match(/property=["']og:image["'][^>]*content=["']([^"']+)["']/i)?.[1] ||
+                            html.match(/content=["']([^"']+)["'][^>]*property=["']og:image["']/i)?.[1] || '';
+            const ogDesc = html.match(/property=["']og:description["'][^>]*content=["']([^"']+)["']/i)?.[1] || '';
+            const priceMatch = html.match(/["']price["']\s*:\s*["']?(\d+[\.,]?\d*)["']?/i);
+
+            if (ogTitle || ogImage) {
+              scraped = {
+                title: ogTitle || html.match(/<title>([^<]+)<\/title>/i)?.[1] || '',
+                description: ogDesc || '',
+                price: priceMatch ? parseFloat(priceMatch[1]) : 0,
+                images: ogImage ? [ogImage] : [],
+                currency: 'YER',
+              };
+            }
+          }
+        } catch (proxyErr) {
+          console.warn('Client-side proxy also failed', proxyErr);
+        }
+      }
+
+      // If still no data, show empty form for manual entry
+      if (!scraped) {
+        scraped = { title: '', description: '', price: 0, images: [], currency: 'YER' };
+      }
+
       const productInfo: ImportedProduct = {
         name: scraped.title || '',
         description: scraped.description || (isRTL ? 'منتج حصري ومميز.' : 'Exclusive premium product.'),
-        price: scraped.price || 45000,
-        currency: 'YER',
+        price: scraped.price || 0,
+        currency: scraped.currency || 'YER',
         images: scraped.images || [],
         sizes: [{ name: 'S' }, { name: 'M' }, { name: 'L' }, { name: 'XL' }],
         colors: [{ name: isRTL ? 'أسود' : 'Black', hex: '#1F2937' }],
@@ -112,13 +164,13 @@ const ImportProductPage: React.FC = () => {
       setFormData({
         name: productInfo.name,
         description: productInfo.description,
-        price: productInfo.price.toString(),
+        price: productInfo.price > 0 ? productInfo.price.toString() : '',
         categoryId: '',
         images: productInfo.images.length > 0 ? productInfo.images.map((img, i) => ({
           id: `img-${Date.now()}-${i}`,
           url: img,
           isPrimary: i === 0
-        })) : [{ id: 'img-def', url: 'https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=800', isPrimary: true }],
+        })) : [],
         sizes: productInfo.sizes.map((s, i) => ({
           id: `size-${i}`,
           name: s.name,
@@ -134,16 +186,21 @@ const ImportProductPage: React.FC = () => {
         isVisible: true,
       });
       
-      setSuccess(isRTL ? 'رائع! تم استخلاص البيانات عبر الوسيط القوي بنجاح.' : 'Great! Data extracted via powerful mediator successfully.');
+      if (productInfo.name) {
+        setSuccess(isRTL ? 'رائع! تم استخلاص بيانات المنتج بنجاح. راجع البيانات وأكمل الحفظ.' : 'Great! Product data extracted successfully. Review and save.');
+      } else {
+        setError(isRTL 
+          ? 'هذا الموقع يستخدم حماية ضد الاستخراج التلقائي. تم فتح نموذج الإضافة اليدوياً - أدخل البيانات بنفسك بسهولة.' 
+          : 'This site uses anti-scraping protection. Manual form opened - enter the data yourself easily.');
+      }
     } catch (err: any) {
       console.error('Fetch error:', err);
-      // Fallback: If mediator fails (e.g. not deployed), some basic parsing might still be possible or just show form
       setImportedProduct({
         name: '', description: '', price: 0, currency: 'YER', images: [], sizes: [], colors: [], sourceUrl: url
       });
       setError(isRTL 
-        ? 'الوسيط واجه صعوبة في جلب البيانات التلقائية لهذا الرابط تحديداً. يمكنك إكمال الإضافة يدوياً بكل سهولة.' 
-        : 'The mediator had difficulty auto-fetching data for this specific link. You can easily complete the addition manually.');
+        ? 'حدث خطأ أثناء جلب البيانات. تم فتح نموذج الإضافة اليدوية لتتمكن من إكمال الإضافة بسهولة.' 
+        : 'Error fetching data. Manual entry form opened for you to complete easily.');
     } finally {
       setIsLoading(false);
     }
