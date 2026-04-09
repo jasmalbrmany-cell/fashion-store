@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Search, ShoppingCart, User, Heart, Menu, X, LayoutDashboard, Store, Languages, Download } from 'lucide-react';
+import { Search, ShoppingCart, User, Heart, Menu, X, LayoutDashboard, Store, Languages, Download, Moon, Sun } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
+import { useTheme } from '@/context/ThemeContext';
 
 const Header: React.FC = () => {
   const navigate = useNavigate();
@@ -11,6 +12,7 @@ const Header: React.FC = () => {
   const { getItemCount } = useCart();
   const { isAuthenticated, user, logout, isAdmin } = useAuth();
   const { language, toggleLanguage, t, isRTL } = useLanguage();
+  const { toggleTheme, isDark } = useTheme();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
@@ -66,6 +68,14 @@ const Header: React.FC = () => {
                   <span>{isRTL ? 'تثبيت التطبيق' : 'Install App'}</span>
                 </button>
               )}
+              {/* زر التبديل بين الوضع المظلم والفاتح */}
+              <button
+                onClick={toggleTheme}
+                className="flex items-center gap-1.5 px-2.5 py-1 bg-white/10 hover:bg-white/20 rounded-lg text-sm transition"
+                title={isDark ? 'Switch to Light Mode' : 'الوضع المظلم'}
+              >
+                {isDark ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
+              </button>
               {/* زر تبديل اللغة */}
               <button
                 onClick={toggleLanguage}

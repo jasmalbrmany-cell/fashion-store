@@ -5,25 +5,31 @@ import {
   DollarSign, ArrowUp, UserPlus, Activity, RefreshCw,
   ShoppingBag, Eye, Loader2, ArrowRight
 } from 'lucide-react';
-import { statisticsService } from '@/services/api';
-import { Statistics } from '@/types';
+import { statisticsService, productsService } from '@/services/api';
+import { Statistics, Product } from '@/types';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { Skeleton, CardSkeleton, TableSkeleton } from '@/components/Common/Skeleton';
 import { SalesChart, CategoryChart } from '@/components/Admin/DashboardCharts';
+import { LowStockAlerts } from '@/components/Admin/LowStockAlerts';
 
 const DashboardPage: React.FC = () => {
   const { user } = useAuth();
   const { t, isRTL, language } = useLanguage();
   const [stats, setStats] = useState<Statistics | null>(null);
+  const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
 
   const fetchStats = async () => {
     setIsLoading(true);
     try {
-      const data = await statisticsService.get();
-      setStats(data);
+      const [statsData, productsData] = await Promise.all([
+        statisticsService.get(),
+        productsService.getAllAdmin()
+      ]);
+      setStats(statsData);
+      setProducts(productsData || []);
       setLastUpdated(new Date());
     } catch (err) {
       console.error('Failed to fetch dashboard stats:', err);
@@ -110,6 +116,9 @@ const DashboardPage: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* Inventory Alerts */}
+      <LowStockAlerts products={products} isLoading={isLoading} />
 
       {/* Modern Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
