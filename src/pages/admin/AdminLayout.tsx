@@ -37,7 +37,8 @@ const AdminLayout: React.FC = () => {
     { path: '/admin/activity', icon: <Activity className="w-5 h-5" />, label: t.adminActivity, show: isAdmin || permissions.can_view_reports },
     { path: '/admin/settings', icon: <Settings className="w-5 h-5" />, label: t.adminSettings, show: canManageUsers },
     { path: '/admin/products/bulk', icon: <ShoppingCart className="w-5 h-5" />, label: t.bulkImport, show: canManageProducts },
-  ].filter(item => item.show !== false), [t, canManageProducts, canManageOrders, canManageUsers, canManageAds, isAdmin, permissions]);
+    { path: '/admin/products/store', icon: <Globe className="w-5 h-5" />, label: isRTL ? 'استيراد متجر كامل' : 'Store Import', show: canManageProducts },
+  ].filter(item => item.show !== false), [t, isRTL, canManageProducts, canManageOrders, canManageUsers, canManageAds, isAdmin, permissions]);
 
   useEffect(() => {
     if (!isLoading) {
