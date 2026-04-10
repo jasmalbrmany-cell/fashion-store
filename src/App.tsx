@@ -18,6 +18,7 @@ const RegisterPage = lazy(() => import('@/pages/RegisterPage'));
 const OrderSuccessPage = lazy(() => import('@/pages/OrderSuccessPage'));
 const TrackOrderPage = lazy(() => import('@/pages/TrackOrderPage'));
 const MyOrdersPage = lazy(() => import('@/pages/MyOrdersPage'));
+const ProfilePage = lazy(() => import('@/pages/ProfilePage'));
 
 // Admin Pages (Loaded only when needed)
 const AdminLayout = lazy(() => import('@/pages/admin/AdminLayout'));
@@ -60,6 +61,7 @@ function App() {
                     <Route path="order-success" element={<OrderSuccessPage />} />
                     <Route path="track-order" element={<TrackOrderPage />} />
                     <Route path="my-orders" element={<MyOrdersPage />} />
+                    <Route path="profile" element={<ProfilePage />} />
                     <Route path="login" element={<LoginPage />} />
                     <Route path="register" element={<RegisterPage />} />
                   </Route>
@@ -80,6 +82,7 @@ function App() {
                     <Route path="ads" element={<AdsPage />} />
                     <Route path="cities" element={<CitiesPage />} />
                     <Route path="currencies" element={<CurrenciesPage />} />
+                    <Route path="profile" element={<ProfilePage />} />
                   </Route>
 
                   <Route path="*" element={<Navigate to="/" replace />} />

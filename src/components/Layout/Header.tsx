@@ -241,6 +241,9 @@ const Header: React.FC = () => {
                       <Link to="/my-orders" className="block px-4 py-2.5 hover:bg-gray-100 transition" onClick={() => setIsUserMenuOpen(false)}>
                         {t.myOrders}
                       </Link>
+                      <Link to="/profile" className="block px-4 py-2.5 hover:bg-gray-100 transition" onClick={() => setIsUserMenuOpen(false)}>
+                        {isRTL ? 'الملف الشخصي' : 'My Profile'}
+                      </Link>
                       {(user?.role === 'admin' || user?.role === 'editor' || user?.role === 'viewer') && (
                         <Link to="/admin" className="block px-4 py-2.5 hover:bg-gray-100 transition" onClick={() => setIsUserMenuOpen(false)}>
                           {t.dashboard}
