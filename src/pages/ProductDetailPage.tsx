@@ -5,6 +5,7 @@ import { useCart } from '@/context/CartContext';
 import { productsService, categoriesService } from '@/services/api';
 import { Product, ProductSize, ProductColor, Category } from '@/types';
 import { useLanguage, categoryNames } from '@/context/LanguageContext';
+import { ProductCard } from '@/components/Product';
 
 const ProductDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -21,6 +22,10 @@ const ProductDetailPage: React.FC = () => {
   const [quantity, setQuantity] = useState(1);
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [activeTab, setActiveTab] = useState<'description' | 'details'>('description');
+  const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
+  
+  // Custom zoom state
+  const [zoomPos, setZoomPos] = useState({ x: 50, y: 50 });
 
   useEffect(() => {
     const fetchData = async () => {
@@ -37,9 +42,17 @@ const ProductDetailPage: React.FC = () => {
             setSelectedColor(foundProduct.colors[0]);
           }
           
+          
           if (foundProduct.categoryId) {
             const cat = await categoriesService.getById(foundProduct.categoryId);
             setCategory(cat);
+            
+            // Fetch related products
+            const allStoreProds = await productsService.getAll();
+            const related = allStoreProds
+              .filter(p => p.categoryId === foundProduct.categoryId && p.id !== foundProduct.id && p.isVisible)
+              .slice(0, 4);
+            setRelatedProducts(related);
           }
         }
       } catch (error) {
@@ -152,11 +165,20 @@ const ProductDetailPage: React.FC = () => {
           <div className="grid lg:grid-cols-2 gap-0">
             {/* Image Gallery */}
             <div className="flex flex-col">
-              <div className="relative aspect-square bg-gray-100">
+              <div 
+                className="relative aspect-square bg-gray-100 overflow-hidden group cursor-zoom-in"
+                onMouseMove={(e) => {
+                  const { left, top, width, height } = e.currentTarget.getBoundingClientRect();
+                  const x = ((e.clientX - left) / width) * 100;
+                  const y = ((e.clientY - top) / height) * 100;
+                  setZoomPos({ x, y });
+                }}
+              >
                 <img
                   src={product.images[selectedImage]?.url}
                   alt={product.name}
-                  className="w-full h-full object-cover transition-all duration-500"
+                  className="w-full h-full object-cover transition-transform duration-200 ease-out group-hover:scale-[1.7]"
+                  style={{ transformOrigin: `${zoomPos.x}% ${zoomPos.y}%` }}
                 />
                 {product.sourceUrl && (
                   <span className={`absolute top-4 ${isRTL ? 'right-4' : 'left-4'} bg-black text-white text-[10px] font-bold px-4 py-1.5 rounded-full uppercase tracking-widest`}>
@@ -378,6 +400,22 @@ const ProductDetailPage: React.FC = () => {
             </div>
           </div>
         </div>
+
+        {/* Related Products Section */}
+        {relatedProducts.length > 0 && (
+          <div className="mt-16">
+            <h2 className="text-2xl font-black text-gray-900 mb-8 flex items-center gap-3">
+               <div className="w-8 h-1 bg-black rounded-full block"></div>
+               {isRTL ? 'قد يعجبك أيضاً' : 'You might also like'}
+            </h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+              {relatedProducts.map(prod => (
+                <ProductCard key={prod.id} product={prod} />
+              ))}
+            </div>
+          </div>
+        )}
+
       </div>
     </div>
   );

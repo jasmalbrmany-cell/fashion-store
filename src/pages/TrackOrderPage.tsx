@@ -120,70 +120,92 @@ const TrackOrderPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Timeline */}
-              <div className="p-6 border-b">
-                <h3 className="font-bold text-gray-900 mb-6">{t.orderTracking}</h3>
-                <div className="space-y-6 relative">
-                  {/* Progress Line */}
-                  <div className={`absolute top-0 ${isRTL ? 'right-4' : 'left-4'} w-0.5 bg-gray-100 h-full -z-0`} />
-
-                  <div className="flex items-start gap-4 relative z-10">
-                    <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-white shrink-0 shadow-sm">
-                      <CheckCircle className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <p className="font-bold text-gray-900">{t.orderReceived}</p>
-                      <p className="text-sm text-gray-500">{formatDate(foundOrder.createdAt)}</p>
-                    </div>
+              {/* Visual Progress Stepper */}
+              <div className="p-6 md:p-10 border-b bg-gray-50/30">
+                <h3 className="font-bold text-gray-900 mb-8">{t.orderTracking}</h3>
+                
+                <div className="relative max-w-4xl mx-auto">
+                  {/* Desktop Progress Line */}
+                  <div className="hidden sm:block absolute top-5 left-10 right-10 h-1 bg-gray-100 rounded-full z-0 overflow-hidden">
+                     <div className={`h-full bg-green-500 transition-all duration-1000 ${
+                       foundOrder.status === 'pending' || foundOrder.status === 'waiting_payment' ? 'w-0' :
+                       foundOrder.status === 'paid' || foundOrder.status === 'approved' ? 'w-1/2' :
+                       foundOrder.status === 'completed' ? 'w-full' : 'w-0'
+                     }`} />
                   </div>
+                  
+                  {/* Mobile Progress Line */}
+                  <div className={`sm:hidden absolute top-0 ${isRTL ? 'right-[27px]' : 'left-[27px]'} bottom-0 w-1 bg-gray-100 rounded-full z-0`} />
 
-                  {(foundOrder.status === 'paid' || foundOrder.status === 'approved' || foundOrder.status === 'completed') && (
-                    <div className="flex items-start gap-4 relative z-10">
-                      <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-white shrink-0 shadow-sm">
-                        <CheckCircle className="w-5 h-5" />
+                  <div className="flex flex-col sm:flex-row justify-between gap-8 sm:gap-4 relative z-10">
+                    
+                    {/* Step 1: Placed */}
+                    <div className="flex sm:flex-col items-center gap-4 sm:gap-3 text-left sm:text-center shrink-0">
+                      <div className="w-14 h-14 rounded-full bg-green-500 flex items-center justify-center text-white shadow-xl shadow-green-200 ring-4 ring-white shrink-0">
+                        <CheckCircle className="w-6 h-6" />
                       </div>
-                      <div>
-                        <p className="font-bold text-gray-900">{t.paymentConfirmed}</p>
-                        <p className="text-sm text-gray-500">{formatDate(foundOrder.updatedAt)}</p>
+                      <div className={`flex flex-col sm:items-center ${isRTL ? 'sm:text-center text-right' : 'sm:text-center text-left'}`}>
+                        <p className="font-bold text-gray-900">{t.orderReceived}</p>
+                        <p className="text-xs font-semibold text-gray-500 mt-0.5">{formatDate(foundOrder.createdAt)}</p>
                       </div>
                     </div>
-                  )}
 
-                  {foundOrder.status === 'completed' && (
-                    <div className="flex items-start gap-4 relative z-10">
-                      <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-white shrink-0 shadow-sm">
-                        <Package className="w-5 h-5" />
+                    {/* Step 2: Processing / Paid */}
+                    <div className={`flex sm:flex-col items-center gap-4 sm:gap-3 shrink-0 ${foundOrder.status === 'cancelled' ? 'opacity-20' : ''}`}>
+                      <div className={`w-14 h-14 rounded-full flex items-center justify-center ring-4 ring-white shadow-md shrink-0 transition-all duration-500 ${
+                        foundOrder.status === 'pending' || foundOrder.status === 'waiting_payment' 
+                        ? 'bg-white border-2 border-dashed border-gray-300 text-gray-400' 
+                        : 'bg-green-500 text-white shadow-green-200 shadow-xl'
+                      }`}>
+                        {foundOrder.status === 'pending' || foundOrder.status === 'waiting_payment' ? <Clock className="w-6 h-6 animate-pulse" /> : <CheckCircle className="w-6 h-6" />}
                       </div>
-                      <div>
-                        <p className="font-bold text-gray-900">{t.orderDelivered}</p>
-                        <p className="text-sm text-gray-500">{formatDate(foundOrder.updatedAt)}</p>
+                      <div className={`flex flex-col sm:items-center ${isRTL ? 'sm:text-center text-right' : 'sm:text-center text-left'}`}>
+                        <p className={`font-bold ${foundOrder.status === 'pending' || foundOrder.status === 'waiting_payment' ? 'text-gray-400' : 'text-gray-900'}`}>
+                          {t.paymentConfirmed}
+                        </p>
+                        {(foundOrder.status === 'paid' || foundOrder.status === 'approved' || foundOrder.status === 'completed') && (
+                          <p className="text-xs font-semibold text-gray-500 mt-0.5">{formatDate(foundOrder.updatedAt)}</p>
+                        )}
+                        {(foundOrder.status === 'pending' || foundOrder.status === 'waiting_payment') && (
+                          <p className="text-xs font-semibold text-gray-400 mt-0.5">{language === 'ar' ? 'جارٍ المعالجة' : 'Processing'}</p>
+                        )}
                       </div>
                     </div>
-                  )}
 
-                  {foundOrder.status === 'cancelled' && (
-                    <div className="flex items-start gap-4 relative z-10">
-                      <div className="w-8 h-8 rounded-full bg-red-500 flex items-center justify-center text-white shrink-0 shadow-sm">
-                        <XCircle className="w-5 h-5" />
+                    {/* Step 3: Delivered */}
+                    {foundOrder.status !== 'cancelled' ? (
+                      <div className="flex sm:flex-col items-center gap-4 sm:gap-3 shrink-0">
+                        <div className={`w-14 h-14 rounded-full flex items-center justify-center ring-4 ring-white shadow-md shrink-0 transition-all duration-500 ${
+                          foundOrder.status === 'completed' 
+                          ? 'bg-black text-white shadow-2xl shadow-black/40 scale-110' 
+                          : 'bg-white border-2 border-dashed border-gray-300 text-gray-300'
+                        }`}>
+                          <Package className="w-6 h-6" />
+                        </div>
+                        <div className={`flex flex-col sm:items-center ${isRTL ? 'sm:text-center text-right' : 'sm:text-center text-left'}`}>
+                          <p className={`font-bold ${foundOrder.status === 'completed' ? 'text-black text-lg' : 'text-gray-400'}`}>
+                            {t.orderDelivered}
+                          </p>
+                          {foundOrder.status === 'completed' && (
+                            <p className="text-xs font-semibold text-green-500 mt-0.5">{formatDate(foundOrder.updatedAt)}</p>
+                          )}
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-bold text-gray-900">{t.orderCancelled}</p>
-                        <p className="text-sm text-gray-500">{formatDate(foundOrder.updatedAt)}</p>
+                    ) : (
+                      <div className="flex sm:flex-col items-center gap-4 sm:gap-3 shrink-0">
+                        <div className="w-14 h-14 rounded-full bg-red-500 text-white flex items-center justify-center ring-4 ring-white shadow-xl shadow-red-200 shrink-0">
+                          <XCircle className="w-6 h-6" />
+                        </div>
+                        <div className={`flex flex-col sm:items-center ${isRTL ? 'sm:text-center text-right' : 'sm:text-center text-left'}`}>
+                          <p className="font-bold text-red-600">
+                            {t.orderCancelled}
+                          </p>
+                          <p className="text-xs font-semibold text-gray-500 mt-0.5">{formatDate(foundOrder.updatedAt)}</p>
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
 
-                  {(foundOrder.status === 'pending' || foundOrder.status === 'waiting_payment') && (
-                    <div className="flex items-start gap-4 opacity-60 relative z-10">
-                      <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 shrink-0">
-                        <Clock className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <p className="font-bold text-gray-500">{t.statusPending}</p>
-                        <p className="text-sm text-gray-400">{language === 'ar' ? 'جارٍ المعالجة...' : 'Processing...'}</p>
-                      </div>
-                    </div>
-                  )}
+                  </div>
                 </div>
               </div>
 
