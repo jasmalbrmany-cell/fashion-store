@@ -1330,7 +1330,7 @@ export const adsService = {
 
     if (error) {
       console.error('Error creating ad:', error);
-      return null;
+      throw new Error(error.message);
     }
 
     return transformAd(data);
@@ -1366,7 +1366,7 @@ export const adsService = {
 
     if (error) {
       console.error('Error updating ad:', error);
-      return null;
+      throw new Error(error.message);
     }
 
     return transformAd(data);

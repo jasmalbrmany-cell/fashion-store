@@ -100,9 +100,9 @@ const AdsPage: React.FC = () => {
       await fetchAds();
       handleCloseModal();
       showToast('success', editingAd ? t.adUpdated : t.adAdded);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to save ad:', err);
-      showToast('error', t.adSaveError);
+      showToast('error', err?.message || t.adSaveError);
     } finally {
       setIsSubmitting(false);
     }
