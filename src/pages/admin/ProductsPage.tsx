@@ -16,7 +16,10 @@ import {
   AlertCircle,
   RefreshCw,
   CheckCircle2,
-  X
+  X,
+  Percent,
+  TrendingDown,
+  TrendingUp
 } from 'lucide-react';
 import { productsService, categoriesService, hasValidCache, getCachedSync } from '@/services/api';
 import { Product, Category } from '@/types';
@@ -34,6 +37,11 @@ const AdminProductsPage: React.FC = () => {
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isBulkLoading, setIsBulkLoading] = useState(false);
+  
+  // Pricing Modal States
+  const [isPricingModalOpen, setIsPricingModalOpen] = useState(false);
+  const [pricingAction, setPricingAction] = useState<'discount' | 'increase'>('discount');
+  const [pricingPercentage, setPricingPercentage] = useState<string>('');
 
   const showToast = (type: 'success' | 'error', message: string) => {
     setToast({ type, message });
@@ -107,6 +115,54 @@ const AdminProductsPage: React.FC = () => {
       } finally {
         setIsBulkLoading(false);
       }
+    }
+  };
+
+  const applyBulkPricing = async () => {
+    const percentage = Number(pricingPercentage);
+    if (selectedIds.length === 0 || isNaN(percentage) || percentage <= 0) return;
+    
+    setIsPricingModalOpen(false);
+    setIsBulkLoading(true);
+    
+    try {
+      const updates = selectedIds.map(id => {
+        const product = products.find(p => p.id === id);
+        if (!product) return null;
+        
+        const multiplier = pricingAction === 'discount' 
+          ? (1 - percentage / 100) 
+          : (1 + percentage / 100);
+        
+        const newPrice = Math.round(product.price * multiplier);
+        
+        const updateData: Partial<Product> = { price: newPrice };
+        // If discount, store the original price in compareAtPrice so it shows the <s>crossed out price</s>
+        if (pricingAction === 'discount') {
+          updateData.compareAtPrice = product.price;
+        } else {
+          updateData.compareAtPrice = 0; // Reset existing discount if increasing price
+        }
+        
+        return { id, updateData, newPrice };
+      }).filter(Boolean);
+
+      await Promise.all(updates.map(u => productsService.update(u!.id, u!.updateData)));
+      
+      setProducts(prev => prev.map(p => {
+         const up = updates.find(u => u!.id === p.id);
+         if (up) return { ...p, ...up!.updateData };
+         return p;
+      }));
+      
+      showToast('success', isRTL ? `تم تحديث تخفيضات/أسعار ${selectedIds.length} منتج بنجاح!` : `Updated prices for ${selectedIds.length} products!`);
+      setSelectedIds([]);
+      setPricingPercentage('');
+    } catch (err) {
+      console.error(err);
+      showToast('error', t.errorBulkUpdate || (isRTL ? 'خطأ أثناء تحديث الأسعار' : 'Error updating prices'));
+    } finally {
+      setIsBulkLoading(false);
     }
   };
 
@@ -256,6 +312,14 @@ const AdminProductsPage: React.FC = () => {
             >
               <Eye className="w-5 h-5" />
               <span className="hidden md:inline">{t.show}</span>
+            </button>
+            <button
+              onClick={() => setIsPricingModalOpen(true)}
+              disabled={isBulkLoading}
+              className="flex items-center gap-2 hover:text-blue-400 transition-colors font-black text-sm uppercase tracking-widest disabled:opacity-50"
+            >
+              <Percent className="w-5 h-5" />
+              <span className="hidden md:inline">{isRTL ? 'خصم وتعديل السعر' : 'Pricing'}</span>
             </button>
             <button
               onClick={() => bulkToggleVisibility(false)}
@@ -413,6 +477,87 @@ const AdminProductsPage: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Pricing Modal */}
+      {isPricingModalOpen && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-md p-8 animate-in zoom-in-95">
+             <div className="flex justify-between items-center mb-6">
+                <h3 className="text-2xl font-black text-gray-900 flex items-center gap-3">
+                   <Percent className="w-6 h-6 text-blue-600" />
+                   {isRTL ? 'تعديل الأسعار جماعياً' : 'Bulk Pricing Update'}
+                </h3>
+                <button onClick={() => setIsPricingModalOpen(false)} className="p-2 bg-gray-100 rounded-full hover:bg-gray-200">
+                  <X className="w-5 h-5" />
+                </button>
+             </div>
+             
+             <p className="text-gray-500 font-bold mb-8">
+               {isRTL 
+                ? `سيتم تطبيق هذا التعديل على ${selectedIds.length} منتجات محددة. لا يمكن التراجع عن هذه الخطوة.` 
+                : `This will update prices for ${selectedIds.length} selected products.`}
+             </p>
+
+             <div className="space-y-6">
+                <div>
+                   <label className="text-xs font-black uppercase text-gray-400 tracking-widest mb-3 block">
+                     {isRTL ? 'نوع العملية' : 'Operation Type'}
+                   </label>
+                   <div className="grid grid-cols-2 gap-3">
+                      <button 
+                         type="button"
+                         onClick={() => setPricingAction('discount')}
+                         className={`px-4 py-4 rounded-2xl flex items-center justify-center gap-2 font-black transition-all ${
+                          pricingAction === 'discount' ? 'bg-red-100 border-2 border-red-500 text-red-700' : 'bg-gray-50 border-2 border-transparent text-gray-500 hover:bg-gray-100'
+                         }`}
+                      >
+                         <TrendingDown className="w-4 h-4" />
+                         {isRTL ? 'تخفيض السعر' : 'Discount'}
+                      </button>
+                      <button 
+                         type="button"
+                         onClick={() => setPricingAction('increase')}
+                         className={`px-4 py-4 rounded-2xl flex items-center justify-center gap-2 font-black transition-all ${
+                          pricingAction === 'increase' ? 'bg-green-100 border-2 border-green-500 text-green-700' : 'bg-gray-50 border-2 border-transparent text-gray-500 hover:bg-gray-100'
+                         }`}
+                      >
+                         <TrendingUp className="w-4 h-4" />
+                         {isRTL ? 'زيادة السعر' : 'Increase'}
+                      </button>
+                   </div>
+                </div>
+
+                <div>
+                   <label className="text-xs font-black uppercase text-gray-400 tracking-widest mb-3 block">
+                     {isRTL ? 'النسبة المئوية (%)' : 'Percentage (%)'}
+                   </label>
+                   <div className="relative">
+                     <Percent className={`absolute top-1/2 -translate-y-1/2 ${isRTL ? 'left-4' : 'right-4'} text-gray-400 w-5 h-5`} />
+                     <input 
+                       type="number"
+                       min="1"
+                       max="100"
+                       value={pricingPercentage}
+                       onChange={(e) => setPricingPercentage(e.target.value)}
+                       placeholder={isRTL ? "مثال: 15" : "e.g. 15"}
+                       className="w-full font-black text-2xl py-4 px-6 bg-gray-50 border-2 border-gray-100 rounded-2xl focus:border-blue-500 focus:ring-0 outline-none transition-all"
+                       dir="ltr"
+                     />
+                   </div>
+                </div>
+
+                <button
+                   onClick={applyBulkPricing}
+                   disabled={!pricingPercentage || Number(pricingPercentage) <= 0 || isBulkLoading}
+                   className="w-full mt-4 py-5 bg-black text-white font-black uppercase tracking-widest rounded-2xl hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-xl shadow-gray-200 transition-all"
+                >
+                   {isBulkLoading ? <Loader2 className="w-6 h-6 animate-spin" /> : <CheckCircle2 className="w-6 h-6" />}
+                   {isRTL ? 'تطبيق التعديلات الآن' : 'Apply Changes'}
+                </button>
+             </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
