@@ -8,6 +8,7 @@ export const mockCategories: Category[] = [
   { id: 'cat-4', name: 'إكسسوارات', icon: 'Watch', order: 4 },
   { id: 'cat-5', name: 'حقائب', icon: 'Briefcase', order: 5 },
   { id: 'cat-6', name: 'عطور', icon: 'Flower', order: 6 },
+  { id: 'cat-7', name: 'ملابس أطفال', icon: 'Baby', order: 7 },
 ];
 
 // Products
@@ -56,6 +57,7 @@ export const mockStoreSettings = {
       'cat-1': '967777111111',
       'cat-2': '967777222222',
       'cat-3': '967777333333',
+      'cat-7': '967777777777',
     },
     facebook: 'https://facebook.com/fashionhub',
     instagram: 'https://instagram.com/fashionhub',

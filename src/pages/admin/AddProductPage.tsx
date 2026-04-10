@@ -111,8 +111,16 @@ const AddProductPage: React.FC = () => {
             }
         }
 
-        // Fallback or Demo Mode
-        const localUrl = URL.createObjectURL(file);
+        // Fallback or Demo Mode Data URL to allow persistence
+        const fileToBase64 = (file: File): Promise<string> => {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => resolve(reader.result as string);
+                reader.onerror = error => reject(error);
+            });
+        };
+        const localUrl = await fileToBase64(file);
         uploadedUrls.push({
           id: `img-${Date.now()}-${Math.random()}`,
           url: localUrl,

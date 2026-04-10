@@ -19,6 +19,7 @@ interface Translations {
   accessories: string;
   bags: string;
   perfumes: string;
+  kidsClothes: string;
   myOrders: string;
   logout: string;
 
@@ -488,6 +489,7 @@ const translations: Record<Language, Translations> = {
     accessories: 'إكسسوارات',
     bags: 'حقائب',
     perfumes: 'عطور',
+    kidsClothes: 'ملابس أطفال',
     myOrders: 'طلباتي',
     logout: 'تسجيل الخروج',
 
@@ -939,6 +941,7 @@ const translations: Record<Language, Translations> = {
     accessories: 'Accessories',
     bags: 'Bags',
     perfumes: 'Perfumes',
+    kidsClothes: 'Kids Clothes',
     myOrders: 'My Orders',
     logout: 'Logout',
 
@@ -1384,6 +1387,7 @@ export const categoryNames: Record<string, Record<'ar' | 'en', string>> = {
   'cat-4': { ar: 'إكسسوارات', en: 'Accessories' },
   'cat-5': { ar: 'حقائب', en: 'Bags' },
   'cat-6': { ar: 'عطور', en: 'Perfumes' },
+  'cat-7': { ar: 'ملابس أطفال', en: 'Kids Clothes' },
 };
 
 interface LanguageContextType {

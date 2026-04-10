@@ -5,6 +5,8 @@ import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { useTheme } from '@/context/ThemeContext';
+import { categoriesService, getCachedSync } from '@/services/api';
+import { Category } from '@/types';
 
 const Header: React.FC = () => {
   const navigate = useNavigate();
@@ -17,6 +19,7 @@ const Header: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [categories, setCategories] = useState<Category[]>(getCachedSync<Category[]>('categories_all') || []);
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (e: any) => {
@@ -25,6 +28,12 @@ const Header: React.FC = () => {
     };
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+  }, []);
+
+  useEffect(() => {
+    categoriesService.getAll().then(data => {
+      if (data && data.length > 0) setCategories(data);
+    });
   }, []);
 
   const handleInstallApp = () => {
@@ -229,31 +238,37 @@ const Header: React.FC = () => {
         </form>
       </div>
 
-      {/* Categories Nav - Desktop */}
+      {/* Categories Nav - Desktop - Dynamic */}
       <nav className="hidden lg:block bg-black text-white">
         <div className="container mx-auto px-4">
-          <div className="flex items-center gap-1 py-2 overflow-x-auto">
+          <div className="flex items-center gap-1 py-2 overflow-x-auto scrollbar-none">
             <Link to="/products" className="px-4 py-2 hover:bg-white hover:text-black rounded-lg whitespace-nowrap transition font-medium">
               {t.allProducts}
             </Link>
-            <Link to="/products?category=cat-1" className="px-4 py-2 hover:bg-white hover:text-black rounded-lg whitespace-nowrap transition">
-              {t.womenClothes}
-            </Link>
-            <Link to="/products?category=cat-2" className="px-4 py-2 hover:bg-white hover:text-black rounded-lg whitespace-nowrap transition">
-              {t.menClothes}
-            </Link>
-            <Link to="/products?category=cat-3" className="px-4 py-2 hover:bg-white hover:text-black rounded-lg whitespace-nowrap transition">
-              {t.shoes}
-            </Link>
-            <Link to="/products?category=cat-4" className="px-4 py-2 hover:bg-white hover:text-black rounded-lg whitespace-nowrap transition">
-              {t.accessories}
-            </Link>
-            <Link to="/products?category=cat-5" className="px-4 py-2 hover:bg-white hover:text-black rounded-lg whitespace-nowrap transition">
-              {t.bags}
-            </Link>
-            <Link to="/products?category=cat-6" className="px-4 py-2 hover:bg-white hover:text-black rounded-lg whitespace-nowrap transition">
-              {t.perfumes}
-            </Link>
+            {categories.length > 0
+              ? categories.map(cat => (
+                  <Link
+                    key={cat.id}
+                    to={`/products?category=${cat.id}`}
+                    className="px-4 py-2 hover:bg-white hover:text-black rounded-lg whitespace-nowrap transition"
+                  >
+                    {cat.name}
+                  </Link>
+                ))
+              : [
+                  { id: 'cat-1', label: t.womenClothes },
+                  { id: 'cat-2', label: t.menClothes },
+                  { id: 'cat-3', label: t.shoes },
+                  { id: 'cat-4', label: t.accessories },
+                  { id: 'cat-5', label: t.bags },
+                  { id: 'cat-6', label: t.perfumes },
+                  { id: 'cat-7', label: t.kidsClothes },
+                ].map(c => (
+                  <Link key={c.id} to={`/products?category=${c.id}`} className="px-4 py-2 hover:bg-white hover:text-black rounded-lg whitespace-nowrap transition">
+                    {c.label}
+                  </Link>
+                ))
+            }
           </div>
         </div>
       </nav>
@@ -287,24 +302,31 @@ const Header: React.FC = () => {
               <Link to="/products" className="py-3 px-4 text-gray-800 hover:bg-gray-100 rounded-lg font-medium transition" onClick={() => setIsMobileMenuOpen(false)}>
                 {t.allProducts}
               </Link>
-              <Link to="/products?category=cat-1" className="py-3 px-4 text-gray-700 hover:bg-gray-100 rounded-lg transition" onClick={() => setIsMobileMenuOpen(false)}>
-                {t.womenClothes}
-              </Link>
-              <Link to="/products?category=cat-2" className="py-3 px-4 text-gray-700 hover:bg-gray-100 rounded-lg transition" onClick={() => setIsMobileMenuOpen(false)}>
-                {t.menClothes}
-              </Link>
-              <Link to="/products?category=cat-3" className="py-3 px-4 text-gray-700 hover:bg-gray-100 rounded-lg transition" onClick={() => setIsMobileMenuOpen(false)}>
-                {t.shoes}
-              </Link>
-              <Link to="/products?category=cat-4" className="py-3 px-4 text-gray-700 hover:bg-gray-100 rounded-lg transition" onClick={() => setIsMobileMenuOpen(false)}>
-                {t.accessories}
-              </Link>
-              <Link to="/products?category=cat-5" className="py-3 px-4 text-gray-700 hover:bg-gray-100 rounded-lg transition" onClick={() => setIsMobileMenuOpen(false)}>
-                {t.bags}
-              </Link>
-              <Link to="/products?category=cat-6" className="py-3 px-4 text-gray-700 hover:bg-gray-100 rounded-lg transition" onClick={() => setIsMobileMenuOpen(false)}>
-                {t.perfumes}
-              </Link>
+              {categories.length > 0
+                ? categories.map(cat => (
+                    <Link
+                      key={cat.id}
+                      to={`/products?category=${cat.id}`}
+                      className="py-3 px-4 text-gray-700 hover:bg-gray-100 rounded-lg transition"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      {cat.name}
+                    </Link>
+                  ))
+                : [
+                    { id: 'cat-1', label: t.womenClothes },
+                    { id: 'cat-2', label: t.menClothes },
+                    { id: 'cat-3', label: t.shoes },
+                    { id: 'cat-4', label: t.accessories },
+                    { id: 'cat-5', label: t.bags },
+                    { id: 'cat-6', label: t.perfumes },
+                    { id: 'cat-7', label: t.kidsClothes },
+                  ].map(c => (
+                    <Link key={c.id} to={`/products?category=${c.id}`} className="py-3 px-4 text-gray-700 hover:bg-gray-100 rounded-lg transition" onClick={() => setIsMobileMenuOpen(false)}>
+                      {c.label}
+                    </Link>
+                  ))
+              }
               <hr className="my-3" />
               {deferredPrompt && (
                 <button
