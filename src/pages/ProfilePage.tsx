@@ -26,9 +26,9 @@ const ProfilePage: React.FC = () => {
     if (isSupabaseConfigured()) {
       try {
         // 1. Update Profile info in DB
-        const { error: profileError } = await supabase
+        const { error: profileError } = await (supabase as any)
           .from('profiles')
-          .update({ name, phone })
+          .update({ name, phone: phone || null })
           .eq('id', user.id);
 
         if (profileError) throw profileError;
