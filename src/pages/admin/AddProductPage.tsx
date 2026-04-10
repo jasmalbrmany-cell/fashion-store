@@ -73,69 +73,78 @@ const AddProductPage: React.FC = () => {
   }, [id, isEditMode, isRTL]);
 
   const handleFileUpload = async (files: FileList) => {
+    if (files.length === 0) return;
     setUploadingImages(true);
     setError('');
 
     try {
-      const uploadedUrls: { id: string; url: string; isPrimary: boolean }[] = [];
-
-      for (const originalFile of Array.from(files)) {
-        if (!originalFile.type.startsWith('image/')) continue;
-
-        const file = await compressImage(originalFile, 800, 0.8);
+      const fileArray = Array.from(files).filter(f => f.type.startsWith('image/'));
+      
+      const uploadPromises = fileArray.map(async (originalFile, index) => {
+        const file = await compressImage(originalFile, 1200, 0.8);
+        
+        let uploadedResult: { id: string; url: string; isPrimary: boolean } | null = null;
 
         if (isSupabaseConfigured()) {
-            try {
-                const fileExt = file.name.split('.').pop();
-                const fileName = `products/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+          try {
+            const fileExt = file.name.split('.').pop();
+            const fileName = `products/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
 
-                const { data, error: uploadError } = await supabase.storage
-                    .from('product-images')
-                    .upload(fileName, file, { cacheControl: '3600', upsert: false });
+            const { data, error: uploadError } = await supabase.storage
+              .from('product-images')
+              .upload(fileName, file, { cacheControl: '3600', upsert: false });
 
-                if (!uploadError) {
-                    const { data: publicData } = supabase.storage
-                    .from('product-images')
-                    .getPublicUrl(data.path);
+            if (!uploadError && data) {
+              const { data: publicData } = supabase.storage
+                .from('product-images')
+                .getPublicUrl(data.path);
 
-                    uploadedUrls.push({
-                        id: `img-${Date.now()}-${Math.random()}`,
-                        url: publicData.publicUrl,
-                        isPrimary: formData.images.length === 0 && uploadedUrls.length === 0,
-                    });
-                    continue;
-                }
-                console.error('Supabase upload error:', uploadError);
-            } catch (err) {
-                console.error('Supabase catch error:', err);
+              uploadedResult = {
+                id: `img-${Date.now()}-${Math.random()}`,
+                url: publicData.publicUrl,
+                isPrimary: formData.images.length === 0 && index === 0,
+              };
             }
+          } catch (err) {
+            console.error('Parallel upload error:', err);
+          }
         }
 
-        // Fallback or Demo Mode Data URL to allow persistence
-        const fileToBase64 = (file: File): Promise<string> => {
+        // Fallback to base64 if upload failed or supabase not configured
+        if (!uploadedResult) {
+          const fileToBase64 = (f: File): Promise<string> => {
             return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.readAsDataURL(file);
-                reader.onload = () => resolve(reader.result as string);
-                reader.onerror = error => reject(error);
+              const reader = new FileReader();
+              reader.readAsDataURL(f);
+              reader.onload = () => resolve(reader.result as string);
+              reader.onerror = e => reject(e);
             });
-        };
-        const localUrl = await fileToBase64(file);
-        uploadedUrls.push({
-          id: `img-${Date.now()}-${Math.random()}`,
-          url: localUrl,
-          isPrimary: formData.images.length === 0 && uploadedUrls.length === 0,
-        });
-      }
+          };
+          const localUrl = await fileToBase64(file);
+          uploadedResult = {
+            id: `img-${Date.now()}-${Math.random()}`,
+            url: localUrl,
+            isPrimary: formData.images.length === 0 && index === 0,
+          };
+        }
+
+        return uploadedResult;
+      });
+
+      const newImages = await Promise.all(uploadPromises);
+      const validImages = newImages.filter(img => img !== null) as { id: string; url: string; isPrimary: boolean }[];
 
       setFormData(prev => ({
         ...prev,
-        images: [...prev.images, ...uploadedUrls],
+        images: [...prev.images, ...validImages],
       }));
     } catch (err) {
+      console.error('Bulk upload error:', err);
       setError(isRTL ? 'حدث خطأ أثناء رفع الصور' : 'Error uploading images');
     } finally {
       setUploadingImages(false);
+      // Reset file input
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 

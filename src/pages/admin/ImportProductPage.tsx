@@ -58,7 +58,7 @@ const ImportProductPage: React.FC = () => {
     images: [] as { id: string; url: string; isPrimary: boolean }[],
     sizes: [] as { id: string; name: string; stock: number; priceModifier: number }[],
     colors: [] as { id: string; name: string; hex: string; stock: number }[],
-    isVisible: true,
+    isVisible: false,
   });
 
   const handleFetchProduct = async () => {
@@ -231,7 +231,7 @@ const ImportProductPage: React.FC = () => {
           hex: c.hex || '#1F2937',
           stock: 10,
         })),
-        isVisible: true,
+        isVisible: false,
       });
       
       // Show appropriate message
