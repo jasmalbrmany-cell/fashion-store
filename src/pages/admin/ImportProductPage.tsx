@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -15,8 +15,10 @@ import {
   Sparkles,
   Search
 } from 'lucide-react';
+import { categoriesService } from '@/services/api';
 import { mockCategories } from '@/data/mockData';
 import { productsService } from '@/services';
+import { Category } from '@/types';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { useLanguage } from '@/context/LanguageContext';
 
@@ -40,6 +42,13 @@ const ImportProductPage: React.FC = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [importedProduct, setImportedProduct] = useState<ImportedProduct | null>(null);
+  const [categories, setCategories] = useState<Category[]>(mockCategories);
+
+  useEffect(() => {
+    categoriesService.getAll().then(data => {
+      if (data && data.length > 0) setCategories(data);
+    });
+  }, []);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -80,6 +89,7 @@ const ImportProductPage: React.FC = () => {
     try {
       // Strategy 1: Use our Vercel API route (supports SPA rendering)
       let scraped: any = null;
+      let suggestedCategory = '';
       
       try {
         const apiRes = await fetch('/api/scrape', {
@@ -90,7 +100,7 @@ const ImportProductPage: React.FC = () => {
         const apiResult = await apiRes.json();
         if (apiResult.data) {
           scraped = apiResult.data;
-          // API returns sizes and colors arrays directly
+          suggestedCategory = apiResult.suggestedCategory || '';
         }
       } catch (apiErr) {
         console.warn('API route failed, trying client-side fallback...', apiErr);
@@ -184,11 +194,26 @@ const ImportProductPage: React.FC = () => {
       };
 
       setImportedProduct(productInfo);
+
+      // Auto-detect category from suggested category name
+      let autoCategoryId = '';
+      if (suggestedCategory) {
+        const matched = categories.find(c =>
+          c.name.includes(suggestedCategory) || suggestedCategory.includes(c.name)
+        );
+        if (matched) autoCategoryId = matched.id;
+      }
+      // Pletino: always auto-set to kids category if URL contains pletino.com
+      if (!autoCategoryId && url.includes('pletino.com')) {
+        const kidscat = categories.find(c => c.name.includes('أطفال') || c.id === 'c0000000-0000-0000-0000-000000000007');
+        if (kidscat) autoCategoryId = kidscat.id;
+      }
+
       setFormData({
         name: productInfo.name,
         description: productInfo.description,
         price: productInfo.price > 0 ? productInfo.price.toString() : '',
-        categoryId: '',
+        categoryId: autoCategoryId,
         images: uniqueImages.map((img: string, i: number) => ({
           id: `img-${Date.now()}-${i}`,
           url: img,
@@ -295,7 +320,7 @@ const ImportProductPage: React.FC = () => {
                         type="url"
                         value={url}
                         onChange={(e) => setUrl(e.target.value)}
-                        placeholder="https://ar.shein.com/product/..."
+                        placeholder="https://pletino.com/product/... أو أي رابط منتج"
                         className="w-full pl-12 pr-6 py-5 bg-transparent rounded-3xl transition-all outline-none font-bold text-white placeholder:text-white/20"
                     />
                     <Globe className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-white/20" />

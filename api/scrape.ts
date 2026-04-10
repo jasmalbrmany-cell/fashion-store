@@ -1,5 +1,18 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
+// Supported sites with dedicated parsers
+const SITE_CONFIGS: Record<string, { currency: string; baseCategory: string }> = {
+  'pletino.com': { currency: 'SAR', baseCategory: 'ملابس أطفال' },
+  'zahraah.com': { currency: 'YER', baseCategory: '' },
+};
+
+function getSiteConfig(url: string) {
+  for (const [domain, config] of Object.entries(SITE_CONFIGS)) {
+    if (url.includes(domain)) return { domain, ...config };
+  }
+  return { domain: '', currency: 'YER', baseCategory: '' };
+}
+
 // Multiple rendering/proxy services for SPA sites
 const RENDER_PROXIES = [
   (url: string) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
@@ -120,8 +133,38 @@ function extractImages(html: string, baseUrl: string): string[] {
   return images.slice(0, 12);
 }
 
+// Pletino-specific: extract age-based sizes (e.g. 3-4 سنوات, 6-9 أشهر)
+function extractPletinoSizes(html: string): string[] {
+  const sizes: string[] = [];
+  const seen = new Set<string>();
+
+  // Age-based sizes from WooCommerce variations
+  const agePatterns = [
+    /(\d{1,2}[-–]\d{1,2}\s*(?:سنوات?|أشهر|شهر|سنة))/g,
+    /(\d{1,2}[-–]\d{1,2}\s*(?:years?|months?))/gi,
+    /حديث الولادة/g,
+    /مواليد/g,
+  ];
+  for (const pat of agePatterns) {
+    const ms = html.matchAll(pat);
+    for (const m of ms) {
+      const s = m[1] || m[0];
+      if (s && !seen.has(s)) { seen.add(s); sizes.push(s); }
+    }
+  }
+
+  // Standard sizes too
+  ['XS','S','M','L','XL','XXL','2XL','3XL'].forEach(s => {
+    const re = new RegExp(`"${s}"|'${s}'|>${s}<`, 'g');
+    if (html.match(re) && !seen.has(s)) { seen.add(s); sizes.push(s); }
+  });
+
+  return sizes.length > 0 ? sizes : ['حسب الطلب'];
+}
+
 // Extract sizes from HTML
-function extractSizes(html: string): string[] {
+function extractSizes(html: string, isPletino = false): string[] {
+  if (isPletino) return extractPletinoSizes(html);
   const sizes: string[] = [];
   const seen = new Set<string>();
   
@@ -217,14 +260,37 @@ function extractColors(html: string): { name: string; hex: string }[] {
     }
   }
 
-  return colors.length > 0 ? colors : [{ name: 'أسود', hex: '#1a1a1a' }];
+  return colors.length > 0 ? colors : [{ name: 'متعدد الألوان', hex: '#888888' }];
+}
+
+// Pletino-specific price extraction (uses ﷼ symbol, e.g. "2.000 ﷼")
+function extractPletinoPrice(text: string): number {
+  // Format: "2.000 ﷼" or "2,000 ﷼" -> 2000
+  const m = text.match(/(\d{1,3}(?:[.,]\d{3})+|\d+)\s*(?:﷼|ريال)/u);
+  if (m) {
+    const raw = m[1].replace(/[.,]/g, '');
+    return parseInt(raw, 10);
+  }
+  // Fallback: any number before ﷼
+  const m2 = text.match(/(\d+)\s*﷼/u);
+  if (m2) return parseInt(m2[1], 10);
+  return 0;
 }
 
 // Parse full product data  
-function parseProduct(html: string, url: string) {
+function parseProduct(html: string, url: string, currency = 'YER') {
+  const isPletino = url.includes('pletino.com');
   let title = '';
   let description = '';
   let price = 0;
+
+  // Pletino-specific: extract clean title from page title
+  if (isPletino) {
+    const rawTitle = html.match(/Title:\s*(.+)/)?.[1] ||
+                     html.match(/<title>([^<]+)<\/title>/i)?.[1] || '';
+    // Pletino title format: "بلاتينو - Product Name"
+    title = rawTitle.replace(/^بلاتينو\s*[-–]\s*/u, '').trim();
+  }
 
   // JSON-LD (most reliable)
   const jsonLdBlocks = html.matchAll(/<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi);
@@ -233,11 +299,16 @@ function parseProduct(html: string, url: string) {
       const data = JSON.parse(block[1]);
       const product = Array.isArray(data) ? data.find((d: any) => d['@type'] === 'Product') : (data['@type'] === 'Product' ? data : null);
       if (product) {
-        title = product.name || title;
+        if (!title) title = product.name || title;
         description = product.description || description;
         price = parseFloat(product.offers?.price || product.offers?.lowPrice || '0') || price;
       }
     } catch (e) {}
+  }
+
+  // Pletino price extraction from text
+  if (isPletino && !price) {
+    price = extractPletinoPrice(html);
   }
 
   // OG tags
@@ -249,6 +320,11 @@ function parseProduct(html: string, url: string) {
   // Title tag
   if (!title) title = html.match(/<title>([^<]+)<\/title>/i)?.[1] || '';
   if (!description) description = html.match(/<meta[^>]*name=["']description["'][^>]*content=["']([^"']+)["']/i)?.[1] || '';
+
+  // Clean up Pletino title (redundant with above but safety net)
+  if (isPletino && title) {
+    title = title.replace(/^بلاتينو\s*[-–]\s*/u, '').trim();
+  }
 
   // Price patterns
   if (!price) {
@@ -287,21 +363,22 @@ function parseProduct(html: string, url: string) {
 
   // Extract from rendered text (for Jina reader output)
   if (!title) {
-    // Look for product name patterns in text
     const h1 = html.match(/<h1[^>]*>([^<]+)<\/h1>/i)?.[1];
     if (h1) title = h1;
   }
 
-  // Final fallback for description if user doesn't know what to write
+  // Final fallback for description
   if (!description) {
-    description = 'نقدم لك هذا المنتج المتميز بتصميمه العصري الذي يواكب أحدث صيحات الموضة. تم تصنيع هذا المنتج بعناية فائقة باستخدام خامات عالية الجودة لضمان الراحة والاستدامة. إضافة مثالية لإطلالتك اليومية أو في المناسبات الخاصة، مصمم ليمنحك مظهراً جذاباً وفريداً من نوعه.';
+    description = isPletino
+      ? 'منتج عالي الجودة من متجر بلاتينو لملابس الأطفال. تصميم أنيق وعصري مناسب لمختلف المناسبات.'
+      : 'نقدم لك هذا المنتج المتميز بتصميمه العصري الذي يواكب أحدث صيحات الموضة. تم تصنيع هذا المنتج بعناية فائقة باستخدام خامات عالية الجودة لضمان الراحة والاستدامة.';
   }
 
   const images = extractImages(html, url);
-  const sizes = extractSizes(html);
+  const sizes = extractSizes(html, isPletino);
   const colors = extractColors(html);
 
-  return { title, description, price, images, sizes, colors, currency: 'YER' };
+  return { title, description, price, images, sizes, colors, currency };
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -318,9 +395,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ success: false, error: 'URL is required' });
   }
 
+  // Determine site config
+  const siteConfig = getSiteConfig(url);
+
   try {
     const html = await fetchHTML(url);
-    const result = parseProduct(html, url);
+    const result = parseProduct(html, url, siteConfig.currency);
 
     // Even partial data is success
     const hasUsefulData = result.title || result.images.length > 0 || result.sizes.length > 0;
@@ -328,6 +408,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).json({
       success: hasUsefulData,
       partial: !result.title || result.images.length === 0,
+      sourceSite: siteConfig.domain || 'unknown',
+      suggestedCategory: siteConfig.baseCategory,
       data: result
     });
 
@@ -336,7 +418,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).json({
       success: false,
       error: error.message || 'Failed to scrape',
-      data: { title: '', description: '', price: 0, images: [], sizes: ['S', 'M', 'L', 'XL'], colors: [{ name: 'أسود', hex: '#1a1a1a' }], currency: 'YER' }
+      data: { title: '', description: '', price: 0, images: [], sizes: ['حسب الطلب'], colors: [{ name: 'متعدد الألوان', hex: '#888888' }], currency: siteConfig.currency }
     });
   }
 }
