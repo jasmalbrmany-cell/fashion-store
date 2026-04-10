@@ -56,8 +56,6 @@ const HomePage: React.FC = () => {
   const featuredProducts = products.filter(p => p.isVisible).slice(0, 8);
   const newArrivals = products.filter(p => p.isVisible).slice(0, 4);
 
-  const isAr = language === 'ar';
-
   if (loading && products.length === 0) {
     return (
       <div className="bg-white dark:bg-black min-h-screen animate-fadeIn">
