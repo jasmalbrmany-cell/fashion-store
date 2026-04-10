@@ -46,6 +46,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
+  updateUser: (data: Partial<User>) => void;
   isAdmin: boolean;
   isEditor: boolean;
   isViewer: boolean;
@@ -227,6 +228,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     localStorage.removeItem('fashionHubUser');
   };
 
+  const updateUser = (data: Partial<User>) => {
+    setUser(prev => {
+      if (!prev) return prev;
+      const updated = { ...prev, ...data };
+      localStorage.setItem('fashionHubUser', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
   const isAdmin = user?.role?.toLowerCase() === 'admin';
   const isEditor = user?.role?.toLowerCase() === 'editor' || isAdmin;
   const isViewer = user?.role?.toLowerCase() === 'viewer' || isEditor || isAdmin;
@@ -245,6 +255,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         isAuthenticated: !!user,
         login,
         logout,
+        updateUser,
         isAdmin,
         isEditor,
         isViewer,

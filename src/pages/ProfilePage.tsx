@@ -5,7 +5,7 @@ import { useLanguage } from '@/context/LanguageContext';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 
 const ProfilePage: React.FC = () => {
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, updateUser } = useAuth();
   const { t, isRTL } = useLanguage();
   
   const [name, setName] = useState(user?.name || '');
@@ -52,12 +52,12 @@ const ProfilePage: React.FC = () => {
 
         setMessage({ type: 'success', text: isRTL ? 'تم حفظ التحديثات بنجاح!' : 'Profile updated successfully!' });
         
+        // Instant context & localstorage update without reloading
+        updateUser({ name, phone });
+
         // Clear passwords after update
         setCurrentPassword('');
         setNewPassword('');
-        
-        // Small reload to grab new context
-        setTimeout(() => window.location.reload(), 1500);
 
       } catch (err: any) {
         console.error("Profile update error:", err);
@@ -69,12 +69,8 @@ const ProfilePage: React.FC = () => {
       // Demo Mode fallback
       const cached = localStorage.getItem('fashionHubUser');
       if (cached) {
-         const parsed = JSON.parse(cached);
-         parsed.name = name;
-         parsed.phone = phone;
-         localStorage.setItem('fashionHubUser', JSON.stringify(parsed));
+         updateUser({ name, phone });
          setMessage({ type: 'success', text: isRTL ? 'تم حفظ التحديثات مؤقتاً (وضع الديمو)!' : 'Demo profile updated!' });
-         setTimeout(() => window.location.reload(), 1500);
       }
     }
     
