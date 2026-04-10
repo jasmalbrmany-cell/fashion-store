@@ -31,7 +31,7 @@ const AddProductPage: React.FC = () => {
     price: '',
     categoryId: '',
     stock: '0',
-    isVisible: true,
+    isVisible: false,
     sourceUrl: '',
     images: [] as { id: string; url: string; isPrimary: boolean }[],
     sizes: [] as { id: string; name: string; stock: number; priceModifier: number }[],

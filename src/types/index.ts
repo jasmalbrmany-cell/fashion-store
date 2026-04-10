@@ -192,4 +192,5 @@ export interface StoreSettings {
   logo: string;
   currency: string;
   socialLinks: SocialLinks;
+  isMaintenanceMode?: boolean;
 }

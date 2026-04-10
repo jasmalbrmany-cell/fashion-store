@@ -1617,6 +1617,7 @@ export const storeSettingsService = {
         logo: data.logo || mockStoreSettings.logo,
         currency: data.currency || mockStoreSettings.currency,
         socialLinks: data.social_links || mockStoreSettings.socialLinks,
+        isMaintenanceMode: data.is_maintenance_mode ?? false,
       };
       
       // Keep local mock updated perfectly
@@ -1644,6 +1645,7 @@ export const storeSettingsService = {
         logo: settings.logo,
         currency: settings.currency,
         social_links: settings.socialLinks,
+        is_maintenance_mode: settings.isMaintenanceMode,
       })
       .select()
       .single();

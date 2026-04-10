@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Filter, Grid, List, Search, X } from 'lucide-react';
 import { ProductCard } from '@/components/Product';
-import { productsService, categoriesService } from '@/services/api';
-import { Product, Category } from '@/types';
+import { productsService, categoriesService, storeSettingsService } from '@/services/api';
+import { Product, Category, StoreSettings } from '@/types';
 import { useLanguage, categoryNames } from '@/context/LanguageContext';
 import { ProductGridSkeleton } from '@/components/Common/Skeleton';
 
@@ -22,6 +22,7 @@ const ProductsPage: React.FC = () => {
   const [priceRange, setPriceRange] = useState<{ min: number; max: number }>({ min: 0, max: 1000000 });
   const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
   const [selectedColors, setSelectedColors] = useState<string[]>([]);
+  const [settings, setSettings] = useState<StoreSettings | null>(null);
 
   const availableSizes = Array.from(new Set(products.flatMap(p => p.sizes.map(s => s.name)))).sort();
   const availableColors = Array.from(new Map(products.flatMap(p => p.colors.map(c => [c.hex, c.name]))).entries());
@@ -30,12 +31,14 @@ const ProductsPage: React.FC = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [productsData, categoriesData] = await Promise.all([
+        const [productsData, categoriesData, settingsData] = await Promise.all([
           productsService.getAll(),
-          categoriesService.getAll()
+          categoriesService.getAll(),
+          storeSettingsService.get()
         ]);
         setProducts(productsData);
         setCategories(categoriesData);
+        setSettings(settingsData);
       } catch (error) {
         console.error('Failed to fetch products page data:', error);
       } finally {
@@ -118,20 +121,32 @@ const ProductsPage: React.FC = () => {
     setSearchParams({});
   };
 
-  const selectedCategoryName = selectedCategory
-    ? (categoryNames[selectedCategory]?.[language] || categories.find(c => c.id === selectedCategory)?.name || t.allProducts)
-    : t.allProducts;
+  const isAr = language === 'ar';
 
-  if (loading && products.length === 0) {
+  if ((loading && products.length === 0) || settings?.isMaintenanceMode) {
     return (
-      <div className="bg-gray-50 dark:bg-black min-h-screen py-8">
-        <div className="container mx-auto px-4">
-          <div className="h-10 w-48 bg-gray-200 dark:bg-gray-800 animate-pulse rounded-2xl mb-8"></div>
-          <ProductGridSkeleton />
+      <div className="bg-gray-50 dark:bg-black min-h-screen py-8 flex flex-col items-center justify-center text-center p-8">
+        <div className="max-w-md w-full space-y-6">
+           <Loader2 className="w-12 h-12 text-black animate-spin mx-auto mb-4" />
+           <h2 className="text-2xl font-black text-gray-900 dark:text-white">
+             {settings?.isMaintenanceMode 
+               ? (isAr ? 'جاري تحديث المنتجات...' : 'Updating products...') 
+               : (isAr ? 'جاري التحميل...' : 'Loading...')}
+           </h2>
+           <p className="text-gray-500 font-bold">
+             {settings?.isMaintenanceMode 
+               ? (isAr ? 'نقوم حالياً بإضافة التشكيلة الجديدة وتحديث الأسعار. ترقبوا المفاجآت!' : 'We are currently adding a new collection and updating prices. Stay tuned!') 
+               : (isAr ? 'يرجى الانتظار...' : 'Please wait...')}
+           </p>
+           {!settings?.isMaintenanceMode && <ProductGridSkeleton />}
         </div>
       </div>
     );
   }
+
+  const selectedCategoryName = selectedCategory
+    ? (categoryNames[selectedCategory]?.[language] || categories.find(c => c.id === selectedCategory)?.name || t.allProducts)
+    : t.allProducts;
 
   return (
     <div className="bg-gray-50 dark:bg-black min-h-screen py-8 transition-colors duration-500" dir={language === 'ar' ? 'rtl' : 'ltr'}>

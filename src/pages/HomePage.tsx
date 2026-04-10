@@ -56,24 +56,47 @@ const HomePage: React.FC = () => {
   const featuredProducts = products.filter(p => p.isVisible).slice(0, 8);
   const newArrivals = products.filter(p => p.isVisible).slice(0, 4);
 
-  if (loading && products.length === 0) {
+  if ((loading && products.length === 0) || settings?.isMaintenanceMode) {
     return (
-      <div className="bg-white dark:bg-black min-h-screen animate-fadeIn">
-        <section className="container mx-auto px-4 py-8">
-          <Skeleton className="h-64 md:h-96 rounded-3xl w-full" />
-        </section>
-        <section className="container mx-auto px-4 py-8 overflow-hidden">
-          <div className="flex gap-4 mb-8">
-            {[1, 2, 3, 4, 5, 6].map(i => <Skeleton key={i} className="w-40 h-10 rounded-full flex-shrink-0" />)}
-          </div>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-            {[1, 2, 3, 4].map(i => <div key={i} className="space-y-4">
-              <Skeleton className="aspect-[3/4] w-full rounded-2xl" />
-              <Skeleton className="h-4 w-3/4" />
-              <Skeleton className="h-4 w-1/2" />
-            </div>)}
-          </div>
-        </section>
+      <div className="bg-white dark:bg-black min-h-screen flex flex-col items-center justify-center animate-fadeIn text-center p-8">
+        <div className="max-w-md w-full space-y-8">
+           <div className="relative">
+             <div className="w-32 h-32 bg-gray-50 rounded-full mx-auto flex items-center justify-center animate-pulse">
+               <Loader2 className="w-16 h-16 text-black animate-spin" />
+             </div>
+             {settings?.isMaintenanceMode && (
+               <div className="absolute -bottom-2 right-1/4 bg-orange-500 text-white px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg">
+                 {isAr ? 'تحديث مباشر' : 'Live Update'}
+               </div>
+             )}
+           </div>
+           <div>
+             <h2 className="text-3xl font-black text-gray-900 dark:text-white mb-4">
+               {settings?.isMaintenanceMode 
+                 ? (isAr ? 'جاري تحديث التشكيلة الجديدة...' : 'Updating the new collection...')
+                 : (isAr ? 'جاري التحميل...' : 'Loading...')}
+             </h2>
+             <p className="text-gray-500 font-bold leading-relaxed">
+               {settings?.isMaintenanceMode 
+                 ? (isAr ? 'لحظات ونعود إليكم بأحدث المنتجات والأسعار المذهلة. شكراً لانتظاركم!' : 'A few moments and we will be back with the latest products and amazing prices. Thank you for waiting!')
+                 : (isAr ? 'يرجى الانتظار قليلاً بينما نعد لك أفضل تجربة تسوق.' : 'Please wait a moment while we prepare the best shopping experience for you.')}
+             </p>
+           </div>
+           
+           {!settings?.isMaintenanceMode && (
+             <section className="container mx-auto px-4 py-8 overflow-hidden">
+               <div className="flex gap-4 mb-8">
+                 {[1, 2, 3, 4].map(i => <Skeleton key={i} className="w-40 h-10 rounded-full flex-shrink-0" />)}
+               </div>
+               <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+                 {[1, 2].map(i => <div key={i} className="space-y-4">
+                   <Skeleton className="aspect-[3/4] w-full rounded-2xl" />
+                   <Skeleton className="h-4 w-3/4" />
+                 </div>)}
+               </div>
+             </section>
+           )}
+        </div>
       </div>
     );
   }

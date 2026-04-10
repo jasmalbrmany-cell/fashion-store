@@ -137,7 +137,7 @@ const StoreImportPage: React.FC = () => {
           })),
           sizes: prod.sizes.map((s, i) => ({ id: `s${i}`, name: s, stock: 10, priceModifier: 0 })),
           colors: prod.colors.map((c, i) => ({ id: `c${i}`, name: c.name, hex: c.hex, stock: 10 })),
-          isVisible: true,
+          isVisible: false, // Default to hidden for admin review
           sourceUrl: prod.sourceUrl,
           stock: 10,
         });

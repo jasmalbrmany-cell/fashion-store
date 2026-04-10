@@ -106,6 +106,52 @@ const SettingsPage: React.FC = () => {
       </div>
 
       <form onSubmit={handleSave} className="grid gap-8">
+        
+      {/* Maintenance Mode Alert */}
+      <div className={`p-6 md:p-8 rounded-[2rem] border-2 transition-all ${
+        finalSettings.isMaintenanceMode 
+          ? 'bg-orange-50 border-orange-200 shadow-lg shadow-orange-100' 
+          : 'bg-green-50 border-green-100'
+      }`}>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="flex items-start gap-4">
+            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 ${
+              finalSettings.isMaintenanceMode ? 'bg-orange-500 text-white' : 'bg-green-500 text-white'
+            }`}>
+              {finalSettings.isMaintenanceMode ? <Loader2 className="w-7 h-7 animate-spin" /> : <CheckCircle2 className="w-7 h-7" />}
+            </div>
+            <div>
+              <h3 className="text-xl font-black text-gray-900">
+                {isRTL ? 'وضع التحديث المباشر' : 'Live Update Mode'}
+              </h3>
+              <p className="text-sm text-gray-500 font-bold mt-1 leading-relaxed">
+                {isRTL 
+                  ? 'عند تفعيل هذا الوضع، سيظهر للعملاء شاشة "جاري التحميل" ولن يتمكنوا من رؤية المنتجات غير المكتملة أثناء قيامك بالإضافات.'
+                  : 'When enabled, customers will see a "Loading" screen and won\'t see incomplete products while you are making additions.'}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-4 bg-white/50 p-2 rounded-2xl border border-white">
+            <span className={`text-xs font-black uppercase tracking-widest ${finalSettings.isMaintenanceMode ? 'text-orange-600' : 'text-green-600'}`}>
+              {finalSettings.isMaintenanceMode ? (isRTL ? 'نشط' : 'ACTIVE') : (isRTL ? 'متوقف' : 'INACTIVE')}
+            </span>
+            <button
+               type="button"
+               onClick={() => setSettings(prev => prev ? { ...prev, isMaintenanceMode: !prev.isMaintenanceMode } : null)}
+               className={`relative w-16 h-8 rounded-full transition-colors duration-300 focus:outline-none ${
+                 finalSettings.isMaintenanceMode ? 'bg-orange-500' : 'bg-gray-200'
+               }`}
+            >
+               <div className={`absolute top-1 w-6 h-6 bg-white rounded-full shadow-lg transform transition-transform duration-300 ${
+                 isRTL 
+                   ? (finalSettings.isMaintenanceMode ? '-translate-x-1' : '-translate-x-9')
+                   : (finalSettings.isMaintenanceMode ? 'translate-x-9' : 'translate-x-1')
+               }`}></div>
+            </button>
+          </div>
+        </div>
+      </div>
+
         {/* Store Brand */}
         <div className="bg-white rounded-3xl shadow-sm border p-6 md:p-8 space-y-8 overflow-hidden relative">
           <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none">
