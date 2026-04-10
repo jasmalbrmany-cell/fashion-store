@@ -764,7 +764,7 @@ export const citiesService = {
 
     if (error) {
       console.error('Error creating city:', error);
-      return null;
+      throw new Error(error.message);
     }
 
     clearCache('cities_all');
@@ -796,7 +796,7 @@ export const citiesService = {
 
     if (error) {
       console.error('Error updating city:', error);
-      return null;
+      throw new Error(error.message);
     }
 
     clearCache('cities_all');
@@ -822,7 +822,7 @@ export const citiesService = {
 
     if (error) {
       console.error('Error deleting city:', error);
-      return false;
+      throw new Error(error.message);
     }
 
     clearCache('cities_all');

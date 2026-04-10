@@ -99,20 +99,23 @@ const CitiesPage: React.FC = () => {
       }
       handleCloseModal();
       showToast('success', editingCity ? t.cityUpdated : t.cityAdded);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to save city:', error);
-      showToast('error', t.citySaveError);
+      showToast('error', error?.message || t.citySaveError);
     }
   };
 
   const handleDelete = async (id: string) => {
     if (window.confirm(t.confirmDeleteCity)) {
-      const success = await citiesService.delete(id);
-      if (success) {
-        setCities(prev => prev.filter(c => c.id !== id));
-        showToast('success', t.deletedSuccessfully);
-      } else {
-        showToast('error', t.cityDeleteError);
+      try {
+        const success = await citiesService.delete(id);
+        if (success) {
+           setCities(prev => prev.filter(c => c.id !== id));
+           showToast('success', t.deletedSuccessfully);
+        }
+      } catch (error: any) {
+        console.error('Failed to delete city:', error);
+        showToast('error', error?.message || t.cityDeleteError);
       }
     }
   };
