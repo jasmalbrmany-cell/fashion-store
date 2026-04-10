@@ -71,12 +71,15 @@ const ProfilePage: React.FC = () => {
     if (isSupabaseConfigured()) {
       try {
         // 1. Update Profile info in DB
-        const { error: profileError } = await (supabase as any)
+        const { data: updatedProfile, error: profileError } = await (supabase as any)
           .from('profiles')
           .update({ name, phone: fullPhone || null })
-          .eq('id', user.id);
+          .eq('id', user.id)
+          .select()
+          .single();
 
         if (profileError) throw profileError;
+        if (!updatedProfile) throw new Error("لم يتم تحديث الصلاحيات! يرجى التأكد من سياسات قاعدة البيانات (RLS).");
 
         // 2. Update Password if provided
         if (newPassword) {
