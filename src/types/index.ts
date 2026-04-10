@@ -49,6 +49,7 @@ export interface Product {
   colors: ProductColor[];
   stock: number;
   isVisible: boolean;
+  compareAtPrice?: number;
   sourceUrl?: string;
   createdAt: string;
   updatedAt: string;
