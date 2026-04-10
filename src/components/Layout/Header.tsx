@@ -7,6 +7,7 @@ import { useLanguage } from '@/context/LanguageContext';
 import { useTheme } from '@/context/ThemeContext';
 import { categoriesService, getCachedSync } from '@/services/api';
 import { Category } from '@/types';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 
 const Header: React.FC = () => {
   const navigate = useNavigate();
@@ -20,6 +21,35 @@ const Header: React.FC = () => {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [categories, setCategories] = useState<Category[]>(getCachedSync<Category[]>('categories_all') || []);
+  const [notification, setNotification] = useState<{ title: string; body: string; type: 'product' | 'ad' } | null>(null);
+
+  useEffect(() => {
+    // Push notifications via Supabase Realtime!
+    if (isSupabaseConfigured() && !isAdmin) {
+      const channel = supabase.channel('public-notifications')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'products' }, (payload) => {
+          setNotification({
+             title: isRTL ? '🔥 منتج جديد متوفر الآن!' : '🔥 New Product Available!',
+             body: payload.new.name || (isRTL ? 'تسوق أحدث تشكيلاتنا.' : 'Check out our latest collection.'),
+             type: 'product'
+          });
+          setTimeout(() => setNotification(null), 8000);
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'ads' }, (payload) => {
+          if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+             setNotification({
+               title: isRTL ? '✨ عرض جديد مثير!' : '✨ Exciting New Offer!',
+               body: payload.new.title || (isRTL ? 'لا تفوت أحدث عروضنا.' : 'Don\'t miss our latest offers.'),
+               type: 'ad'
+             });
+             setTimeout(() => setNotification(null), 8000);
+          }
+        })
+        .subscribe();
+      
+      return () => { supabase.removeChannel(channel); };
+    }
+  }, [isAdmin, isRTL]);
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (e: any) => {
@@ -57,6 +87,24 @@ const Header: React.FC = () => {
 
   return (
     <header className="bg-white shadow-md sticky top-0 z-50">
+      {/* Realtime Notification Toast */}
+      {notification && (
+        <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-[100] bg-black/90 backdrop-blur-md text-white px-6 py-4 rounded-3xl shadow-2xl flex items-center gap-4 animate-in slide-in-from-top-10 fade-in duration-500 border border-white/20 cursor-pointer hover:bg-black transition-colors min-w-[300px] w-[90%] sm:w-auto overflow-hidden`}
+           onClick={() => { setNotification(null); navigate(notification.type === 'product' ? '/products' : '/'); }}>
+           
+           <div className={`w-2 h-full absolute top-0 ${isRTL ? 'right-0' : 'left-0'} ${notification.type === 'product' ? 'bg-green-400' : 'bg-yellow-400'} animate-pulse`}></div>
+           
+           <div className="flex-1 ml-2 mr-2">
+              <p className="font-black text-sm uppercase tracking-widest text-yellow-300 mb-1">{notification.title}</p>
+              <p className="font-semibold text-xs text-gray-300 leading-relaxed">{notification.body}</p>
+           </div>
+           
+           <button onClick={(e) => { e.stopPropagation(); setNotification(null); }} className="p-2 hover:bg-white/10 rounded-full transition shrink-0">
+             <X className="w-4 h-4 text-gray-400 hover:text-white" />
+           </button>
+        </div>
+      )}
+
       {/* Top Bar */}
       <div className="bg-gradient-to-r from-black via-gray-900 to-black text-white">
         <div className="container mx-auto px-4 py-2.5">

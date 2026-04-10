@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, Search, Image as ImageIcon, Video, Type, X, Eye, EyeOff, Loader2, RefreshCw, Layers, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, Image as ImageIcon, Video, Type, X, Eye, EyeOff, Loader2, RefreshCw, Layers, CheckCircle2, AlertCircle, UploadCloud } from 'lucide-react';
 import { adsService, hasValidCache, getCachedSync } from '@/services/api';
 import { Ad, AdType, AdPosition } from '@/types';
 import { useLanguage } from '@/context/LanguageContext';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 
 const AdsPage: React.FC = () => {
   const { t, isRTL } = useLanguage();
@@ -12,6 +13,7 @@ const AdsPage: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingAd, setEditingAd] = useState<Ad | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [formData, setFormData] = useState({
     title: '',
@@ -138,6 +140,71 @@ const AdsPage: React.FC = () => {
     }
   };
 
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = error => reject(error);
+    });
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    try {
+      // Auto-detect type
+      const isVideo = file.type.startsWith('video/');
+      const fileType: AdType = isVideo ? 'video' : 'image';
+      
+      let uploadedUrl = '';
+
+      if (isSupabaseConfigured()) {
+        try {
+          const fileExt = file.name.split('.').pop();
+          const fileName = `ads/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+          
+          const { data, error: uploadError } = await supabase.storage
+            .from('product-images') // Reusing the public bucket
+            .upload(fileName, file, { cacheControl: '3600', upsert: false });
+
+          if (!uploadError && data) {
+            const { data: publicData } = supabase.storage
+              .from('product-images')
+              .getPublicUrl(data.path);
+            uploadedUrl = publicData.publicUrl;
+          }
+        } catch (err) {
+          console.error('Supabase upload error for Ad:', err);
+        }
+      }
+
+      // Fallback
+      if (!uploadedUrl) {
+        if (isVideo && file.size > 10 * 1024 * 1024) {
+          showToast('error', isRTL ? 'حجم الفيديو كبير جداً كملف محلي، يرجى تفعيل التخزين السحابي (Supabase Storage)' : 'Video too large for local base64 fallback. Enable Supabase Storage.');
+          setIsUploading(false);
+          return;
+        }
+        uploadedUrl = await fileToBase64(file);
+      }
+
+      setFormData(prev => ({ 
+        ...prev, 
+        imageUrl: uploadedUrl,
+        type: fileType
+      }));
+      
+    } catch (err) {
+      console.error(err);
+      showToast('error', isRTL ? 'حدث خطأ أثناء رفع الملف' : 'Upload error');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const getTypeIcon = (type: AdType) => {
     switch (type) {
       case 'image': return <ImageIcon className="w-5 h-5" />;
@@ -237,7 +304,11 @@ const AdsPage: React.FC = () => {
                 {/* Visual Preview */}
                 <div className="h-48 bg-gray-100 relative overflow-hidden group-hover:scale-[1.02] transition-transform duration-500">
                     {ad.imageUrl ? (
-                        <img src={ad.imageUrl} alt={ad.title} className="w-full h-full object-cover" />
+                        ad.type === 'video' ? (
+                          <video src={ad.imageUrl} className="w-full h-full object-cover" controls muted />
+                        ) : (
+                          <img src={ad.imageUrl} alt={ad.title} className="w-full h-full object-cover" />
+                        )
                     ) : (
                         <div className="w-full h-full flex flex-col items-center justify-center text-gray-400 gap-2">
                            <div className="p-4 bg-white/50 backdrop-blur-sm rounded-2xl shadow-sm">
@@ -370,16 +441,62 @@ const AdsPage: React.FC = () => {
                 </div>
               </div>
 
-              {formData.type === 'image' && (
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 px-2">{t.adImageUrl}</label>
+              {(formData.type === 'image' || formData.type === 'video') && (
+                <div className="space-y-3">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 px-2">
+                    {isRTL ? 'رفع صورة أو فيديو الإعلان' : 'Upload Ad Image or Video'}
+                  </label>
+                  
+                  {formData.imageUrl ? (
+                    <div className="relative rounded-2xl overflow-hidden bg-gray-100 border border-gray-200">
+                      {formData.type === 'video' ? (
+                        <video src={formData.imageUrl} className="w-full h-48 object-cover" controls />
+                      ) : (
+                        <img src={formData.imageUrl} alt="preview" className="w-full h-48 object-cover" />
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => setFormData(p => ({ ...p, imageUrl: '' }))}
+                        className="absolute top-2 right-2 bg-black/50 hover:bg-black text-white p-2 rounded-full transition"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-gray-300 rounded-2xl bg-gray-50 hover:bg-gray-100 cursor-pointer transition-colors">
+                      <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                        {isUploading ? (
+                          <Loader2 className="w-10 h-10 text-gray-400 animate-spin" />
+                        ) : (
+                          <UploadCloud className="w-10 h-10 text-gray-400 mb-3" />
+                        )}
+                        <p className="mb-2 text-sm text-gray-500 font-bold">
+                          {isUploading ? (isRTL ? 'جاري الرفع...' : 'Uploading...') : (isRTL ? 'اضغط لرفع الميديا' : 'Click to upload media')}
+                        </p>
+                        <p className="text-xs text-gray-400 font-semibold">{isRTL ? 'يدعم الصور والفيديوهات القصيرة' : 'Supports Images & Short Videos'}</p>
+                      </div>
+                      <input 
+                        type="file" 
+                        className="hidden" 
+                        accept="image/*,video/*" 
+                        onChange={handleFileUpload} 
+                        disabled={isUploading}
+                      />
+                    </label>
+                  )}
+                  
+                  <div className="flex items-center gap-2">
+                      <div className="h-px bg-gray-200 flex-1"></div>
+                      <span className="text-xs font-bold text-gray-400 uppercase">{isRTL ? 'أو' : 'OR'}</span>
+                      <div className="h-px bg-gray-200 flex-1"></div>
+                  </div>
+                  
                   <input
                     type="url"
                     value={formData.imageUrl}
                     onChange={(e) => setFormData(prev => ({ ...prev, imageUrl: e.target.value }))}
-                    placeholder={t.adImageUrlPlaceholder}
+                    placeholder={isRTL ? 'ألصق رابط مباشر للصورة/الفيديو' : 'Paste an external Image/Video URL'}
                     className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-black outline-none font-bold shadow-sm"
-                    required
                   />
                 </div>
               )}

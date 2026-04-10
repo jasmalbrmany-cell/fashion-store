@@ -88,11 +88,19 @@ const HomePage: React.FC = () => {
         <div className="container mx-auto px-4 py-8">
           {activeBanners.length > 0 ? (
             <div className="relative h-64 md:h-96 rounded-xl overflow-hidden">
-              <img
-                src={activeBanners[currentBanner].imageUrl}
-                alt={activeBanners[currentBanner].title}
-                className="w-full h-full object-cover"
-              />
+              {activeBanners[currentBanner].type === 'video' ? (
+                <video
+                  src={activeBanners[currentBanner].imageUrl}
+                  className="w-full h-full object-cover"
+                  autoPlay muted loop playsInline
+                />
+              ) : (
+                <img
+                  src={activeBanners[currentBanner].imageUrl}
+                  alt={activeBanners[currentBanner].title}
+                  className="w-full h-full object-cover"
+                />
+              )}
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end">
                 <div className="p-6 md:p-10 text-white">
                   <h1 className="text-2xl md:text-4xl font-bold mb-2">
@@ -224,7 +232,11 @@ const HomePage: React.FC = () => {
           <div className="container mx-auto px-4">
             <div className="rounded-3xl overflow-hidden shadow-xl border border-gray-100 flex justify-center items-center relative min-h-[150px] md:min-h-[250px]">
               {inlineAds[0].imageUrl ? (
-                <img src={inlineAds[0].imageUrl} alt={inlineAds[0].title} className="w-full h-full object-cover" />
+                inlineAds[0].type === 'video' ? (
+                  <video src={inlineAds[0].imageUrl} className="w-full h-full object-cover" autoPlay muted loop playsInline />
+                ) : (
+                  <img src={inlineAds[0].imageUrl} alt={inlineAds[0].title} className="w-full h-full object-cover" />
+                )
               ) : (
                 <div className="w-full h-full bg-gradient-to-r from-gray-900 to-black text-white p-10 text-center">
                   <h2 className="text-2xl md:text-4xl font-bold mb-4">{inlineAds[0].title}</h2>
