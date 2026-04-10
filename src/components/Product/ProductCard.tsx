@@ -70,6 +70,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
           <img
             src={primaryImage?.url}
             alt={product.name}
+            loading="lazy"
             className={`w-full h-full object-cover transition-transform duration-700 ease-out ${isHovered ? 'scale-110' : 'scale-100'} ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
             onLoad={() => setImageLoaded(true)}
           />

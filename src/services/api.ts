@@ -258,7 +258,7 @@ export const productsService = {
       .order('created_at', { ascending: false });
 
     const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Timeout')), 2500)
+      setTimeout(() => reject(new Error('Timeout')), 2000)
     );
 
     try {
@@ -363,7 +363,7 @@ export const productsService = {
       .order('created_at', { ascending: false });
 
     const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Timeout')), 2500)
+      setTimeout(() => reject(new Error('Timeout')), 2000)
     );
 
     try {
@@ -509,7 +509,7 @@ export const categoriesService = {
       .order('order', { ascending: true });
 
     const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Timeout')), 2500)
+      setTimeout(() => reject(new Error('Timeout')), 2000)
     );
 
     try {
@@ -650,7 +650,7 @@ export const citiesService = {
       .order('name', { ascending: true });
 
     const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Timeout')), 2500)
+      setTimeout(() => reject(new Error('Timeout')), 2000)
     );
 
     try {
@@ -695,7 +695,7 @@ export const citiesService = {
       .order('name', { ascending: true });
 
     const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Timeout')), 2500)
+      setTimeout(() => reject(new Error('Timeout')), 2000)
     );
 
     try {
@@ -850,7 +850,7 @@ export const currenciesService = {
       .order('code', { ascending: true });
 
     const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Timeout')), 2500)
+      setTimeout(() => reject(new Error('Timeout')), 2000)
     );
 
     try {
@@ -1233,7 +1233,7 @@ export const adsService = {
       .order('order', { ascending: true });
 
     const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Timeout')), 2500)
+      setTimeout(() => reject(new Error('Timeout')), 2000)
     );
 
     try {
@@ -1266,7 +1266,7 @@ export const adsService = {
       .order('order', { ascending: true });
 
     const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Timeout')), 2500)
+      setTimeout(() => reject(new Error('Timeout')), 2000)
     );
 
     try {
@@ -1601,7 +1601,7 @@ export const storeSettingsService = {
       .single();
 
     const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Timeout')), 2500)
+      setTimeout(() => reject(new Error('Timeout')), 2000)
     );
 
     try {
@@ -1729,7 +1729,7 @@ export const statisticsService = {
       .single();
 
     const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Timeout')), 2500)
+      setTimeout(() => reject(new Error('Timeout')), 2000)
     );
 
     try {
