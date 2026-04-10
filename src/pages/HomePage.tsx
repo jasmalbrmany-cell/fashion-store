@@ -1,20 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight, ChevronLeft, ChevronRight, Loader2, Shirt, Watch, ShoppingBag, Sparkles, Footprints, Crown, Star, Diamond, Glasses } from 'lucide-react';
 import { ProductCard } from '@/components/Product';
 import { productsService, categoriesService, adsService, storeSettingsService } from '@/services/api';
 import { useLanguage, categoryNames } from '@/context/LanguageContext';
 import { Skeleton } from '@/components/Common/Skeleton';
 import type { Product, Category, Ad, StoreSettings } from '@/types';
-
-const categoryIcons: Record<string, string> = {
-  'cat-1': '👗',
-  'cat-2': '👔',
-  'cat-3': '👟',
-  'cat-4': '⌚',
-  'cat-5': '👜',
-  'cat-6': '🌸',
-};
 
 const HomePage: React.FC = () => {
   const [currentBanner, setCurrentBanner] = useState(0);
@@ -24,6 +15,14 @@ const HomePage: React.FC = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [ads, setAds] = useState<Ad[]>([]);
   const [settings, setSettings] = useState<StoreSettings | null>(null);
+
+  const isAr = language === 'ar';
+
+  const getCategoryIcon = (index: number) => {
+    const icons = [Crown, Shirt, Footprints, Watch, ShoppingBag, Sparkles, Diamond, Glasses, Star];
+    const Icon = icons[index % icons.length];
+    return <Icon className="w-10 h-10" strokeWidth={1.5} />;
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -187,19 +186,28 @@ const HomePage: React.FC = () => {
               <Link
                 key={category.id}
                 to={`/products?category=${category.id}`}
-                className={`group flex flex-col items-center justify-center p-6 bg-white dark:bg-gray-900 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300 relative overflow-hidden animate-stagger delay-${(index + 1) * 100 <= 500 ? (index + 1) * 100 : 500}`}
+                className={`group flex flex-col items-center justify-center p-6 bg-transparent hover:bg-gray-50/50 rounded-[2.5rem] transition-all duration-500 relative overflow-hidden animate-stagger delay-${(index + 1) * 100 <= 500 ? (index + 1) * 100 : 500}`}
               >
-                {/* Decorative background gradient on hover */}
-                <div className="absolute inset-0 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10"></div>
                 
-                <div className={`w-20 h-20 mb-4 rounded-2xl flex items-center justify-center transform group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-inner
-                  ${['bg-purple-100 text-purple-600', 'bg-blue-100 text-blue-600', 'bg-pink-100 text-pink-600', 'bg-indigo-100 text-indigo-600', 'bg-rose-100 text-rose-600', 'bg-teal-100 text-teal-600'][index % 6]}
+                <div className={`relative w-28 h-28 mb-5 rounded-full flex items-center justify-center transform group-hover:scale-110 group-hover:-translate-y-2 transition-all duration-700 shadow-2xl
+                  ${[
+                    'bg-gradient-to-tr from-violet-600 to-fuchsia-500 shadow-violet-500/30', 
+                    'bg-gradient-to-tr from-cyan-500 to-blue-600 shadow-blue-500/30', 
+                    'bg-gradient-to-tr from-emerald-400 to-teal-500 shadow-teal-500/30', 
+                    'bg-gradient-to-tr from-orange-400 to-rose-500 shadow-orange-500/30', 
+                    'bg-gradient-to-tr from-amber-400 to-orange-500 shadow-amber-500/30', 
+                    'bg-gradient-to-tr from-pink-500 to-rose-500 shadow-pink-500/30'
+                  ][index % 6]}
                 `}>
-                  <span className="text-4xl drop-shadow-sm filter">
-                    {categoryIcons[category.id] || ['👗', '👔', '👟', '⌚', '👜', '🌸'][index % 6]}
+                  {/* Glassmorphism Inner Ring */}
+                  <div className="absolute inset-0 bg-white/20 backdrop-blur-md border border-white/40 rounded-full scale-[0.80] group-hover:scale-90 transition-transform duration-700"></div>
+                  
+                  {/* Icon */}
+                  <span className="relative z-10 text-white transform group-hover:rotate-12 transition-transform duration-500 drop-shadow-md">
+                    {getCategoryIcon(index)}
                   </span>
                 </div>
-                <h3 className="font-bold text-gray-800 dark:text-gray-200 group-hover:text-black dark:group-hover:text-white transition">
+                <h3 className="font-extrabold text-lg text-gray-800 group-hover:text-black transition tracking-tight">
                   {categoryNames[category.id]?.[language] || category.name}
                 </h3>
               </Link>
