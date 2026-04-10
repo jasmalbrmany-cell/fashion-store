@@ -35,6 +35,12 @@ const ProfilePage: React.FC = () => {
 
         // 2. Update Password if provided
         if (newPassword) {
+          if (!currentPassword) {
+             throw new Error(isRTL ? 'يرجى إدخال كلمة المرور الحالية أولاً' : 'Please enter current password first');
+          }
+          if (newPassword === currentPassword) {
+             throw new Error(isRTL ? 'يجب أن تكون كلمة المرور الجديدة مختلفة عن كلمة المرور الحالية' : 'New password must be different from current');
+          }
           const { error: passwordError } = await supabase.auth.updateUser({
             password: newPassword
           });
@@ -54,7 +60,10 @@ const ProfilePage: React.FC = () => {
         setTimeout(() => window.location.reload(), 1500);
 
       } catch (err: any) {
-        setMessage({ type: 'error', text: err.message || (isRTL ? 'حدث خطأ أثناء التحديث.' : 'Error updating profile.') });
+        console.error("Profile update error:", err);
+        setMessage({ type: 'error', text: err?.message || (isRTL ? 'حدث خطأ أثناء التحديث.' : 'Error updating profile.') });
+        setIsLoading(false);
+        return; // Don't proceed to clear or reload
       }
     } else {
       // Demo Mode fallback
@@ -161,6 +170,23 @@ const ProfilePage: React.FC = () => {
                </div>
 
                <div className="grid md:grid-cols-2 gap-6">
+                 {/* Current Password */}
+                 <div className="space-y-2">
+                    <label className="text-xs font-black uppercase tracking-widest text-gray-500 px-2">
+                      {isRTL ? 'كلمة المرور الحالية' : 'Current Password'}
+                    </label>
+                    <div className="relative">
+                      <Lock className={`absolute top-1/2 -translate-y-1/2 ${isRTL ? 'right-4' : 'left-4'} w-5 h-5 text-gray-400`} />
+                      <input 
+                        type="password" 
+                        value={currentPassword}
+                        onChange={(e) => setCurrentPassword(e.target.value)}
+                        className={`w-full py-4 ${isRTL ? 'pr-12 pl-4' : 'pl-12 pr-4'} bg-gray-50 border border-transparent rounded-2xl focus:bg-white focus:border-black focus:ring-4 focus:ring-black/5 outline-none font-bold transition-all`}
+                        placeholder="••••••••"
+                      />
+                    </div>
+                  </div>
+
                  {/* New Password */}
                  <div className="space-y-2">
                     <label className="text-xs font-black uppercase tracking-widest text-gray-500 px-2">
