@@ -22,6 +22,8 @@ const ProductsPage: React.FC = () => {
   const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
   const [selectedColors, setSelectedColors] = useState<string[]>([]);
   const [settings, setSettings] = useState<StoreSettings | null>(null);
+  const [displayCount, setDisplayCount] = useState(12);
+  const loadMoreRef = React.useRef<HTMLDivElement>(null);
 
   const availableSizes = useMemo(() => 
     Array.from(new Set(products.flatMap(p => p.sizes.map(s => s.name)))).sort()
@@ -109,11 +111,29 @@ const ProductsPage: React.FC = () => {
 
   const handleCategoryChange = (categoryId: string) => {
     setSelectedCategory(categoryId);
+    setDisplayCount(12);
     const params = new URLSearchParams(searchParams);
     if (categoryId) params.set('category', categoryId);
     else params.delete('category');
     setSearchParams(params);
   };
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setDisplayCount((prev) => prev + 12);
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (loadMoreRef.current) {
+      observer.observe(loadMoreRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, [filteredProducts.length, displayCount]);
 
   const clearFilters = () => {
     setSelectedCategory('');
@@ -122,6 +142,7 @@ const ProductsPage: React.FC = () => {
     setPriceRange({ min: 0, max: 1000000 });
     setSelectedSizes([]);
     setSelectedColors([]);
+    setDisplayCount(12);
     setSearchParams({});
   };
 
@@ -320,9 +341,16 @@ const ProductsPage: React.FC = () => {
 
           <div className="flex-1">
             {filteredProducts.length > 0 ? (
-              <div className={viewMode === 'grid' ? 'grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6' : 'space-y-4'}>
-                {filteredProducts.map((product) => <ProductCard key={product.id} product={product} />)}
-              </div>
+              <>
+                <div className={viewMode === 'grid' ? 'grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6' : 'space-y-4'}>
+                  {filteredProducts.slice(0, displayCount).map((product) => <ProductCard key={product.id} product={product} />)}
+                </div>
+                {displayCount < filteredProducts.length && (
+                  <div ref={loadMoreRef} className="py-12 flex justify-center">
+                    <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+                  </div>
+                )}
+              </>
             ) : (
               <div className="bg-white dark:bg-gray-900 rounded-[2.5rem] p-20 text-center border border-dashed border-gray-200 dark:border-gray-800">
                 <Search className="w-16 h-16 text-gray-200 dark:text-gray-700 mx-auto mb-6" />

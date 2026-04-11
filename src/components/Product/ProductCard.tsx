@@ -4,6 +4,8 @@ import { Heart, ShoppingCart } from 'lucide-react';
 import { Product } from '@/types';
 import { useCart } from '@/context/CartContext';
 import { useLanguage } from '@/context/LanguageContext';
+import { LazyLoadImage } from 'react-lazy-load-image-component';
+import 'react-lazy-load-image-component/src/effects/blur.css';
 
 interface ProductCardProps {
   product: Product;
@@ -67,19 +69,21 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
           {!imageLoaded && (
             <div className="absolute inset-0 flex items-center justify-center bg-zinc-100 dark:bg-zinc-900 shimmer"></div>
           )}
-          <img
+          <LazyLoadImage
             src={primaryImage?.url}
             alt={product.name}
-            loading="lazy"
-            className={`w-full h-full object-cover transition-all duration-700 ease-out z-0 ${isHovered && secondaryImage ? 'scale-110 opacity-0' : 'scale-100 opacity-100'} ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
-            onLoad={() => setImageLoaded(true)}
+            effect="blur"
+            wrapperClassName={`w-full h-full object-cover transition-all duration-700 ease-out z-0 ${isHovered && secondaryImage ? 'scale-110 opacity-0' : 'scale-100 opacity-100'} ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
+            className="w-full h-full object-cover"
+            afterLoad={() => setImageLoaded(true)}
           />
           {secondaryImage && (
-            <img 
+            <LazyLoadImage 
                src={secondaryImage.url}
                alt={`${product.name} - view`}
-               loading="lazy"
-               className={`absolute inset-0 w-full h-full object-cover transition-all duration-700 ease-out z-0 ${isHovered ? 'scale-105 opacity-100' : 'scale-100 opacity-0'}`}
+               effect="blur"
+               wrapperClassName={`absolute inset-0 w-full h-full object-cover transition-all duration-700 ease-out z-0 ${isHovered ? 'scale-105 opacity-100' : 'scale-100 opacity-0'}`}
+               className="w-full h-full object-cover"
             />
           )}
 
