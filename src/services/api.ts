@@ -13,10 +13,10 @@ import {
 } from '@/data/mockData';
 
 // Helper to prevent infinite hangs when Supabase tables don't exist or network fails
-export const withTimeout = <T>(promise: Promise<T>, timeoutMs = 3000): Promise<T> => {
+export const withTimeout = (promise: Promise<any>, timeoutMs = 3000): Promise<any> => {
   return Promise.race([
     promise,
-    new Promise<T>((_, reject) => setTimeout(() => reject(new Error('Timeout after ' + timeoutMs + 'ms')), timeoutMs))
+    new Promise<any>((_, reject) => setTimeout(() => reject(new Error('Timeout after ' + timeoutMs + 'ms')), timeoutMs))
   ]);
 };
 // Utility to persist mock data in Demo Mode (localStorage)
