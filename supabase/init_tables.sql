@@ -104,25 +104,7 @@ CREATE TABLE IF NOT EXISTS public.activity_logs (
     created_at timestamp with time zone DEFAULT now()
 );
 
--- 8. إنشاء جدول الإحصائيات (Statistics)
-CREATE TABLE IF NOT EXISTS public.statistics (
-    id text PRIMARY KEY,
-    total_products integer DEFAULT 0,
-    total_orders integer DEFAULT 0,
-    today_orders integer DEFAULT 0,
-    week_orders integer DEFAULT 0,
-    month_orders integer DEFAULT 0,
-    total_customers integer DEFAULT 0,
-    total_revenue numeric DEFAULT 0,
-    updated_at timestamp with time zone DEFAULT now()
-);
-
--- إدراج إحصائيات مبدئية
-INSERT INTO public.statistics (id) 
-VALUES ('main') 
-ON CONFLICT (id) DO NOTHING;
-
--- 9. إنشاء جدول ملفات المستخدمين (Profiles)
+-- 8. إنشاء جدول ملفات المستخدمين (Profiles)
 CREATE TABLE IF NOT EXISTS public.profiles (
     id uuid PRIMARY KEY, -- Linked to auth.users
     email text NOT NULL,
@@ -134,7 +116,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     updated_at timestamp with time zone DEFAULT now()
 );
 
--- 10. إنشاء جدول الصلاحيات (User Permissions)
+-- 9. إنشاء جدول الصلاحيات (User Permissions)
 CREATE TABLE IF NOT EXISTS public.user_permissions (
     user_id uuid PRIMARY KEY REFERENCES public.profiles(id) ON DELETE CASCADE,
     can_manage_products boolean DEFAULT false,
@@ -160,7 +142,6 @@ ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ads ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.statistics ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_permissions ENABLE ROW LEVEL SECURITY;
 
@@ -173,7 +154,6 @@ CREATE POLICY "Public Read Ads" ON public.ads FOR SELECT USING (is_active = true
 CREATE POLICY "Public Read Orders" ON public.orders FOR SELECT USING (true);
 
 -- السماح للمشرفين (Admins) بالإضافة والتعديل (Insert, Update, Delete)
--- (ملاحظة: لضمان حل مشكلتك فوراً بدون تعقيدات Authentication مؤقتة، فتحنا التعديل ليتم بناء الجداول، ثم يمكنك تفعيل الحماية المشددة لاحقاً)
 CREATE POLICY "Admin Write Settings" ON public.store_settings FOR ALL USING (true);
 CREATE POLICY "Admin Write Cities" ON public.cities FOR ALL USING (true);
 CREATE POLICY "Admin Write Products" ON public.products FOR ALL USING (true);
@@ -181,8 +161,6 @@ CREATE POLICY "Admin Write Categories" ON public.categories FOR ALL USING (true)
 CREATE POLICY "Admin Write Ads" ON public.ads FOR ALL USING (true);
 CREATE POLICY "Admin Write Orders" ON public.orders FOR ALL USING (true);
 CREATE POLICY "Admin Write Activity" ON public.activity_logs FOR ALL USING (true);
-CREATE POLICY "Public Read Statistics" ON public.statistics FOR SELECT USING (true);
-CREATE POLICY "Admin Write Statistics" ON public.statistics FOR ALL USING (true);
 CREATE POLICY "Admin All Profiles" ON public.profiles FOR ALL USING (true);
 CREATE POLICY "Admin All Permissions" ON public.user_permissions FOR ALL USING (true);
 
