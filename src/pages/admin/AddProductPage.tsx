@@ -9,18 +9,18 @@ import { categoriesService, productsService } from '@/services';
 import { Category, Product } from '@/types';
 import { compressImage } from '@/lib/imageCompression';
 import { useLanguage } from '@/context/LanguageContext';
+import { useToast } from '@/components/Common/Toast';
 
 const AddProductPage: React.FC = () => {
   const { id } = useParams<{ id?: string }>();
   const isEditMode = !!id;
   const navigate = useNavigate();
   const { isRTL, t, language } = useLanguage();
+  const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
   const [uploadingImages, setUploadingImages] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -64,7 +64,7 @@ const AddProductPage: React.FC = () => {
         }
       } catch (err) {
         console.error('Failed to init data', err);
-        setError(isRTL ? 'حدث خطأ أثناء تحميل البيانات' : 'Error loading data');
+        toast.error(isRTL ? 'خطأ في تحميل البيانات' : 'Error Loading Data', isRTL ? 'حدث خطأ أثناء تحميل البيانات' : 'An error occurred while loading data.');
       } finally {
         setIsLoading(false);
       }
@@ -75,7 +75,6 @@ const AddProductPage: React.FC = () => {
   const handleFileUpload = async (files: FileList) => {
     if (files.length === 0) return;
     setUploadingImages(true);
-    setError('');
 
     try {
       const fileArray = Array.from(files).filter(f => f.type.startsWith('image/'));
@@ -140,7 +139,10 @@ const AddProductPage: React.FC = () => {
       }));
     } catch (err) {
       console.error('Bulk upload error:', err);
-      setError(isRTL ? 'حدث خطأ أثناء رفع الصور' : 'Error uploading images');
+      toast.error(
+        isRTL ? 'فشل رفع الصور' : 'Image Upload Failed',
+        isRTL ? 'حدث خطأ أثناء رفع الصور، حاول مجدداً' : 'An error occurred uploading images. Please try again.'
+      );
     } finally {
       setUploadingImages(false);
       // Reset file input
@@ -232,7 +234,6 @@ const AddProductPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
     setIsSubmitting(true);
 
     try {
@@ -266,16 +267,25 @@ const AddProductPage: React.FC = () => {
         if (isEditMode && id) {
             const updated = await productsService.update(id, productData);
             if (!updated) throw new Error(t.errorSavingProduct);
-            setSuccess(t.productUpdatedSuccess);
+            toast.success(
+              isRTL ? '✅ تم التحديث بنجاح' : '✅ Product Updated',
+              isRTL ? 'تم حفظ التعديلات على المنتج بالكامل' : 'All product changes have been saved successfully.'
+            );
         } else {
             const created = await productsService.create(productData);
             if (!created) throw new Error(t.errorSavingProduct);
-            setSuccess(t.productAddedSuccess);
+            toast.success(
+              isRTL ? '✅ تمت إضافة المنتج' : '✅ Product Added',
+              isRTL ? 'تم حفظ المنتج الجديد في قاعدة البيانات' : 'New product saved to database successfully.'
+            );
         }
 
         setTimeout(() => navigate('/admin/products'), 1500);
     } catch (err: any) {
-        setError(err.message || t.errorSavingProduct);
+        toast.error(
+          isRTL ? '❌ فشل الحفظ' : '❌ Save Failed',
+          err.message || t.errorSavingProduct
+        );
     } finally {
         setIsSubmitting(false);
     }
@@ -303,19 +313,7 @@ const AddProductPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Notifications */}
-      {success && (
-        <div className="p-4 bg-green-50 border border-green-100 rounded-2xl flex items-center gap-3 text-green-700 font-black animate-in fade-in slide-in-from-top-4">
-          <Check className="w-6 h-6" />
-          <p>{success}</p>
-        </div>
-      )}
-      {error && (
-        <div className="p-4 bg-red-50 border border-red-100 rounded-2xl flex items-center gap-3 text-red-700 font-black animate-in fade-in slide-in-from-top-4">
-          <AlertCircle className="w-6 h-6" />
-          <p>{error}</p>
-        </div>
-      )}
+      {/* Notifications: removed - now using global Toast system */}
 
       <form onSubmit={handleSubmit} className="space-y-8">
         {/* Basic Info */}

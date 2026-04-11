@@ -1,52 +1,38 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  Plus,
-  Search,
-  Edit,
-  Trash2,
-  Eye,
-  EyeOff,
-  Filter,
-  MoreVertical,
-  ExternalLink,
-  Image as ImageIcon,
-  Upload,
-  Loader2,
-  AlertCircle,
-  RefreshCw,
-  CheckCircle2,
-  X,
-  Percent,
-  TrendingDown,
-  TrendingUp
+  Plus, Search, Edit, Trash2, Eye, EyeOff, MoreVertical,
+  ExternalLink, Image as ImageIcon, Upload, Loader2, AlertCircle,
+  RefreshCw, CheckCircle2, X, Percent, TrendingDown, TrendingUp, Check, Save
 } from 'lucide-react';
 import { productsService, categoriesService, hasValidCache, getCachedSync } from '@/services/api';
 import { Product, Category } from '@/types';
 import { useLanguage } from '@/context/LanguageContext';
 import { Skeleton, TableSkeleton } from '@/components/Common/Skeleton';
+import { useToast } from '@/components/Common/Toast';
 
 const AdminProductsPage: React.FC = () => {
   const { t, language, isRTL } = useLanguage();
+  const { toast } = useToast();
+  
   const [products, setProducts] = useState<Product[]>(getCachedSync<Product[]>('products_admin_all') || []);
   const [categories, setCategories] = useState<Category[]>(getCachedSync<Category[]>('categories_all') || []);
   const [isLoading, setIsLoading] = useState(!hasValidCache('products_admin_all') || !hasValidCache('categories_all'));
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
-  const [menuOpen, setMenuOpen] = useState<string | null>(null);
-  const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isBulkLoading, setIsBulkLoading] = useState(false);
   
+  // Inline Edit States
+  const [editingRow, setEditingRow] = useState<string | null>(null);
+  const [editPrice, setEditPrice] = useState<string>('');
+  const [editStock, setEditStock] = useState<string>('');
+  const [isSavingInline, setIsSavingInline] = useState(false);
+
   // Pricing Modal States
   const [isPricingModalOpen, setIsPricingModalOpen] = useState(false);
   const [pricingAction, setPricingAction] = useState<'discount' | 'increase'>('discount');
   const [pricingPercentage, setPricingPercentage] = useState<string>('');
-
-  const showToast = (type: 'success' | 'error', message: string) => {
-    setToast({ type, message });
-    setTimeout(() => setToast(null), 4000);
-  };
 
   const loadData = async () => {
     if (!hasValidCache('products_admin_all')) {
@@ -92,10 +78,10 @@ const AdminProductsPage: React.FC = () => {
     try {
       await Promise.all(selectedIds.map(id => productsService.update(id, { isVisible: visible })));
       setProducts(prev => prev.map(p => selectedIds.includes(p.id) ? { ...p, isVisible: visible } : p));
-      showToast('success', t.updatedCount.replace('{count}', String(selectedIds.length)));
+      toast.success(isRTL ? 'نجاح' : 'Success', t.updatedCount.replace('{count}', String(selectedIds.length)));
       setSelectedIds([]);
     } catch (err) {
-      showToast('error', t.errorBulkUpdate);
+      toast.error(isRTL ? 'خطأ' : 'Error', t.errorBulkUpdate);
     } finally {
       setIsBulkLoading(false);
     }
@@ -108,10 +94,10 @@ const AdminProductsPage: React.FC = () => {
       try {
         await Promise.all(selectedIds.map(id => productsService.delete(id)));
         setProducts(prev => prev.filter(p => !selectedIds.includes(p.id)));
-        showToast('success', t.deletedSuccessfully);
+        toast.success(isRTL ? 'تم الحذف' : 'Deleted', t.deletedSuccessfully);
         setSelectedIds([]);
       } catch (err) {
-        showToast('error', t.errorBulkUpdate);
+        toast.error(isRTL ? 'خطأ' : 'Error', t.errorBulkUpdate);
       } finally {
         setIsBulkLoading(false);
       }
@@ -137,11 +123,10 @@ const AdminProductsPage: React.FC = () => {
         const newPrice = Math.round(product.price * multiplier);
         
         const updateData: Partial<Product> = { price: newPrice };
-        // If discount, store the original price in compareAtPrice so it shows the <s>crossed out price</s>
         if (pricingAction === 'discount') {
           updateData.compareAtPrice = product.price;
         } else {
-          updateData.compareAtPrice = 0; // Reset existing discount if increasing price
+          updateData.compareAtPrice = 0;
         }
         
         return { id, updateData, newPrice };
@@ -155,32 +140,29 @@ const AdminProductsPage: React.FC = () => {
          return p;
       }));
       
-      showToast('success', isRTL ? `تم تحديث تخفيضات/أسعار ${selectedIds.length} منتج بنجاح!` : `Updated prices for ${selectedIds.length} products!`);
+      toast.success(
+        isRTL ? 'تحديث الأسعار' : 'Prices Updated',
+        isRTL ? `تم تحديث تخفيضات/أسعار ${selectedIds.length} منتج بنجاح!` : `Updated prices for ${selectedIds.length} products!`
+      );
       setSelectedIds([]);
       setPricingPercentage('');
     } catch (err) {
       console.error(err);
-      showToast('error', t.errorBulkUpdate || (isRTL ? 'خطأ أثناء تحديث الأسعار' : 'Error updating prices'));
+      toast.error(isRTL ? 'خطأ' : 'Error', t.errorBulkUpdate || (isRTL ? 'خطأ أثناء تحديث الأسعار' : 'Error updating prices'));
     } finally {
       setIsBulkLoading(false);
     }
   };
-
-  const filteredProducts = products.filter(product => {
-    const nameStr = product.name || '';
-    const matchesSearch = nameStr.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = !selectedCategory || product.categoryId === selectedCategory;
-    return matchesSearch && matchesCategory;
-  });
 
   const toggleVisibility = async (product: Product) => {
     try {
         const updated = await productsService.toggleVisibility(product.id);
         if (updated) {
             setProducts(prev => prev.map(p => p.id === product.id ? updated : p));
-            showToast('success', updated.isVisible ? t.productVisibleMsg : t.productHiddenMsg);
+            toast.success(isRTL ? 'تم التحديث' : 'Updated', updated.isVisible ? t.productVisibleMsg : t.productHiddenMsg);
         }
     } catch (err) {
+        toast.error(isRTL ? 'فشل التحديث' : 'Update Failed', isRTL ? 'حدث خطأ أثناء الاتصال بالخادم.' : 'Error while saving state.');
         console.error('Failed to toggle visibility', err);
     }
   };
@@ -191,18 +173,49 @@ const AdminProductsPage: React.FC = () => {
         const success = await productsService.delete(productId);
         if (success) {
             setProducts(prev => prev.filter(p => p.id !== productId));
-            showToast('success', t.deletedSuccessfully);
+            toast.success(isRTL ? 'تم الحذف' : 'Deleted', t.deletedSuccessfully);
         }
       } catch (err) {
+        toast.error(isRTL ? 'خطأ في الاتصال' : 'Connection Error', isRTL ? 'فشل الحذف' : 'Delete failed');
         console.error('Failed to delete product', err);
       }
     }
   };
 
-  const formatPrice = (price: number) => {
-    return price.toLocaleString(language === 'ar' ? 'ar-SA' : 'en-US');
+  const startInlineEdit = (product: Product) => {
+    setEditingRow(product.id);
+    setEditPrice(product.price.toString());
+    setEditStock(product.stock.toString());
   };
 
+  const saveInlineEdit = async (productId: string) => {
+    setIsSavingInline(true);
+    try {
+      const p = parseFloat(editPrice);
+      const s = parseInt(editStock, 10);
+      if (isNaN(p) || isNaN(s)) throw new Error('Invalid values');
+
+      const updated = await productsService.update(productId, { price: p, stock: s });
+      if (updated) {
+        setProducts(prev => prev.map(prod => prod.id === productId ? { ...prod, price: p, stock: s } : prod));
+        toast.success(isRTL ? '✅ تم الحفظ' : '✅ Saved', isRTL ? 'تم التعديل السريع بنجاح' : 'Inline edit saved successfully');
+      }
+    } catch (err) {
+      toast.error(isRTL ? '❌ خطأ' : '❌ Error', isRTL ? 'قيم غير صالحة' : 'Invalid values');
+    } finally {
+      setIsSavingInline(false);
+      setEditingRow(null);
+    }
+  };
+
+  const filteredProducts = products.filter(product => {
+    const nameStr = product.name || '';
+    const matchesSearch = nameStr.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = !selectedCategory || product.categoryId === selectedCategory;
+    return matchesSearch && matchesCategory;
+  });
+
+  const formatPrice = (price: number) => price.toLocaleString(language === 'ar' ? 'ar-SA' : 'en-US');
   const formatDate = (dateString: string) => {
     if (!dateString) return '-';
     return new Date(dateString).toLocaleDateString(language === 'ar' ? 'ar-SA' : 'en-US');
@@ -222,23 +235,13 @@ const AdminProductsPage: React.FC = () => {
 
   return (
     <div className="space-y-8 pb-10" dir={isRTL ? 'rtl' : 'ltr'}>
-      {/* Toast */}
-      {toast && (
-        <div className={`fixed top-12 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-3 px-8 py-4 rounded-[1.5rem] shadow-2xl text-white font-black uppercase tracking-widest text-xs animate-in slide-in-from-top-12 ${
-          toast.type === 'success' ? 'bg-black border border-white/10' : 'bg-red-600'
-        }`}>
-          {toast.type === 'success' ? <CheckCircle2 className="w-5 h-5 text-green-500" /> : <AlertCircle className="w-5 h-5 text-white" />}
-          {toast.message}
-        </div>
-      )}
-
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
           <h1 className="text-3xl font-black text-gray-900">{t.manageProducts}</h1>
           <p className="text-gray-500 font-bold">{products.length} {t.availableProducts}</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
           <button
             onClick={loadData}
             className="p-3 bg-white border border-gray-100 rounded-2xl hover:border-black transition-all"
@@ -248,7 +251,7 @@ const AdminProductsPage: React.FC = () => {
           </button>
           <Link
             to="/admin/products/import"
-            className="flex items-center gap-2 px-6 py-3 bg-white border-2 border-gray-100 rounded-2xl hover:border-black transition-all font-black text-sm"
+            className="flex items-center gap-2 px-6 py-3 bg-indigo-50 text-indigo-600 rounded-2xl hover:bg-indigo-100 transition-all font-black text-sm"
           >
             <Upload className="w-5 h-5" />
             {t.importFromUrl}
@@ -319,7 +322,7 @@ const AdminProductsPage: React.FC = () => {
               className="flex items-center gap-2 hover:text-blue-400 transition-colors font-black text-sm uppercase tracking-widest disabled:opacity-50"
             >
               <Percent className="w-5 h-5" />
-              <span className="hidden md:inline">{isRTL ? 'خصم وتعديل السعر' : 'Pricing'}</span>
+              <span className="hidden md:inline">{isRTL ? 'رسوم' : 'Pricing'}</span>
             </button>
             <button
               onClick={() => bulkToggleVisibility(false)}
@@ -374,13 +377,14 @@ const AdminProductsPage: React.FC = () => {
                 <th className="px-6 py-5 text-start text-xs font-black text-gray-400 uppercase tracking-widest">{t.productCategory}</th>
                 <th className="px-6 py-5 text-start text-xs font-black text-gray-400 uppercase tracking-widest">{t.productPrice}</th>
                 <th className="px-6 py-5 text-start text-xs font-black text-gray-400 uppercase tracking-widest">{t.stockLabel}</th>
-                <th className="px-6 py-5 text-start text-xs font-black text-gray-400 uppercase tracking-widest">{t.visibilityStatus}</th>
                 <th className="px-6 py-5 text-center text-xs font-black text-gray-400 uppercase tracking-widest">{t.actions}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {filteredProducts.map((product) => {
                 const category = categories.find(c => c.id === product.categoryId);
+                const isEditing = editingRow === product.id;
+
                 return (
                   <tr key={product.id} className={`hover:bg-gray-50/50 transition-colors ${selectedIds.includes(product.id) ? 'bg-black/[0.02]' : ''}`}>
                     <td className="px-6 py-4">
@@ -395,12 +399,7 @@ const AdminProductsPage: React.FC = () => {
                       <div className="flex items-center gap-4">
                         <div className="w-16 h-16 rounded-xl overflow-hidden border border-gray-100 shadow-sm flex-shrink-0 bg-gray-50">
                           {product.images?.[0]?.url ? (
-                              <img
-                                src={product.images[0].url}
-                                alt={product.name}
-                                className="w-full h-full object-cover"
-                                loading="lazy"
-                              />
+                              <img src={product.images[0].url} alt="" className="w-full h-full object-cover" loading="lazy" />
                           ) : (
                               <div className="w-full h-full flex items-center justify-center text-gray-300">
                                 <ImageIcon className="w-6 h-6" />
@@ -408,57 +407,121 @@ const AdminProductsPage: React.FC = () => {
                           )}
                         </div>
                         <div className="min-w-0">
-                          <p className="font-black text-gray-900 truncate max-w-[200px]">{product.name}</p>
-                          <p className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter">{t.addedAt} {formatDate(product.createdAt)}</p>
+                          <p className={`font-black text-gray-900 truncate max-w-[200px] ${!product.isVisible && 'opacity-50 line-through text-gray-400'}`}>
+                            {product.name}
+                          </p>
+                          <div className="flex gap-2 items-center mt-1">
+                            <span className={`px-2 py-0.5 rounded flex items-center gap-1 text-[10px] font-black uppercase ${
+                              product.isVisible ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
+                            }`}>
+                              <div className={`w-1.5 h-1.5 rounded-full ${product.isVisible ? 'bg-green-500' : 'bg-gray-400'}`}></div>
+                              {product.isVisible ? t.visible : t.hidden}
+                            </span>
+                            <span className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter">
+                              {t.addedAt} {formatDate(product.createdAt)}
+                            </span>
+                          </div>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
-                      <span className="text-sm font-bold text-gray-600 px-3 py-1 bg-gray-100 rounded-lg">{category?.name || '-'}</span>
+                    <td className="px-6 py-4 text-sm font-bold text-gray-600">
+                      {category?.name || '-'}
                     </td>
+                    
+                    {/* Inline Edit UI: Price */}
                     <td className="px-6 py-4">
-                      <span className="font-black text-black">{formatPrice(product.price)} {t.rial}</span>
+                      {isEditing ? (
+                        <div className="flex items-center gap-2">
+                           <input 
+                             type="number"
+                             value={editPrice}
+                             onChange={e => setEditPrice(e.target.value)}
+                             className="w-24 px-3 py-2 bg-white border-2 border-black rounded-xl font-black text-sm outline-none"
+                           />
+                           <span className="text-xs font-bold text-gray-400">{t.rial}</span>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col">
+                          {product.compareAtPrice > 0 && <span className="text-[10px] font-black text-gray-400 line-through">{formatPrice(product.compareAtPrice)}</span>}
+                          <span className="font-black text-black">{formatPrice(product.price)} {t.rial}</span>
+                        </div>
+                      )}
                     </td>
+
+                    {/* Inline Edit UI: Stock */}
                     <td className="px-6 py-4">
-                      <span className={`text-sm font-black ${
-                        product.stock > 10 ? 'text-green-600' :
-                        product.stock > 0 ? 'text-orange-600' : 'text-red-600'
-                      }`}>
-                        {product.stock} {t.stockUnits}
-                      </span>
+                      {isEditing ? (
+                        <div className="flex items-center gap-2">
+                           <input 
+                             type="number"
+                             value={editStock}
+                             onChange={e => setEditStock(e.target.value)}
+                             className="w-20 px-3 py-2 bg-white border-2 border-black rounded-xl font-black text-sm outline-none"
+                           />
+                        </div>
+                      ) : (
+                        <span className={`text-sm font-black ${
+                          product.stock > 10 ? 'text-green-600' :
+                          product.stock > 0 ? 'text-orange-600' : 'text-red-600'
+                        }`}>
+                          {product.stock} {t.stockUnits}
+                        </span>
+                      )}
                     </td>
-                    <td className="px-6 py-4">
-                      <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
-                        product.isVisible
-                          ? 'bg-green-100 text-green-700'
-                          : 'bg-gray-100 text-gray-600'
-                      }`}>
-                        {product.isVisible ? t.visible : t.hidden}
-                      </span>
-                    </td>
+
+                    {/* Actions */}
                     <td className="px-6 py-4">
                       <div className="flex justify-center gap-2">
-                         <Link
-                          to={`/admin/products/edit/${product.id}`}
-                          className="p-2 hover:bg-black hover:text-white rounded-xl transition-all border border-gray-100"
-                          title={t.edit}
-                        >
-                          <Edit className="w-4 h-4" />
-                        </Link>
-                        <button
-                          onClick={() => toggleVisibility(product)}
-                          className={`p-2 rounded-xl transition-all border border-gray-100 ${product.isVisible ? 'hover:bg-orange-50 text-gray-400 hover:text-orange-600' : 'hover:bg-green-50 text-gray-400 hover:text-green-600'}`}
-                          title={product.isVisible ? t.hidden : t.visible}
-                        >
-                          {product.isVisible ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                        </button>
-                        <button
-                          onClick={() => deleteProduct(product.id)}
-                          className="p-2 hover:bg-red-50 text-gray-400 hover:text-red-600 rounded-xl transition-all border border-gray-100"
-                          title={t.delete}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        {isEditing ? (
+                          <>
+                            <button
+                              onClick={() => saveInlineEdit(product.id)}
+                              disabled={isSavingInline}
+                              className="px-3 py-2 bg-black text-white hover:bg-green-600 rounded-xl transition-all font-black text-xs flex items-center gap-1 shadow"
+                              title={isRTL ? 'حفظ' : 'Save'}
+                            >
+                              {isSavingInline ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                            </button>
+                            <button
+                              onClick={() => setEditingRow(null)}
+                              className="px-3 py-2 bg-white border border-gray-200 text-gray-500 hover:text-black rounded-xl transition-all font-black text-xs"
+                              title={isRTL ? 'إلغاء' : 'Cancel'}
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <button
+                              onClick={() => startInlineEdit(product)}
+                              className="p-2 bg-white border border-gray-100 hover:border-black hover:text-black text-gray-500 rounded-xl transition-all"
+                              title={isRTL ? 'تعديل سريع' : 'Quick Edit'}
+                            >
+                              <Edit className="w-4 h-4" />
+                            </button>
+                            <Link
+                              to={`/admin/products/edit/${product.id}`}
+                              className="p-2 hover:bg-gray-100 text-gray-400 hover:text-gray-900 rounded-xl transition-all border border-transparent"
+                              title={isRTL ? 'تعديل متقدم' : 'Full Edit'}
+                            >
+                              <ExternalLink className="w-4 h-4" />
+                            </Link>
+                            <button
+                              onClick={() => toggleVisibility(product)}
+                              className={`p-2 rounded-xl transition-all border border-transparent ${product.isVisible ? 'hover:bg-orange-50 text-gray-400 hover:text-orange-600' : 'text-gray-300 hover:bg-green-50 hover:text-green-600'}`}
+                              title={product.isVisible ? t.hidden : t.visible}
+                            >
+                              {product.isVisible ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </button>
+                            <button
+                              onClick={() => deleteProduct(product.id)}
+                              className="p-2 hover:bg-red-50 text-gray-400 hover:text-red-600 rounded-xl transition-all border border-transparent"
+                              title={t.delete}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </>
+                        )}
                       </div>
                     </td>
                   </tr>

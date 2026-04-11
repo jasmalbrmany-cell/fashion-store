@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Filter, Grid, List, Search, X, Loader2 } from 'lucide-react';
 import { ProductCard } from '@/components/Product';
 import { productsService, categoriesService, storeSettingsService } from '@/services/api';
 import { Product, Category, StoreSettings } from '@/types';
-import { useLanguage, categoryNames } from '@/context/LanguageContext';
+import { useLanguage, categoryNames, translateCategory } from '@/context/LanguageContext';
 import { ProductGridSkeleton } from '@/components/Common/Skeleton';
 
 const ProductsPage: React.FC = () => {
@@ -13,7 +13,6 @@ const ProductsPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showFilters, setShowFilters] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -24,8 +23,13 @@ const ProductsPage: React.FC = () => {
   const [selectedColors, setSelectedColors] = useState<string[]>([]);
   const [settings, setSettings] = useState<StoreSettings | null>(null);
 
-  const availableSizes = Array.from(new Set(products.flatMap(p => p.sizes.map(s => s.name)))).sort();
-  const availableColors = Array.from(new Map(products.flatMap(p => p.colors.map(c => [c.hex, c.name]))).entries());
+  const availableSizes = useMemo(() => 
+    Array.from(new Set(products.flatMap(p => p.sizes.map(s => s.name)))).sort()
+  , [products]);
+
+  const availableColors = useMemo(() => 
+    Array.from(new Map(products.flatMap(p => p.colors.map(c => [c.hex, c.name]))).entries())
+  , [products]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -58,8 +62,8 @@ const ProductsPage: React.FC = () => {
     setSortBy(sort);
   }, [searchParams]);
 
-  useEffect(() => {
-    if (loading) return;
+  const filteredProducts = useMemo(() => {
+    if (loading) return [];
 
     let result = [...products];
 
@@ -100,7 +104,7 @@ const ProductsPage: React.FC = () => {
         break;
     }
 
-    setFilteredProducts(result);
+    return result;
   }, [selectedCategory, searchQuery, sortBy, priceRange, selectedSizes, selectedColors, products, loading]);
 
   const handleCategoryChange = (categoryId: string) => {
@@ -145,7 +149,7 @@ const ProductsPage: React.FC = () => {
   }
 
   const selectedCategoryName = selectedCategory
-    ? (categoryNames[selectedCategory]?.[language] || categories.find(c => c.id === selectedCategory)?.name || t.allProducts)
+    ? (translateCategory(selectedCategory, categories.find(c => c.id === selectedCategory)?.name || '', language))
     : t.allProducts;
 
   return (
@@ -237,7 +241,7 @@ const ProductsPage: React.FC = () => {
                         selectedCategory === category.id ? 'bg-black text-white shadow-lg' : 'text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800'
                       }`}
                     >
-                      {categoryNames[category.id]?.[language] || category.name}
+                      {translateCategory(category.id, category.name, language)}
                     </button>
                   ))}
                 </div>
@@ -347,7 +351,7 @@ const ProductsPage: React.FC = () => {
                 <h4 className="font-black text-[10px] text-gray-400 mb-4 uppercase tracking-[0.2em]">{t.categories}</h4>
                 <div className="grid grid-cols-1 gap-2">
                    <button onClick={() => { handleCategoryChange(''); setShowFilters(false); }} className={`py-3 px-4 rounded-xl text-start font-bold text-sm ${!selectedCategory ? 'bg-black text-white' : 'bg-gray-50 dark:bg-gray-900 text-gray-500'}`}>{t.allProducts}</button>
-                   {categories.map(c => <button key={c.id} onClick={() => { handleCategoryChange(c.id); setShowFilters(false); }} className={`py-3 px-4 rounded-xl text-start font-bold text-sm ${selectedCategory === c.id ? 'bg-black text-white' : 'bg-gray-50 dark:bg-gray-900 text-gray-500'}`}>{categoryNames[c.id]?.[language] || c.name}</button>)}
+                   {categories.map(c => <button key={c.id} onClick={() => { handleCategoryChange(c.id); setShowFilters(false); }} className={`py-3 px-4 rounded-xl text-start font-bold text-sm ${selectedCategory === c.id ? 'bg-black text-white' : 'bg-gray-50 dark:bg-gray-900 text-gray-500'}`}>{translateCategory(c.id, c.name, language)}</button>)}
                 </div>
               </div>
 

@@ -4,9 +4,11 @@ import { adsService, hasValidCache, getCachedSync } from '@/services/api';
 import { Ad, AdType, AdPosition } from '@/types';
 import { useLanguage } from '@/context/LanguageContext';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+import { useToast } from '@/components/Common/Toast';
 
 const AdsPage: React.FC = () => {
   const { t, isRTL } = useLanguage();
+  const { toast } = useToast();
   const [ads, setAds] = useState<Ad[]>(getCachedSync<Ad[]>('ads_all') || []);
   const [isLoading, setIsLoading] = useState(!hasValidCache('ads_all'));
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -14,7 +16,6 @@ const AdsPage: React.FC = () => {
   const [editingAd, setEditingAd] = useState<Ad | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [isUploading, setIsUploading] = useState(false);
-  const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [formData, setFormData] = useState({
     title: '',
     type: 'image' as AdType,
@@ -25,9 +26,9 @@ const AdsPage: React.FC = () => {
     isActive: true,
   });
 
-  const showToast = (type: 'success' | 'error', message: string) => {
-    setToast({ type, message });
-    setTimeout(() => setToast(null), 4000);
+  const showToast = (type: 'success' | 'error', msg: string) => {
+    if (type === 'success') toast.success(msg);
+    else toast.error(msg);
   };
 
   const fetchAds = async () => {
@@ -234,19 +235,7 @@ const AdsPage: React.FC = () => {
 
   return (
     <div className="space-y-6" dir={isRTL ? 'rtl' : 'ltr'}>
-      {/* Toast */}
-      {toast && (
-        <div className={`fixed top-12 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-3 px-8 py-4 rounded-[1.5rem] shadow-2xl text-white font-black uppercase tracking-widest text-xs animate-in slide-in-from-top-12 ${
-          toast.type === 'success' ? 'bg-black border border-white/10' : 'bg-red-600'
-        }`}>
-          {toast.type === 'success' ? (
-              <div className="p-1 bg-green-500 rounded-full">
-                  <CheckCircle2 className={`w-4 h-4 text-white`} />
-              </div>
-          ) : <AlertCircle className="w-5 h-5" />}
-          {toast.message}
-        </div>
-      )}
+      {/* Toast: now handled globally */}
 
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">

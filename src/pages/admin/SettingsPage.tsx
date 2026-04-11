@@ -4,13 +4,14 @@ import { storeSettingsService, categoriesService } from '@/services/api';
 import { StoreSettings, Category, City } from '@/types';
 import { useLanguage } from '@/context/LanguageContext';
 import { hasValidCache, getCachedSync } from '@/services/api';
+import { useToast } from '@/components/Common/Toast';
 
 const SettingsPage: React.FC = () => {
   const { isRTL, t } = useLanguage();
+  const { toast } = useToast();
   const [settings, setSettings] = useState<StoreSettings | null>(getCachedSync<StoreSettings>('settings_main'));
   const [categories, setCategories] = useState<Category[]>(getCachedSync<Category[]>('categories_all') || []);
   const [isSaving, setIsSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
   const [isLoading, setIsLoading] = useState(!hasValidCache('settings_main'));
 
   useEffect(() => {
@@ -41,17 +42,27 @@ const SettingsPage: React.FC = () => {
     // Emergency unblock timeout
     const safetyTimeout = setTimeout(() => {
         setIsSaving(false);
-        setSaved(false);
     }, 10000);
 
     try {
       const result = await storeSettingsService.update(settings);
       if (result) {
-        setSaved(true);
-        setTimeout(() => setSaved(false), 3000);
+        toast.success(
+          isRTL ? '✅ تم حفظ الإعدادات' : '✅ Settings Saved',
+          isRTL ? 'تم حفظ جميع إعدادات المتجر بنجاح في قاعدة البيانات' : 'All store settings saved to database successfully.'
+        );
+      } else {
+        toast.error(
+          isRTL ? '❌ فشل الحفظ' : '❌ Save Failed',
+          isRTL ? 'لم يتم حفظ الإعدادات، حاول مرة أخرى' : 'Settings could not be saved. Please try again.'
+        );
       }
     } catch (err) {
       console.error('Failed to save settings:', err);
+      toast.error(
+        isRTL ? '❌ خطأ في الاتصال' : '❌ Connection Error',
+        isRTL ? 'تعذر الاتصال بقاعدة البيانات' : 'Could not connect to the database.'
+      );
     } finally {
       clearTimeout(safetyTimeout);
       setIsSaving(false);
@@ -343,15 +354,7 @@ const SettingsPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Floating Success Indicator */}
-        {saved && (
-          <div className={`fixed bottom-10 ${isRTL ? 'left-10' : 'right-10'} flex items-center gap-3 bg-black text-white px-8 py-5 rounded-2xl shadow-2xl animate-in slide-in-from-bottom-10 z-50 border border-white/10`}>
-            <div className="p-1 bg-green-500 rounded-full">
-                <CheckCircle2 className="w-5 h-5 text-white" />
-            </div>
-            <span className="font-black uppercase tracking-widest text-sm">{t.savedSuccessfully}</span>
-          </div>
-        )}
+        {/* Floating success: now handled by global Toast system */}
       </form>
     </div>
   );

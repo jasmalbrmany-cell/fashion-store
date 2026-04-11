@@ -102,7 +102,7 @@ async function scrapeProductLinks(listingUrl: string): Promise<{ href: string; n
     const matches = html.matchAll(linkPattern);
 
     for (const m of matches) {
-      let href = m[0];
+      const href = m[0];
       let url = m[1];
       if (!url) continue;
       if (url.startsWith('/')) url = base + url;
@@ -122,7 +122,7 @@ async function scrapeProductLinks(listingUrl: string): Promise<{ href: string; n
         const imgMatch = href.match(/src=["'](https?:\/\/[^"']+\.(?:jpg|jpeg|png|webp)[^"']*)/i);
         const image = imgMatch?.[1] || '';
         // Try to find price
-        const priceMatch = href.match(/(\d[\d,\.]+)\s*(?:﷼|ريال|SAR|YER|\$|€)/i);
+        const priceMatch = href.match(/(\d[\d,.]+)\s*(?:﷼|ريال|SAR|YER|\$|€)/i);
         const price = priceMatch ? parseFloat(priceMatch[1].replace(/,/g, '')) : 0;
 
         if (name && name.length > 2) {

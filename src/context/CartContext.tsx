@@ -3,6 +3,8 @@ import { CartItem, Product, ProductSize, ProductColor } from '@/types';
 
 interface CartContextType {
   items: CartItem[];
+  isCartOpen: boolean;
+  setIsCartOpen: (isOpen: boolean) => void;
   addItem: (product: Product, size?: ProductSize, color?: ProductColor, quantity?: number) => void;
   removeItem: (itemId: string) => void;
   updateQuantity: (itemId: string, quantity: number) => void;
@@ -15,6 +17,7 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [items, setItems] = useState<CartItem[]>([]);
+  const [isCartOpen, setIsCartOpen] = useState(false);
 
   // Load cart from localStorage on mount
   useEffect(() => {
@@ -96,6 +99,8 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     <CartContext.Provider
       value={{
         items,
+        isCartOpen,
+        setIsCartOpen,
         addItem,
         removeItem,
         updateQuantity,

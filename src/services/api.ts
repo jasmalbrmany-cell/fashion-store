@@ -42,15 +42,15 @@ const setStorageItem = <T>(key: string, value: T): void => {
 };
 
 // Local state for Demo Mode, initialized from localStorage or initial mock data
-let mockProducts: Product[] = getStorageItem(STORAGE_KEYS.PRODUCTS, initialProducts) || [];
-let mockCategories: Category[] = getStorageItem(STORAGE_KEYS.CATEGORIES, initialCategories) || [];
-let mockCities: City[] = getStorageItem(STORAGE_KEYS.CITIES, initialCities) || [];
-let mockCurrencies: Currency[] = getStorageItem(STORAGE_KEYS.CURRENCIES, initialCurrencies) || [];
-let mockOrders: Order[] = getStorageItem(STORAGE_KEYS.ORDERS, initialOrders) || [];
-let mockAds: Ad[] = getStorageItem(STORAGE_KEYS.ADS, initialAds) || [];
-let mockActivityLogs: ActivityLog[] = getStorageItem(STORAGE_KEYS.ACTIVITY, initialActivityLogs) || [];
-let mockStoreSettings = getStorageItem(STORAGE_KEYS.SETTINGS, initialStoreSettings) || initialStoreSettings;
-let mockUsers: User[] = getStorageItem(STORAGE_KEYS.USERS, initialUsers) || [];
+const mockProducts: Product[] = getStorageItem(STORAGE_KEYS.PRODUCTS, initialProducts) || [];
+const mockCategories: Category[] = getStorageItem(STORAGE_KEYS.CATEGORIES, initialCategories) || [];
+const mockCities: City[] = getStorageItem(STORAGE_KEYS.CITIES, initialCities) || [];
+const mockCurrencies: Currency[] = getStorageItem(STORAGE_KEYS.CURRENCIES, initialCurrencies) || [];
+const mockOrders: Order[] = getStorageItem(STORAGE_KEYS.ORDERS, initialOrders) || [];
+const mockAds: Ad[] = getStorageItem(STORAGE_KEYS.ADS, initialAds) || [];
+const mockActivityLogs: ActivityLog[] = getStorageItem(STORAGE_KEYS.ACTIVITY, initialActivityLogs) || [];
+const mockStoreSettings = getStorageItem(STORAGE_KEYS.SETTINGS, initialStoreSettings) || initialStoreSettings;
+const mockUsers: User[] = getStorageItem(STORAGE_KEYS.USERS, initialUsers) || [];
 
 // Cache duration (5 minutes)
 const CACHE_TTL = 5 * 60 * 1000;

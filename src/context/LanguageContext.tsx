@@ -1390,6 +1390,24 @@ export const categoryNames: Record<string, Record<'ar' | 'en', string>> = {
   'cat-7': { ar: 'ملابس أطفال', en: 'Kids Clothes' },
 };
 
+// Heuristic map for Arabic names to English
+export const arabicToEnglishMap: Record<string, string> = {
+  'ملابس نسائية': "Women's Clothing",
+  'ملابس رجالية': "Men's Clothing",
+  'أحذية': "Shoes",
+  'إكسسوارات': "Accessories",
+  'حقائب': "Bags",
+  'عطور': "Perfumes",
+  'ملابس أطفال': "Kids Clothes",
+  'الكل': "All",
+  'عادي': "Standard",
+};
+
+export const translateCategory = (id: string, name: string, lang: Language) => {
+  if (lang === 'ar') return name;
+  return categoryNames[id]?.en || arabicToEnglishMap[name] || name;
+};
+
 interface LanguageContextType {
   language: Language;
   setLanguage: (lang: Language) => void;

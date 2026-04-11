@@ -9,6 +9,7 @@ import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import { usersService, hasValidCache, getCachedSync, clearCache } from '@/services/api';
 import { useLanguage } from '@/context/LanguageContext';
+import { useToast } from '@/components/Common/Toast';
 
 interface UserPermissions {
   can_manage_products: boolean;
@@ -42,7 +43,7 @@ const UsersPage: React.FC = () => {
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterRole, setFilterRole] = useState<string>('all');
-  const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const { toast } = useToast();
   const [showPassword, setShowPassword] = useState(false);
   const [permissions, setPermissions] = useState<UserPermissions>(defaultPermissions);
 
@@ -65,10 +66,7 @@ const UsersPage: React.FC = () => {
     can_export_data: t.exportData,
   };
 
-  const showToast = (type: 'success' | 'error', message: string) => {
-    setToast({ type, message });
-    setTimeout(() => setToast(null), 4000);
-  };
+
 
   const fetchUsers = useCallback(async () => {
     if (!hasValidCache('users_all')) {
@@ -148,10 +146,10 @@ const UsersPage: React.FC = () => {
       if (!isSupabaseConfigured()) {
         if (editingUser) {
           await usersService.update(editingUser.id, formData);
-          showToast('success', t.userUpdatedSuccess);
+          toast.success(isRTL ? 'نجاح' : 'Success', t.userUpdatedSuccess);
         } else {
           await usersService.create(formData);
-          showToast('success', t.userCreatedSuccess);
+          toast.success(isRTL ? 'نجاح' : 'Success', t.userCreatedSuccess);
         }
         await fetchUsers();
         handleCloseModal();
@@ -166,7 +164,7 @@ const UsersPage: React.FC = () => {
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 
       if (editingUser) {
-        let updatePassword = formData.password && formData.password.length >= 6 ? formData.password : undefined;
+        const updatePassword = formData.password && formData.password.length >= 6 ? formData.password : undefined;
         
         // Update user completely via edge function to bypass RLS safely
         const res = await fetch(`${supabaseUrl}/functions/v1/update-user`, {
@@ -187,7 +185,7 @@ const UsersPage: React.FC = () => {
            throw new Error(errData.error || (isRTL ? 'فشل في تحديث المستخدم' : 'Failed to update user'));
         }
 
-        showToast('success', t.userUpdatedSuccess);
+        toast.success(isRTL ? 'نجاح' : 'Success', t.userUpdatedSuccess);
       } else {
         if (!formData.password || formData.password.length < 6) {
           throw new Error(isRTL ? 'كلمة المرور يجب أن تكون 6 أحرف على الأقل' : 'Password must be at least 6 characters');
@@ -210,7 +208,9 @@ const UsersPage: React.FC = () => {
           });
           const result = await res.json();
           if (res.ok && result.success) createdViaEdge = true;
-        } catch { }
+        } catch (e) {
+          console.error('Failed to create user via edge function:', e);
+        }
 
         if (!createdViaEdge) {
           const { data: newUser, error: signUpError } = await supabase.auth.signUp({
@@ -238,14 +238,14 @@ const UsersPage: React.FC = () => {
             }
           }
         }
-        showToast('success', t.userCreatedSuccess);
+        toast.success(isRTL ? 'نجاح' : 'Success', t.userCreatedSuccess);
       }
 
       clearCache('users_all');
       handleCloseModal();
       setTimeout(() => fetchUsers(), 100);
     } catch (err: any) {
-      showToast('error', err.message);
+      toast.error(isRTL ? 'خطأ' : 'Error', err.message);
     } finally {
       setIsSubmitting(false);
     }
@@ -253,11 +253,11 @@ const UsersPage: React.FC = () => {
 
   const handleDelete = async (user: User) => {
     if (user.id === currentUser?.id) {
-      showToast('error', t.cannotDeleteSelf);
+      toast.error(isRTL ? 'خطأ' : 'Error', t.cannotDeleteSelf);
       return;
     }
     if (user.role === 'admin') {
-      showToast('error', t.cannotDeleteAdmin);
+      toast.error(isRTL ? 'خطأ' : 'Error', t.cannotDeleteAdmin);
       return;
     }
     if (!window.confirm(t.confirmDeleteUser + ` "${user.name}"?`)) return;
@@ -276,9 +276,9 @@ const UsersPage: React.FC = () => {
         });
       }
       setUsers(prev => prev.filter(u => u.id !== user.id));
-      showToast('success', t.userDeletedSuccess);
+      toast.success(isRTL ? 'نجاح' : 'Success', t.userDeletedSuccess);
     } catch {
-      showToast('error', isRTL ? 'فشل في حذف المستخدم' : 'Failed to delete user');
+      toast.error(isRTL ? 'خطأ' : 'Error', isRTL ? 'فشل في حذف المستخدم' : 'Failed to delete user');
     }
   };
 
@@ -311,16 +311,6 @@ const UsersPage: React.FC = () => {
 
   return (
     <div className="space-y-6" dir={isRTL ? 'rtl' : 'ltr'}>
-      {/* Toast */}
-      {toast && (
-        <div className={`fixed top-12 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-3 px-8 py-4 rounded-[1.5rem] shadow-2xl text-white font-black uppercase tracking-widest text-xs animate-in slide-in-from-top-12 ${
-          toast.type === 'success' ? 'bg-black border border-white/10' : 'bg-red-600'
-        }`}>
-          {toast.type === 'success' ? <div className="p-1 bg-green-500 rounded-full"><CheckCircle className="w-4 h-4" /></div> : <AlertCircle className="w-5 h-5" />}
-          {toast.message}
-        </div>
-      )}
-
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>

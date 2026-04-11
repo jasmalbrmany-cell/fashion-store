@@ -3,7 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Search, ShoppingCart, User, Heart, Menu, X, LayoutDashboard, Store, Languages, Download, Moon, Sun } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
-import { useLanguage } from '@/context/LanguageContext';
+import { useLanguage, categoryNames, translateCategory } from '@/context/LanguageContext';
 import { useTheme } from '@/context/ThemeContext';
 import { categoriesService, getCachedSync } from '@/services/api';
 import { Category } from '@/types';
@@ -12,7 +12,7 @@ import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 const Header: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { getItemCount } = useCart();
+  const { getItemCount, setIsCartOpen } = useCart();
   const { isAuthenticated, user, logout, isAdmin } = useAuth();
   const { language, toggleLanguage, t, isRTL } = useLanguage();
   const { toggleTheme, isDark } = useTheme();
@@ -86,28 +86,40 @@ const Header: React.FC = () => {
   };
 
   return (
-    <header className="bg-white shadow-md sticky top-0 z-50">
+    <header className="bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md sticky top-0 z-50 border-b border-zinc-200 dark:border-zinc-800 transition-colors duration-300">
+      {/* Ticker / Announcement Bar */}
+      <div className="bg-primary text-white text-xs font-semibold py-1.5 overflow-hidden flex">
+        <div className="animate-marquee gap-8 w-max">
+          <span>{isRTL ? '🚀 التوصيل مجاني للطلبات فوق 500 ريال!' : '🚀 Free shipping on orders over 500 SAR!'}</span>
+          <span className="mx-8">{isRTL ? '✨ خصم 10% للمستخدمين الجدد استخدم كود: NEW10' : '✨ 10% off for new users using code: NEW10'}</span>
+          <span className="mx-8">{isRTL ? '🔥 عروض الصيف بدأت الآن' : '🔥 Summer Sale is here'}</span>
+          <span className="mx-8">{isRTL ? '🚀 التوصيل مجاني للطلبات فوق 500 ريال!' : '🚀 Free shipping on orders over 500 SAR!'}</span>
+          <span className="mx-8">{isRTL ? '✨ خصم 10% للمستخدمين الجدد استخدم كود: NEW10' : '✨ 10% off for new users using code: NEW10'}</span>
+          <span className="mx-8">{isRTL ? '🔥 عروض الصيف بدأت الآن' : '🔥 Summer Sale is here'}</span>
+        </div>
+      </div>
+
       {/* Realtime Notification Toast */}
       {notification && (
-        <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-[100] bg-black/90 backdrop-blur-md text-white px-6 py-4 rounded-3xl shadow-2xl flex items-center gap-4 animate-in slide-in-from-top-10 fade-in duration-500 border border-white/20 cursor-pointer hover:bg-black transition-colors min-w-[300px] w-[90%] sm:w-auto overflow-hidden`}
+        <div className={`fixed top-12 left-1/2 -translate-x-1/2 z-[100] bg-zinc-900/90 backdrop-blur-md text-white px-6 py-4 rounded-full shadow-2xl flex items-center gap-4 animate-in slide-in-from-top-10 fade-in duration-500 border border-white/10 cursor-pointer hover:bg-zinc-950 transition-colors min-w-[300px] w-[90%] sm:w-auto overflow-hidden`}
            onClick={() => { setNotification(null); navigate(notification.type === 'product' ? '/products' : '/'); }}>
            
-           <div className={`w-2 h-full absolute top-0 ${isRTL ? 'right-0' : 'left-0'} ${notification.type === 'product' ? 'bg-green-400' : 'bg-yellow-400'} animate-pulse`}></div>
+           <div className={`w-2 h-full absolute top-0 ${isRTL ? 'right-0' : 'left-0'} ${notification.type === 'product' ? 'bg-primary' : 'bg-yellow-400'} animate-pulse`}></div>
            
            <div className="flex-1 ml-2 mr-2">
-              <p className="font-black text-sm uppercase tracking-widest text-yellow-300 mb-1">{notification.title}</p>
-              <p className="font-semibold text-xs text-gray-300 leading-relaxed">{notification.body}</p>
+              <p className="font-black text-sm uppercase tracking-widest text-primary-200 mb-0.5">{notification.title}</p>
+              <p className="font-semibold text-xs text-zinc-300 leading-relaxed">{notification.body}</p>
            </div>
            
            <button onClick={(e) => { e.stopPropagation(); setNotification(null); }} className="p-2 hover:bg-white/10 rounded-full transition shrink-0">
-             <X className="w-4 h-4 text-gray-400 hover:text-white" />
+             <X className="w-4 h-4 text-zinc-400 hover:text-white" />
            </button>
         </div>
       )}
 
       {/* Top Bar */}
-      <div className="bg-gradient-to-r from-black via-gray-900 to-black text-white">
-        <div className="container mx-auto px-4 py-2.5">
+      <div className="bg-zinc-900 text-zinc-100 hidden sm:block border-b border-zinc-800">
+        <div className="container mx-auto px-4 py-2">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-4 text-sm">
               <a href={`https://wa.me/967777123456`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 hover:text-green-400 transition">
@@ -143,7 +155,7 @@ const Header: React.FC = () => {
                 <span>{language === 'ar' ? 'EN' : 'عر'}</span>
               </button>
               <span className="hidden sm:inline text-gray-300">|</span>
-              <Link to="/track-order" className="text-sm hover:text-gray-300 transition">
+              <Link to="/track-order" className="hidden sm:inline text-sm hover:text-gray-300 transition">
                 {t.trackOrder}
               </Link>
             </div>
@@ -152,31 +164,31 @@ const Header: React.FC = () => {
       </div>
 
       {/* Main Header */}
-      <div className="container mx-auto px-4 py-4">
+      <div className="container mx-auto px-4 py-3">
         <div className="flex items-center justify-between gap-4">
           {/* Logo */}
           <Link to="/" className="flex items-center">
-            <img src="/logo.jpg" alt="Fashion Hub" className="h-14 md:h-16 w-auto" />
+            <img src="/logo.jpg" alt="Fashion Hub" className="h-12 md:h-14 w-auto rounded-md shadow-sm" />
           </Link>
 
           {/* Search Bar - Desktop */}
-          <form onSubmit={handleSearch} className="hidden lg:flex flex-1 max-w-xl mx-6">
-            <div className="relative w-full">
+          <form onSubmit={handleSearch} className="hidden lg:flex flex-1 max-w-xl mx-8">
+            <div className="relative w-full group">
               <input
                 type="text"
                 placeholder={t.searchPlaceholder}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full px-5 py-2.5 pr-12 bg-gray-100 border-0 rounded-full focus:ring-2 focus:ring-black focus:bg-white transition-all"
+                className="w-full px-5 py-2.5 pr-12 bg-zinc-100 dark:bg-zinc-900 dark:text-zinc-200 border border-transparent rounded-full focus:ring-2 focus:ring-primary focus:bg-white dark:focus:bg-zinc-800 transition-all duration-300 ease-in-out group-hover:border-zinc-300 dark:group-hover:border-zinc-700"
               />
-              <button type="submit" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-black transition">
+              <button type="submit" className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-primary transition-colors">
                 <Search className="w-5 h-5" />
               </button>
             </div>
           </form>
 
           {/* Icons */}
-          <div className="flex items-center gap-2 md:gap-4">
+          <div className="flex items-center gap-2 md:gap-5">
             {/* Admin Toggle */}
             {isAuthenticated && isAdmin && (
               <Link
@@ -198,21 +210,25 @@ const Header: React.FC = () => {
             )}
 
             {/* Favorites - Desktop */}
-            <Link to="/favorites" className="hidden md:flex flex-col items-center text-gray-700 hover:text-black transition">
-              <Heart className="w-6 h-6" />
-              <span className="text-xs mt-0.5">{t.favorites}</span>
+            <Link to="/favorites" className="hidden md:flex flex-col items-center text-zinc-500 dark:text-zinc-400 hover:text-primary transition-colors group">
+              <div className="p-2 rounded-full group-hover:bg-primary/10 transition-colors">
+                <Heart className="w-5 h-5" />
+              </div>
+              <span className="text-[10px] font-medium">{t.favorites}</span>
             </Link>
 
-            {/* Cart */}
-            <Link to="/cart" className="relative flex flex-col items-center text-gray-700 hover:text-black transition">
-              <ShoppingCart className="w-6 h-6" />
-              {cartCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 flex items-center justify-center rounded-full font-bold">
-                  {cartCount}
-                </span>
-              )}
-              <span className="text-xs mt-0.5 hidden md:block">{t.cart}</span>
-            </Link>
+            {/* Cart Drawer Toggle */}
+            <button onClick={() => setIsCartOpen(true)} className="relative flex flex-col items-center text-zinc-500 dark:text-zinc-400 hover:text-primary transition-colors group">
+              <div className="p-2 rounded-full group-hover:bg-primary/10 transition-colors relative">
+                <ShoppingCart className="w-5 h-5" />
+                {cartCount > 0 && (
+                  <span className="absolute top-0 right-0 translate-x-1/2 -translate-y-1/4 bg-primary text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full font-bold shadow-sm">
+                    {cartCount}
+                  </span>
+                )}
+              </div>
+              <span className="text-[10px] font-medium hidden md:block">{t.cart}</span>
+            </button>
 
             {/* User */}
             {isAuthenticated ? (
@@ -289,11 +305,11 @@ const Header: React.FC = () => {
         </form>
       </div>
 
-      {/* Categories Nav - Desktop - Dynamic */}
-      <nav className="hidden lg:block bg-black text-white">
+      {/* Categories Nav - Desktop - Full Clean Look */}
+      <nav className="hidden lg:block border-t border-zinc-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-950/50 backdrop-blur-sm">
         <div className="container mx-auto px-4">
-          <div className="flex items-center gap-1 py-2 overflow-x-auto scrollbar-none">
-            <Link to="/products" className="px-4 py-2 hover:bg-white hover:text-black rounded-lg whitespace-nowrap transition font-medium">
+          <div className="flex items-center justify-center gap-6 py-2.5 overflow-x-auto scrollbar-none text-zinc-600 dark:text-zinc-300 text-sm font-semibold">
+            <Link to="/products" className="hover:text-primary transition-colors whitespace-nowrap">
               {t.allProducts}
             </Link>
             {categories.length > 0
@@ -303,7 +319,7 @@ const Header: React.FC = () => {
                     to={`/products?category=${cat.id}`}
                     className="px-4 py-2 hover:bg-white hover:text-black rounded-lg whitespace-nowrap transition"
                   >
-                    {cat.name}
+                    {translateCategory(cat.id, cat.name, language)}
                   </Link>
                 ))
               : [
@@ -315,7 +331,7 @@ const Header: React.FC = () => {
                   { id: 'cat-6', label: t.perfumes },
                   { id: 'cat-7', label: t.kidsClothes },
                 ].map(c => (
-                  <Link key={c.id} to={`/products?category=${c.id}`} className="px-4 py-2 hover:bg-white hover:text-black rounded-lg whitespace-nowrap transition">
+                  <Link key={c.id} to={`/products?category=${c.id}`} className="hover:text-primary transition-colors whitespace-nowrap">
                     {c.label}
                   </Link>
                 ))
@@ -361,7 +377,7 @@ const Header: React.FC = () => {
                       className="py-3 px-4 text-gray-700 hover:bg-gray-100 rounded-lg transition"
                       onClick={() => setIsMobileMenuOpen(false)}
                     >
-                      {cat.name}
+                      {translateCategory(cat.id, cat.name, language)}
                     </Link>
                   ))
                 : [

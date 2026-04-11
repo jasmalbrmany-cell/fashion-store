@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, ChevronLeft, ChevronRight, Loader2, Shirt, Watch, ShoppingBag, Sparkles, Footprints, Crown, Star, Diamond, Glasses } from 'lucide-react';
 import { ProductCard } from '@/components/Product';
 import { productsService, categoriesService, adsService, storeSettingsService } from '@/services/api';
-import { useLanguage, categoryNames } from '@/context/LanguageContext';
+import { useLanguage, categoryNames, translateCategory } from '@/context/LanguageContext';
 import { Skeleton } from '@/components/Common/Skeleton';
 import type { Product, Category, Ad, StoreSettings } from '@/types';
 
@@ -103,94 +103,99 @@ const HomePage: React.FC = () => {
 
   return (
     <div>
-      {/* Hero Banner Carousel */}
-      <section className="relative bg-gray-100">
-        <div className="container mx-auto px-4 py-8">
-          {activeBanners.length > 0 ? (
-            <div className="relative h-64 md:h-96 rounded-xl overflow-hidden">
-              {activeBanners[currentBanner].type === 'video' ? (
-                <video
-                  src={activeBanners[currentBanner].imageUrl}
-                  className="w-full h-full object-cover"
-                  autoPlay muted loop playsInline
-                />
-              ) : (
-                <img
-                  src={activeBanners[currentBanner].imageUrl}
-                  alt={activeBanners[currentBanner].title}
-                  className="w-full h-full object-cover"
-                />
-              )}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end">
-                <div className="p-6 md:p-10 text-white">
-                  <h1 className="text-2xl md:text-4xl font-bold mb-2">
-                    {activeBanners[currentBanner].title}
-                  </h1>
-                  <p className="text-lg md:text-xl opacity-90 mb-4">
-                    {activeBanners[currentBanner].content}
-                  </p>
-                  <Link
-                    to="/products"
-                    className="inline-flex items-center gap-2 bg-white text-primary-900 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition"
-                  >
-                    {t.shopNow}
+      {/* Hero Section - Split Screen / Bento Grid */}
+      <section className="relative overflow-hidden bg-zinc-50 dark:bg-zinc-950 pt-8 pb-16 md:pt-16 md:pb-24">
+        <div className="container mx-auto px-4">
+          <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-8">
+            
+            {/* Left Content (Text & CTA) */}
+            <div className="w-full lg:w-1/2 space-y-8 animate-in slide-in-from-bottom-8 fade-in duration-1000 fill-mode-both">
+              <h1 className="text-5xl md:text-7xl font-black tracking-tight text-zinc-900 dark:text-white leading-[1.1] md:leading-[1.1]">
+                {activeBanners.length > 0 
+                  ? activeBanners[currentBanner].title 
+                  : (t.welcomeTo + ' ' + (settings?.name || 'Fashion Hub'))}
+              </h1>
+              
+              <p className="text-lg md:text-xl text-zinc-600 dark:text-zinc-400 max-w-lg leading-relaxed font-medium">
+                {activeBanners.length > 0 
+                  ? activeBanners[currentBanner].content 
+                  : 'اكتشف أحدث صيحات الموضة والأزياء العصرية مع تشكيلة واسعة وأسعار لا تقبل المنافسة'}
+              </p>
+              
+              <div className="flex flex-wrap gap-4 pt-4">
+                <Link
+                  to="/products"
+                  className="group flex items-center justify-center gap-3 bg-primary text-white px-8 py-4 rounded-full font-bold text-lg hover:scale-105 transition-all duration-300 shadow-xl shadow-primary/20"
+                >
+                  <span>{t.shopNow}</span>
+                  <span className="group-hover:translate-x-1 rtl:group-hover:-translate-x-1 transition-transform">
                     {isAr ? <ArrowLeft className="w-5 h-5" /> : <ArrowRight className="w-5 h-5" />}
-                  </Link>
-                </div>
+                  </span>
+                </Link>
               </div>
 
+              {/* Banner Controls (If multiple banners exist) */}
               {activeBanners.length > 1 && (
-                <>
-                  <button onClick={prevBanner}
-                    className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 hover:bg-white rounded-full flex items-center justify-center shadow-lg transition">
-                    <ChevronRight className="w-6 h-6" />
+                <div className="flex items-center gap-4 pt-6">
+                  <button onClick={prevBanner} className="p-3 rounded-full border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-300 transition-colors">
+                    {isAr ? <ChevronRight className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
                   </button>
-                  <button onClick={nextBanner}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 hover:bg-white rounded-full flex items-center justify-center shadow-lg transition">
-                    <ChevronLeft className="w-6 h-6" />
-                  </button>
-                  <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+                  <div className="flex gap-2">
                     {activeBanners.map((_, index) => (
                       <button key={index} onClick={() => setCurrentBanner(index)}
-                        className={`w-3 h-3 rounded-full transition ${index === currentBanner ? 'bg-white' : 'bg-white/50'}`}
+                        className={`transition-all h-2.5 rounded-full ${index === currentBanner ? 'w-10 bg-primary' : 'w-2.5 bg-zinc-300 dark:bg-zinc-700'}`}
                       />
                     ))}
                   </div>
-                </>
+                  <button onClick={nextBanner} className="p-3 rounded-full border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-300 transition-colors">
+                    {isAr ? <ChevronLeft className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
+                  </button>
+                </div>
               )}
             </div>
-          ) : (
-            <div className="relative h-72 md:h-[450px] rounded-3xl overflow-hidden bg-black flex items-center justify-center text-white shadow-2xl">
-              {/* Abstract Animated Glows */}
-              <div className="absolute top-0 left-0 w-full h-full overflow-hidden">
-                <div className="absolute -top-20 -left-20 w-72 h-72 bg-purple-600/30 blur-[80px] rounded-full mix-blend-screen animate-pulse"></div>
-                <div className="absolute bottom-10 right-10 w-96 h-96 bg-pink-600/20 blur-[100px] rounded-full mix-blend-screen animate-pulse" style={{ animationDelay: '1s' }}></div>
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-gradient-to-r from-gray-900 to-black rounded-full blur-[120px] opacity-80"></div>
-              </div>
 
-              {/* Content Box with Glassmorphism */}
-              <div className="relative z-10 text-center px-6 py-10 md:p-14 backdrop-blur-sm border border-white/10 rounded-3xl bg-black/40 shadow-2xl overflow-hidden transform hover:scale-[1.02] transition-transform duration-500">
-                <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent pointer-events-none"></div>
-                <h1 className="text-4xl md:text-6xl font-black mb-6 tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-gray-200 to-gray-400">
-                  {t.welcomeTo} {settings?.name || 'Fashion Hub'}
-                </h1>
-                <p className="text-lg md:text-xl mb-8 text-gray-300 font-medium max-w-xl mx-auto leading-relaxed">
-                  اكتشف أحدث صيحات الموضة والأزياء العصرية مع تشكيلة واسعة وأسعار لا تقبل المنافسة
-                </p>
-                <div className="flex justify-center">
-                  <Link to="/products"
-                    className="group relative inline-flex items-center gap-3 bg-white text-black px-10 py-4 rounded-full font-bold text-lg hover:bg-gray-100 transition-all shadow-[0_0_40px_rgba(255,255,255,0.3)] overflow-hidden">
-                    <span className="relative z-10">{t.browseProducts}</span>
-                    <span className="relative z-10 transform group-hover:translate-x-1 transition-transform">
-                      {isAr ? <ArrowLeft className="w-5 h-5" /> : <ArrowRight className="w-5 h-5" />}
-                    </span>
-                    {/* Hover effect glow */}
-                    <div className="absolute inset-0 bg-gradient-to-r from-gray-100 to-white opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                  </Link>
-                </div>
+            {/* Right Content (Bento Grid) */}
+            <div className="w-full lg:w-1/2 h-[450px] md:h-[600px] animate-in slide-in-from-bottom-12 fade-in duration-1000 delay-300 fill-mode-both">
+              <div className="grid grid-cols-2 grid-rows-2 gap-4 h-full">
+                {activeBanners.length > 0 ? (
+                  <>
+                    <div className="row-span-2 rounded-[2.5rem] overflow-hidden shadow-2xl relative group">
+                      {activeBanners[currentBanner].type === 'video' ? (
+                        <video src={activeBanners[currentBanner].imageUrl} className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700" autoPlay muted loop playsInline />
+                      ) : (
+                        <img src={activeBanners[currentBanner].imageUrl} alt="Main Banner" className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700" />
+                      )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-zinc-900/60 via-transparent to-transparent"></div>
+                    </div>
+                    
+                    <div className="rounded-[2rem] overflow-hidden shadow-xl relative group bg-zinc-200 dark:bg-zinc-800">
+                      {activeBanners.length > 1 ? (
+                        <img src={activeBanners[(currentBanner + 1) % activeBanners.length].imageUrl} alt="Secondary Banner" className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700 opacity-90" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-zinc-100 to-zinc-300 dark:from-zinc-800 dark:to-zinc-900">
+                          <Shirt className="w-16 h-16 text-zinc-400 opacity-50" />
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="rounded-[2rem] overflow-hidden shadow-xl relative group bg-gradient-to-br from-emerald-400 to-teal-500 flex justify-center items-center overflow-hidden">
+                       <Sparkles className="w-32 h-32 text-white/20 absolute -right-8 -top-8 animate-pulse" />
+                       <h3 className="text-white font-black text-2xl z-10 text-center px-4 leading-tight max-w-[150px]">
+                         {isAr ? 'عروض حصرية' : 'Exclusive Deals'}
+                       </h3>
+                    </div>
+                  </>
+                ) : (
+                  <div className="col-span-2 row-span-2 rounded-[3rem] overflow-hidden shadow-2xl relative bg-black flex items-center justify-center">
+                    <div className="absolute -top-20 -left-20 w-72 h-72 bg-primary/30 blur-[80px] rounded-full mix-blend-screen animate-pulse"></div>
+                    <div className="absolute bottom-10 right-10 w-96 h-96 bg-pink-600/20 blur-[100px] rounded-full mix-blend-screen animate-pulse" style={{ animationDelay: '1s' }}></div>
+                    <img src="/logo.jpg" alt="Logo" className="w-32 h-32 md:w-48 md:h-48 object-contain z-10 opacity-50 rounded-full" />
+                  </div>
+                )}
               </div>
             </div>
-          )}
+            
+          </div>
         </div>
       </section>
 
@@ -229,7 +234,7 @@ const HomePage: React.FC = () => {
                   </span>
                 </div>
                 <h3 className="font-extrabold text-lg text-gray-800 group-hover:text-black transition tracking-tight">
-                  {categoryNames[category.id]?.[language] || category.name}
+                  {translateCategory(category.id, category.name, language)}
                 </h3>
               </Link>
             ))}

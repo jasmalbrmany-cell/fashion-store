@@ -3,15 +3,16 @@ import { Plus, Edit, Trash2, Search, DollarSign, X, Loader2, Info, CheckCircle2,
 import { currenciesService, hasValidCache, getCachedSync } from '@/services/api';
 import { Currency } from '@/types';
 import { useLanguage } from '@/context/LanguageContext';
+import { useToast } from '@/components/Common/Toast';
 
 const CurrenciesPage: React.FC = () => {
   const { t, language, isRTL } = useLanguage();
+  const { toast } = useToast();
   const [currencies, setCurrencies] = useState<Currency[]>(getCachedSync<Currency[]>('currencies_all') || []);
   const [loading, setLoading] = useState(!hasValidCache('currencies_all'));
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCurrency, setEditingCurrency] = useState<Currency | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [formData, setFormData] = useState({
     code: '',
     name: '',
@@ -19,10 +20,6 @@ const CurrenciesPage: React.FC = () => {
     symbol: '',
   });
 
-  const showToast = (type: 'success' | 'error', message: string) => {
-    setToast({ type, message });
-    setTimeout(() => setToast(null), 4000);
-  };
 
   const loadData = async () => {
     try {
@@ -96,10 +93,10 @@ const CurrenciesPage: React.FC = () => {
         }
       }
       handleCloseModal();
-      showToast('success', editingCurrency ? t.currencyUpdated : t.currencyAdded);
+      toast.success(isRTL ? 'نجاح' : 'Success', editingCurrency ? t.currencyUpdated : t.currencyAdded);
     } catch (error) {
       console.error('Failed to save currency:', error);
-      showToast('error', t.currencySaveError);
+      toast.error(isRTL ? 'خطأ' : 'Error', t.currencySaveError);
     }
   };
 
@@ -112,9 +109,9 @@ const CurrenciesPage: React.FC = () => {
       const success = await currenciesService.delete(id);
       if (success) {
         setCurrencies(prev => prev.filter(c => c.id !== id));
-        showToast('success', t.currencyDeleted);
+        toast.success(isRTL ? 'نجاح' : 'Success', t.currencyDeleted);
       } else {
-        showToast('error', t.currencyDeleteError);
+        toast.error(isRTL ? 'خطأ' : 'Error', t.currencyDeleteError);
       }
     }
   };
@@ -130,15 +127,6 @@ const CurrenciesPage: React.FC = () => {
 
   return (
     <div className="space-y-6" dir={isRTL ? 'rtl' : 'ltr'}>
-      {/* Toast */}
-      {toast && (
-        <div className={`fixed top-12 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-3 px-8 py-4 rounded-[1.5rem] shadow-2xl text-white font-black uppercase tracking-widest text-xs animate-in slide-in-from-top-12 ${
-          toast.type === 'success' ? 'bg-black border border-white/10' : 'bg-red-600'
-        }`}>
-          {toast.type === 'success' ? <CheckCircle2 className="w-5 h-5 text-green-500" /> : <AlertCircle className="w-5 h-5 text-white" />}
-          {toast.message}
-        </div>
-      )}
 
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">

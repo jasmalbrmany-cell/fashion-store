@@ -12,13 +12,14 @@ interface ProductCardProps {
 
 const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
   const navigate = useNavigate();
-  const { addItem } = useCart();
+  const { addItem, setIsCartOpen } = useCart();
   const { t, language, isRTL } = useLanguage();
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
 
   const primaryImage = product.images.find(img => img.isPrimary) || product.images[0];
+  const secondaryImage = product.images.filter(img => img.id !== primaryImage?.id)[0];
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -40,7 +41,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
     const defaultSize = product.sizes[0];
     const defaultColor = product.colors[0];
     addItem(product, defaultSize, defaultColor, 1);
-    navigate('/cart');
+    if (setIsCartOpen) setIsCartOpen(true);
   };
 
   const toggleWishlist = (e: React.MouseEvent) => {
@@ -55,85 +56,97 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
 
   return (
     <div
-      className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm overflow-hidden hover:shadow-2xl transition-all duration-500 h-full flex flex-col group animate-fadeIn"
+      className="bg-white dark:bg-zinc-950 rounded-[2rem] border border-transparent hover:border-zinc-200 dark:border-zinc-900 dark:hover:border-zinc-800 shadow-sm hover:shadow-2xl transition-all duration-500 h-full flex flex-col group animate-fadeIn"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       dir={isRTL ? 'rtl' : 'ltr'}
     >
-      <Link to={`/product/${product.id}`} className="block flex-1 flex flex-col">
+      <Link to={`/product/${product.id}`} className="block flex-1 flex flex-col relative">
         {/* Image */}
-        <div className="relative aspect-[3/4] overflow-hidden bg-gray-100 dark:bg-gray-800">
+        <div className="relative aspect-[3/4] overflow-hidden bg-zinc-100 dark:bg-zinc-900 rounded-t-[2rem]">
           {!imageLoaded && (
-            <div className="absolute inset-0 flex items-center justify-center bg-gray-100 dark:bg-gray-800 shimmer">
-            </div>
+            <div className="absolute inset-0 flex items-center justify-center bg-zinc-100 dark:bg-zinc-900 shimmer"></div>
           )}
           <img
             src={primaryImage?.url}
             alt={product.name}
             loading="lazy"
-            className={`w-full h-full object-cover transition-transform duration-700 ease-out ${isHovered ? 'scale-110' : 'scale-100'} ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
+            className={`w-full h-full object-cover transition-all duration-700 ease-out z-0 ${isHovered && secondaryImage ? 'scale-110 opacity-0' : 'scale-100 opacity-100'} ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
             onLoad={() => setImageLoaded(true)}
           />
+          {secondaryImage && (
+            <img 
+               src={secondaryImage.url}
+               alt={`${product.name} - view`}
+               loading="lazy"
+               className={`absolute inset-0 w-full h-full object-cover transition-all duration-700 ease-out z-0 ${isHovered ? 'scale-105 opacity-100' : 'scale-100 opacity-0'}`}
+            />
+          )}
 
-          {/* Badges */}
-          <div className={`absolute top-3 ${isRTL ? 'right-3' : 'left-3'} flex flex-col gap-2`}>
+          {/* Badges - Flat Badges */}
+          <div className={`absolute top-4 ${isRTL ? 'right-4' : 'left-4'} flex flex-col gap-2.5 z-10`}>
             {product.sourceUrl && (
-              <span className="bg-black/80 dark:bg-white/80 dark:text-black backdrop-blur-md text-white text-[10px] md:text-sm px-3 py-1.5 rounded-full font-black uppercase tracking-widest animate-fadeIn">
+              <span className="bg-zinc-100/90 dark:bg-zinc-800/90 text-zinc-900 dark:text-zinc-100 backdrop-blur-md text-[10px] md:text-xs px-3 py-1.5 rounded-full font-bold shadow-sm">
                 {t.imported}
               </span>
             )}
             {product.stock <= 3 && product.stock > 0 && (
-              <span className="bg-red-500 text-white text-[10px] md:text-sm px-3 py-1.5 rounded-full font-black animate-fadeIn">
+              <span className="bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-400 backdrop-blur-md text-[10px] md:text-xs px-3 py-1.5 rounded-full font-bold shadow-sm">
                 {t.onlyLeft.replace('{count}', product.stock.toString())}
               </span>
             )}
           </div>
 
-          {/* Actions */}
-          <div className={`absolute top-3 ${isRTL ? 'left-3' : 'right-3'} flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300`}>
+          {/* Actions - Wishlist */}
+          <div className={`absolute top-4 ${isRTL ? 'left-4' : 'right-4'} flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10`}>
             <button
               onClick={toggleWishlist}
-              className={`w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-md shadow-lg transition-all duration-300 hover:scale-110 ${
+              className={`w-9 h-9 rounded-full flex items-center justify-center backdrop-blur-md shadow-[0_0_20px_rgba(0,0,0,0.1)] transition-transform hover:scale-110 active:scale-95 ${
                 isWishlisted
-                   ? 'bg-red-500 text-white'
-                  : 'bg-white/90 dark:bg-gray-800/90 text-gray-600 dark:text-gray-300'
+                   ? 'bg-rose-500 text-white'
+                  : 'bg-white/80 dark:bg-zinc-800/80 text-zinc-500 dark:text-zinc-300'
               }`}
             >
-              <Heart className={`w-5 h-5 ${isWishlisted ? 'fill-current' : ''}`} />
+              <Heart className={`w-4 h-4 ${isWishlisted ? 'fill-current' : ''}`} />
             </button>
           </div>
 
-          {/* Quick Actions Overlay */}
-          <div className={`absolute inset-x-0 bottom-0 p-4 bg-gradient-to-t from-black/80 via-black/40 to-transparent transition-all duration-500 ease-out ${isHovered ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}>
+          {/* Quick Actions Slide-up */}
+          <div className={`absolute inset-x-2 bottom-2 p-2 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-lg rounded-2xl border border-zinc-200/50 dark:border-zinc-700/50 shadow-xl transition-all duration-500 ease-out z-10 ${isHovered ? 'translate-y-0 opacity-100 visible' : 'translate-y-full opacity-0 invisible'}`}>
             <div className="flex gap-2">
               <button
                 onClick={handleQuickBuy}
                 disabled={product.stock === 0}
-                className="flex-1 py-3 bg-white text-black rounded-xl font-black uppercase tracking-widest hover:bg-gray-100 transition shadow-xl active:scale-95 disabled:opacity-50 text-[10px] sm:text-xs"
+                className="flex-1 py-2.5 bg-primary text-white rounded-xl font-bold uppercase tracking-wider hover:bg-primary/90 transition shadow-md active:scale-95 disabled:opacity-50 text-[10px] md:text-xs"
               >
                 {t.buyNow}
               </button>
               <button
                 onClick={handleAddToCart}
                 disabled={product.stock === 0}
-                className="w-12 h-12 bg-white/20 backdrop-blur-md text-white rounded-xl flex items-center justify-center hover:bg-white hover:text-black transition shadow-xl active:scale-95 disabled:opacity-50"
+                className="w-10 h-10 shrink-0 bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 rounded-xl flex items-center justify-center hover:bg-zinc-200 dark:hover:bg-zinc-700 transition shadow-sm active:scale-95 disabled:opacity-50"
               >
-                <ShoppingCart className="w-5 h-5" />
+                <ShoppingCart className="w-4 h-4" />
               </button>
             </div>
           </div>
         </div>
 
-        {/* Info */}
-        <div className="p-4 flex-1 flex flex-col dark:bg-gray-900 transition-colors">
-          <h3 className="font-black text-gray-900 dark:text-white mb-2 line-clamp-2 hover:text-primary-600 transition text-sm leading-snug flex-1 uppercase tracking-tight">
+        {/* Info Area */}
+        <div className="p-5 flex-1 flex flex-col bg-transparent transition-colors z-20">
+          <h3 className="font-bold text-zinc-800 dark:text-zinc-100 mb-2 line-clamp-2 group-hover:text-primary transition-colors text-sm md:text-base leading-relaxed tracking-tight">
             {product.name}
           </h3>
-          <div className="mt-auto">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-base sm:text-lg font-bold text-black">
-                {formatPrice(product.price)} {t.rial}
-              </span>
+          <div className="mt-auto pt-2">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-baseline gap-1">
+                <span className="text-lg md:text-xl font-black text-zinc-900 dark:text-white">
+                  {formatPrice(product.price)}
+                </span>
+                <span className="text-xs text-zinc-500 dark:text-zinc-400 font-medium pb-1">
+                  {t.rial}
+                </span>
+              </div>
               {/* Color Options */}
               {product.colors.length > 0 && (
                 <div className="flex gap-1">

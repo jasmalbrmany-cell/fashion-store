@@ -5,21 +5,21 @@ import {
   DollarSign, ArrowUp, UserPlus, Activity, RefreshCw,
   ShoppingBag, Eye, Loader2, ArrowRight
 } from 'lucide-react';
-import { statisticsService, productsService } from '@/services/api';
-import { Statistics, Product } from '@/types';
+import { statisticsService, productsService, ordersService, categoriesService, hasValidCache, getCachedSync } from '@/services/api';
+import { Statistics, Product, Order, Category } from '@/types';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { Skeleton, CardSkeleton, TableSkeleton } from '@/components/Common/Skeleton';
 import { SalesChart, CategoryChart } from '@/components/Admin/DashboardCharts';
 import { LowStockAlerts } from '@/components/Admin/LowStockAlerts';
 
-import { hasValidCache, getCachedSync } from '@/services/api';
-
 const DashboardPage: React.FC = () => {
   const { user } = useAuth();
   const { t, isRTL, language } = useLanguage();
   const [stats, setStats] = useState<Statistics | null>(getCachedSync<Statistics>('statistics_main'));
   const [products, setProducts] = useState<Product[]>(getCachedSync<Product[]>('products_admin_all') || []);
+  const [salesData, setSalesData] = useState<{name: string, total: number}[]>([]);
+  const [categoryData, setCategoryData] = useState<{name: string, total: number}[]>([]);
   const [isLoading, setIsLoading] = useState(!hasValidCache('statistics_main') || !hasValidCache('products_admin_all'));
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
 
@@ -28,12 +28,50 @@ const DashboardPage: React.FC = () => {
         setIsLoading(true);
     }
     try {
-      const [statsData, productsData] = await Promise.all([
+      const [statsData, productsData, orders, categories] = await Promise.all([
         statisticsService.get(),
-        productsService.getAllAdmin()
+        productsService.getAllAdmin(),
+        ordersService.getAll(),
+        categoriesService.getAll()
       ]);
       setStats(statsData);
       setProducts(productsData || []);
+      
+      // Compute Sales Data (Last 7 Days)
+      const last7Days = Array.from({ length: 7 }, (_, i) => {
+        const d = new Date();
+        d.setDate(d.getDate() - (6 - i));
+        return {
+          date: d.toDateString(),
+          name: d.toLocaleDateString(language === 'ar' ? 'ar-SA' : 'en-US', { weekday: 'short' }),
+          total: 0
+        };
+      });
+
+      orders.forEach(order => {
+         const orderDate = new Date(order.createdAt).toDateString();
+         const day = last7Days.find(d => d.date === orderDate);
+         if (day && order.status === 'completed') {
+            day.total += order.total;
+         }
+      });
+      setSalesData(last7Days.map(d => ({ name: d.name, total: Math.round(d.total) })));
+
+      // Compute Category Data
+      const catCount = productsData.reduce((acc, p) => {
+         acc[p.categoryId] = (acc[p.categoryId] || 0) + 1;
+         return acc;
+      }, {} as Record<string, number>);
+      
+      const computedCategoryData = Object.entries(catCount)
+         .map(([catId, total]) => {
+            const cat = categories.find(c => c.id === catId);
+            return { name: cat ? cat.name : 'Unknown', total };
+         })
+         .sort((a, b) => b.total - a.total)
+         .slice(0, 5); // Take top 5
+      
+      setCategoryData(computedCategoryData);
       setLastUpdated(new Date());
     } catch (err) {
       console.error('Failed to fetch dashboard stats:', err);
@@ -161,15 +199,15 @@ const DashboardPage: React.FC = () => {
                 </div>
                 <div className="flex items-center gap-2 text-green-500 bg-green-50 px-3 py-1 rounded-full border border-green-100">
                     <TrendingUp className="w-4 h-4" />
-                    <span className="text-[10px] font-black">+12.4%</span>
+                    <span className="text-[10px] font-black">{t.statusCompleted || (isRTL ? 'مكتملة' : 'Completed')}</span>
                 </div>
               </div>
-              {isLoading && !stats ? <Skeleton className="h-[300px] w-full" /> : <SalesChart isRTL={isRTL} />}
+              {isLoading && !stats ? <Skeleton className="h-[300px] w-full" /> : <SalesChart isRTL={isRTL} salesData={salesData} />}
           </div>
 
           <div className="bg-white rounded-3xl border-2 border-gray-100 p-8 shadow-sm space-y-6">
               <h2 className="text-xl font-black text-gray-900 tracking-tighter">{t.topCategories || (isRTL ? 'أفضل الفئات' : 'Top Categories')}</h2>
-              {isLoading && !stats ? <Skeleton className="h-[250px] w-full" /> : <CategoryChart isRTL={isRTL} />}
+              {isLoading && !stats ? <Skeleton className="h-[250px] w-full" /> : <CategoryChart isRTL={isRTL} categoryData={categoryData} />}
               <div className="pt-4 border-t border-gray-50 space-y-3">
                   <div className="flex items-center justify-between">
                       <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">{t.totalOrders}</span>

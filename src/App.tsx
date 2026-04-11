@@ -6,6 +6,8 @@ import { LanguageProvider } from '@/context/LanguageContext';
 import { ThemeProvider } from '@/context/ThemeContext';
 import { Layout } from '@/components/Layout';
 import { Loader2 } from 'lucide-react';
+import CartDrawer from '@/components/Cart/CartDrawer';
+import ToastProvider, { ToastContainer } from '@/components/Common/Toast';
 
 // Lazy load pages for performance
 const HomePage = lazy(() => import('@/pages/HomePage'));
@@ -45,53 +47,57 @@ const PageLoader = () => (
 function App() {
   return (
     <BrowserRouter>
-      <LanguageProvider>
-        <ThemeProvider>
-          <AuthProvider>
-            <CartProvider>
-              <Suspense fallback={<PageLoader />}>
-                <Routes>
-                  {/* صفحات المتجر العام */}
-                  <Route path="/" element={<Layout />}>
-                    <Route index element={<HomePage />} />
-                    <Route path="products" element={<ProductsPage />} />
-                    <Route path="product/:id" element={<ProductDetailPage />} />
-                    <Route path="cart" element={<CartPage />} />
-                    <Route path="checkout" element={<CheckoutPage />} />
-                    <Route path="order-success" element={<OrderSuccessPage />} />
-                    <Route path="track-order" element={<TrackOrderPage />} />
-                    <Route path="my-orders" element={<MyOrdersPage />} />
-                    <Route path="profile" element={<ProfilePage />} />
-                    <Route path="login" element={<LoginPage />} />
-                    <Route path="register" element={<RegisterPage />} />
-                  </Route>
+      <ToastProvider>
+        <LanguageProvider>
+          <ThemeProvider>
+            <AuthProvider>
+              <CartProvider>
+                <ToastContainer />
+                <Suspense fallback={<PageLoader />}>
+                  <Routes>
+                    {/* صفحات المتجر العام */}
+                    <Route path="/" element={<Layout />}>
+                      <Route index element={<HomePage />} />
+                      <Route path="products" element={<ProductsPage />} />
+                      <Route path="product/:id" element={<ProductDetailPage />} />
+                      <Route path="cart" element={<CartPage />} />
+                      <Route path="checkout" element={<CheckoutPage />} />
+                      <Route path="order-success" element={<OrderSuccessPage />} />
+                      <Route path="track-order" element={<TrackOrderPage />} />
+                      <Route path="my-orders" element={<MyOrdersPage />} />
+                      <Route path="profile" element={<ProfilePage />} />
+                      <Route path="login" element={<LoginPage />} />
+                      <Route path="register" element={<RegisterPage />} />
+                    </Route>
 
-                  {/* صفحات لوحة التحكم */}
-                  <Route path="/admin" element={<AdminLayout />}>
-                    <Route index element={<DashboardPage />} />
-                    <Route path="products" element={<AdminProductsPage />} />
-                    <Route path="products/add" element={<AddProductPage />} />
-                    <Route path="products/edit/:id" element={<AddProductPage />} />
-                    <Route path="products/import" element={<ImportProductPage />} />
-                    <Route path="products/bulk" element={<BulkImportPage />} />
-                    <Route path="products/store" element={<StoreImportPage />} />
-                    <Route path="orders" element={<AdminOrdersPage />} />
-                    <Route path="users" element={<UsersPage />} />
-                    <Route path="activity" element={<ActivityPage />} />
-                    <Route path="settings" element={<SettingsPage />} />
-                    <Route path="ads" element={<AdsPage />} />
-                    <Route path="cities" element={<CitiesPage />} />
-                    <Route path="currencies" element={<CurrenciesPage />} />
-                    <Route path="profile" element={<ProfilePage />} />
-                  </Route>
+                    {/* صفحات لوحة التحكم */}
+                    <Route path="/admin" element={<AdminLayout />}>
+                      <Route index element={<DashboardPage />} />
+                      <Route path="products" element={<AdminProductsPage />} />
+                      <Route path="products/add" element={<AddProductPage />} />
+                      <Route path="products/edit/:id" element={<AddProductPage />} />
+                      <Route path="products/import" element={<ImportProductPage />} />
+                      <Route path="products/bulk" element={<BulkImportPage />} />
+                      <Route path="products/store" element={<StoreImportPage />} />
+                      <Route path="orders" element={<AdminOrdersPage />} />
+                      <Route path="users" element={<UsersPage />} />
+                      <Route path="activity" element={<ActivityPage />} />
+                      <Route path="settings" element={<SettingsPage />} />
+                      <Route path="ads" element={<AdsPage />} />
+                      <Route path="cities" element={<CitiesPage />} />
+                      <Route path="currencies" element={<CurrenciesPage />} />
+                      <Route path="profile" element={<ProfilePage />} />
+                    </Route>
 
-                  <Route path="*" element={<Navigate to="/" replace />} />
-                </Routes>
-              </Suspense>
-            </CartProvider>
-          </AuthProvider>
-        </ThemeProvider>
-      </LanguageProvider>
+                    <Route path="*" element={<Navigate to="/" replace />} />
+                  </Routes>
+                </Suspense>
+                <CartDrawer />
+              </CartProvider>
+            </AuthProvider>
+          </ThemeProvider>
+        </LanguageProvider>
+      </ToastProvider>
     </BrowserRouter>
   );
 }

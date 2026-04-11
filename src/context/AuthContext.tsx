@@ -98,7 +98,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const initAuth = async () => {
       const timeoutId = setTimeout(() => {
         setIsLoading(false);
-      }, 8000);
+      }, 3000);
 
       try {
         const savedUser = localStorage.getItem('fashionHubUser');
@@ -107,7 +107,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             const parsed = JSON.parse(savedUser);
             setUser(parsed);
             if (parsed.role !== 'customer') fetchPermissions(parsed.id);
-          } catch (e) {}
+          } catch (e) {
+            console.error('Failed to parse saved user:', e);
+            localStorage.removeItem('fashionHubUser');
+          }
         }
 
         if (isSupabaseConfigured()) {

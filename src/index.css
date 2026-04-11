@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700;800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -26,20 +28,12 @@
   }
 
   body {
-    @apply text-gray-900;
-    background-image: url('/app-bg.png');
-    background-attachment: fixed;
-    background-position: center;
-    background-repeat: no-repeat;
-    background-size: cover;
-    background-color: #fef08a; /* Fallback yellow */
+    @apply text-zinc-900 bg-zinc-50 font-sans;
     direction: rtl;
   }
 
   .dark body {
-    background-image: none !important;
-    background-color: #111 !important;
-    color: #f3f4f6 !important;
+    @apply text-zinc-100 bg-zinc-950 font-sans;
   }
 
   /* RTL Support */
@@ -157,3 +151,24 @@
 .delay-300 { animation-delay: 300ms; }
 .delay-400 { animation-delay: 400ms; }
 .delay-500 { animation-delay: 500ms; }
+
+/* Marquee / Ticker Animation */
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+@keyframes marquee-rtl {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(50%); }
+}
+.animate-marquee {
+  display: inline-flex;
+  white-space: nowrap;
+  animation: marquee 25s linear infinite;
+}
+[dir="rtl"] .animate-marquee {
+  animation: marquee-rtl 25s linear infinite;
+}
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
