@@ -12,6 +12,13 @@ import {
   mockUsers as initialUsers 
 } from '@/data/mockData';
 
+// Helper to prevent infinite hangs when Supabase tables don't exist or network fails
+export const withTimeout = <T>(promise: Promise<T>, timeoutMs = 3000): Promise<T> => {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => setTimeout(() => reject(new Error('Timeout after ' + timeoutMs + 'ms')), timeoutMs))
+  ]);
+};
 // Utility to persist mock data in Demo Mode (localStorage)
 const STORAGE_KEYS = {
   PRODUCTS: 'fashionhub_v2_products',
@@ -1005,10 +1012,10 @@ export const ordersService = {
       return mockOrders;
     }
 
-    const { data, error } = await (supabase as any)
+    const { data, error } = await withTimeout((supabase as any)
       .from('orders')
       .select('*')
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false }));
 
     if (error) {
       console.error('Error fetching orders:', error);
@@ -1410,10 +1417,10 @@ export const usersService = {
       return mockUsers;
     }
 
-    const { data, error } = await (supabase as any)
+    const { data, error } = await withTimeout((supabase as any)
       .from('profiles')
       .select('*')
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false }));
 
     if (error) {
       console.error('Error fetching users:', error);
