@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { rateLimit, corsHeaders, handleOptions } from './_middleware';
 
 // ─── Site Configs ─────────────────────────────────────────────────────────────
 const SITE_CONFIGS: Record<string, { currency: string; baseCategory: string }> = {
@@ -286,10 +287,22 @@ function parseHtml(html: string, url: string, currency = 'YER') {
 
 // ─── Main Handler ─────────────────────────────────────────────────────────────
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  if (req.method === 'OPTIONS') return res.status(200).end();
+  // Handle CORS preflight
+  if (handleOptions(req, res)) return;
+  corsHeaders(res);
+
+  // Apply rate limiting
+  const { allowed, remaining } = rateLimit(req);
+  res.setHeader('X-RateLimit-Remaining', remaining.toString());
+  
+  if (!allowed) {
+    return res.status(429).json({ 
+      success: false, 
+      error: 'تم تجاوز الحد المسموح من الطلبات. يرجى المحاولة بعد دقيقة.',
+      retryAfter: 60 
+    });
+  }
+
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const { url } = req.body || {};

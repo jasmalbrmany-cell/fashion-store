@@ -152,13 +152,26 @@ const ProductDetailPage: React.FC = () => {
           <BreadcrumbIcon className="w-4 h-4 flex-shrink-0" />
           {category && (
             <>
-              <button onClick={() => navigate(`/products?category=${category.id}`)} className="hover:text-black whitespace-nowrap">
+              {/* Show Parent if this is a subcategory */}
+              {category.parentId && (
+                <>
+                  <button 
+                    onClick={() => navigate(`/products?category=${category.parentId}`)} 
+                    className="hover:text-black whitespace-nowrap opacity-60"
+                  >
+                    {/* We might need to fetch the parent name or use a cache */}
+                    {isRTL ? 'القسم الرئيسي' : 'Parent Category'}
+                  </button>
+                  <BreadcrumbIcon className="w-4 h-4 flex-shrink-0" />
+                </>
+              )}
+              <button onClick={() => navigate(`/products?category=${category.id}`)} className="hover:text-black whitespace-nowrap font-bold">
                 {categoryNames[category.id]?.[language] || category.name}
               </button>
               <BreadcrumbIcon className="w-4 h-4 flex-shrink-0" />
             </>
           )}
-          <span className="text-gray-900 font-medium whitespace-nowrap">{product.name}</span>
+          <span className="text-gray-900 font-black whitespace-nowrap truncate max-w-[200px]">{product.name}</span>
         </nav>
 
         <div className="bg-white rounded-3xl shadow-sm overflow-hidden border">

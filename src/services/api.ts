@@ -48,16 +48,16 @@ const setStorageItem = <T>(key: string, value: T): void => {
   localStorage.setItem(key, JSON.stringify(value));
 };
 
-// Local state for Demo Mode, initialized from localStorage or initial mock data
-const mockProducts: Product[] = getStorageItem(STORAGE_KEYS.PRODUCTS, initialProducts) || [];
-const mockCategories: Category[] = getStorageItem(STORAGE_KEYS.CATEGORIES, initialCategories) || [];
-const mockCities: City[] = getStorageItem(STORAGE_KEYS.CITIES, initialCities) || [];
-const mockCurrencies: Currency[] = getStorageItem(STORAGE_KEYS.CURRENCIES, initialCurrencies) || [];
-const mockOrders: Order[] = getStorageItem(STORAGE_KEYS.ORDERS, initialOrders) || [];
-const mockAds: Ad[] = getStorageItem(STORAGE_KEYS.ADS, initialAds) || [];
-const mockActivityLogs: ActivityLog[] = getStorageItem(STORAGE_KEYS.ACTIVITY, initialActivityLogs) || [];
-const mockStoreSettings = getStorageItem(STORAGE_KEYS.SETTINGS, initialStoreSettings) || initialStoreSettings;
-const mockUsers: User[] = getStorageItem(STORAGE_KEYS.USERS, initialUsers) || [];
+// Local state for fallback viewing only (never for saving)
+const mockProducts: Product[] = initialProducts || [];
+const mockCategories: Category[] = initialCategories || [];
+const mockCities: City[] = initialCities || [];
+const mockCurrencies: Currency[] = initialCurrencies || [];
+const mockOrders: Order[] = [];
+const mockAds: Ad[] = [];
+const mockActivityLogs: ActivityLog[] = [];
+const mockStoreSettings = initialStoreSettings;
+const mockUsers: User[] = [];
 
 // Cache duration (5 minutes)
 const CACHE_TTL = 5 * 60 * 1000;
@@ -115,43 +115,8 @@ export const getCachedSync = <T>(key: string): T | null => {
   return getFromCache(key) as T | null;
 };
 
-// Syncing functions
-const syncProducts = () => {
-  setStorageItem(STORAGE_KEYS.PRODUCTS, mockProducts);
-  setToCache('products_all', mockProducts);
-};
-const syncCategories = () => {
-  setStorageItem(STORAGE_KEYS.CATEGORIES, mockCategories);
-  setToCache('categories_all', mockCategories);
-};
-const syncCities = () => {
-  setStorageItem(STORAGE_KEYS.CITIES, mockCities);
-  setToCache('cities_all', mockCities);
-};
-const syncCurrencies = () => {
-  setStorageItem(STORAGE_KEYS.CURRENCIES, mockCurrencies);
-  setToCache('currencies_all', mockCurrencies);
-};
-const syncOrders = () => {
-  setStorageItem(STORAGE_KEYS.ORDERS, mockOrders);
-  setToCache('orders_all', mockOrders);
-};
-const syncAds = () => {
-  setStorageItem(STORAGE_KEYS.ADS, mockAds);
-  setToCache('ads_all', mockAds);
-};
-const syncActivity = () => {
-  setStorageItem(STORAGE_KEYS.ACTIVITY, mockActivityLogs);
-  setToCache('activity_all', mockActivityLogs);
-};
-const syncSettings = () => {
-  setStorageItem(STORAGE_KEYS.SETTINGS, mockStoreSettings);
-  setToCache('settings_main', mockStoreSettings);
-};
-const syncUsers = () => {
-  setStorageItem(STORAGE_KEYS.USERS, mockUsers);
-  setToCache('users_all', mockUsers);
-};
+// Database Sync Functions removed to force direct Supabase usage.
+// State changes now happen only on the server, not in memory.
 
 // Types for database rows
 interface ProductRow {
@@ -390,58 +355,23 @@ export const productsService = {
   },
 
   async create(product: Partial<Product>): Promise<Product | null> {
-    if (!isSupabaseConfigured()) {
-      const newProduct = { ...product, id: `prod-${Date.now()}`, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() } as Product;
-      mockProducts.unshift(newProduct);
-      syncProducts();
-      return newProduct;
-    }
-
-    const fetchPromise = (supabase as any)
+    const { data, error } = await (supabase as any)
       .from('products')
       .insert(transformProductToDb(product))
       .select()
       .single();
 
-    const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Timeout')), 5000)
-    );
-
-    try {
-      const { data, error } = await Promise.race([fetchPromise, timeoutPromise]) as any;
-      if (error) {
-        console.error('Error creating product:', error);
-        
-        // Fallback to local
-        const newProduct = { ...product, id: `prod-${Date.now()}`, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() } as Product;
-        mockProducts.unshift(newProduct);
-        syncProducts();
-        return newProduct;
-      }
-      clearCache('products_all');
-      clearCache('products_admin_all');
-      return transformProduct(data);
-    } catch (e) {
-      console.error('Exception creating product:', e);
-      // Fallback to local
-      const newProduct = { ...product, id: `prod-${Date.now()}`, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() } as Product;
-      mockProducts.unshift(newProduct);
-      syncProducts();
-      return newProduct;
+    if (error) {
+      console.error('Error creating product:', error);
+      throw error;
     }
+
+    clearCache('products_all');
+    clearCache('products_admin_all');
+    return transformProduct(data);
   },
 
   async update(id: string, updates: Partial<Product>): Promise<Product | null> {
-    if (!isSupabaseConfigured()) {
-      const index = mockProducts.findIndex(p => p.id === id);
-      if (index > -1) {
-        mockProducts[index] = { ...mockProducts[index], ...updates, updatedAt: new Date().toISOString() };
-        syncProducts();
-        return mockProducts[index];
-      }
-      return null;
-    }
-
     const { data, error } = await (supabase as any)
       .from('products')
       .update(transformProductToDb(updates))
@@ -451,17 +381,11 @@ export const productsService = {
 
     if (error) {
       console.error('Error updating product:', error);
-      // Fallback to local
-      const index = mockProducts.findIndex(p => p.id === id);
-      if (index > -1) {
-        mockProducts[index] = { ...mockProducts[index], ...updates, updatedAt: new Date().toISOString() };
-        syncProducts();
-        return mockProducts[index];
-      }
-      return null;
+      throw error;
     }
 
     clearCache('products_all');
+    clearCache('products_admin_all');
     return transformProduct(data);
   },
 
@@ -470,7 +394,6 @@ export const productsService = {
       const index = mockProducts.findIndex(p => p.id === id);
       if (index > -1) {
         mockProducts.splice(index, 1);
-        syncProducts();
         return true;
       }
       return false;
@@ -558,7 +481,6 @@ export const categoriesService = {
     if (!isSupabaseConfigured()) {
       const newCategory = { ...category, id: `cat-${Date.now()}`, order: category.order || mockCategories.length + 1 } as Category;
       mockCategories.push(newCategory);
-      syncCategories();
       return newCategory;
     }
 
@@ -567,6 +489,7 @@ export const categoriesService = {
       .insert({
         name: category.name || '',
         icon: category.icon,
+        parent_id: category.parentId || null,
         order: category.order || 0,
       })
       .select()
@@ -586,7 +509,6 @@ export const categoriesService = {
       const index = mockCategories.findIndex(c => c.id === id);
       if (index > -1) {
         mockCategories[index] = { ...mockCategories[index], ...updates };
-        syncCategories();
         return mockCategories[index];
       }
       return null;
@@ -597,6 +519,7 @@ export const categoriesService = {
       .update({
         name: updates.name,
         icon: updates.icon,
+        parent_id: updates.parentId !== undefined ? (updates.parentId || null) : undefined,
         order: updates.order,
       })
       .eq('id', id)
@@ -613,16 +536,6 @@ export const categoriesService = {
   },
 
   async delete(id: string): Promise<boolean> {
-    if (!isSupabaseConfigured()) {
-      const index = mockCategories.findIndex(c => c.id === id);
-      if (index > -1) {
-        mockCategories.splice(index, 1);
-        syncCategories();
-        return true;
-      }
-      return false;
-    }
-
     const { error } = await (supabase as any)
       .from('categories')
       .delete()
@@ -630,7 +543,7 @@ export const categoriesService = {
 
     if (error) {
       console.error('Error deleting category:', error);
-      return false;
+      throw error;
     }
 
     clearCache('categories_all');
@@ -755,7 +668,6 @@ export const citiesService = {
     if (!isSupabaseConfigured()) {
       const newCity = { ...city, id: `city-${Date.now()}`, isActive: city.isActive ?? true } as City;
       mockCities.push(newCity);
-      syncCities();
       return newCity;
     }
 
@@ -784,7 +696,6 @@ export const citiesService = {
       const index = mockCities.findIndex(c => c.id === id);
       if (index > -1) {
         mockCities[index] = { ...mockCities[index], ...updates };
-        syncCities();
         return mockCities[index];
       }
       return null;
@@ -816,7 +727,6 @@ export const citiesService = {
       const index = mockCities.findIndex(c => c.id === id);
       if (index > -1) {
         mockCities.splice(index, 1);
-        syncCities();
         return true;
       }
       return false;
@@ -899,7 +809,6 @@ export const currenciesService = {
     if (!isSupabaseConfigured()) {
       const newCurrency = { ...currency, id: `cur-${Date.now()}` } as Currency;
       mockCurrencies.push(newCurrency);
-      syncCurrencies();
       return newCurrency;
     }
 
@@ -936,7 +845,6 @@ export const currenciesService = {
       const index = mockCurrencies.findIndex(c => c.id === id);
       if (index > -1) {
         mockCurrencies[index] = { ...mockCurrencies[index], ...updates };
-        syncCurrencies();
         return mockCurrencies[index];
       }
       return null;
@@ -976,7 +884,6 @@ export const currenciesService = {
       const index = mockCurrencies.findIndex(c => c.id === id);
       if (index > -1) {
         mockCurrencies.splice(index, 1);
-        syncCurrencies();
         return true;
       }
       return false;
@@ -1115,8 +1022,7 @@ export const ordersService = {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       } as Order;
-      mockOrders.push(newOrder);
-      syncOrders();
+      mockOrders.unshift(newOrder);
       return newOrder;
     }
 
@@ -1151,7 +1057,6 @@ export const ordersService = {
       const index = mockOrders.findIndex(o => o.id === id);
       if (index > -1) {
         mockOrders[index] = { ...mockOrders[index], status: status as Order['status'], updatedAt: new Date().toISOString() };
-        syncOrders();
         return mockOrders[index];
       }
       return null;
@@ -1187,7 +1092,6 @@ export const ordersService = {
       const index = mockOrders.findIndex(o => o.id === id);
       if (index > -1) {
         mockOrders[index] = { ...mockOrders[index], ...updates, updatedAt: new Date().toISOString() };
-        syncOrders();
         return mockOrders[index];
       }
       return null;
@@ -1315,7 +1219,6 @@ export const adsService = {
     if (!isSupabaseConfigured()) {
       const newAd = { ...ad, id: `ad-${Date.now()}`, createdAt: new Date().toISOString() } as Ad;
       mockAds.push(newAd);
-      syncAds();
       return newAd;
     }
 
@@ -1348,7 +1251,6 @@ export const adsService = {
       const index = mockAds.findIndex(a => a.id === id);
       if (index > -1) {
         mockAds[index] = { ...mockAds[index], ...updates };
-        syncAds();
         return mockAds[index];
       }
       return null;
@@ -1384,7 +1286,6 @@ export const adsService = {
       const index = mockAds.findIndex(a => a.id === id);
       if (index > -1) {
         mockAds.splice(index, 1);
-        syncAds();
         return true;
       }
       return false;
@@ -1456,7 +1357,6 @@ export const usersService = {
       const index = mockUsers.findIndex(u => u.id === id);
       if (index > -1) {
         mockUsers[index] = { ...mockUsers[index], ...updates };
-        syncUsers();
         return mockUsers[index];
       }
       return null;
@@ -1499,7 +1399,6 @@ export const usersService = {
         created_at: new Date().toISOString(),
       } as User;
       mockUsers.unshift(newUser);
-      syncUsers();
       return newUser;
     }
     // Supabase creation via Admin API is complex, usually handled via auth.signUp
@@ -1511,7 +1410,6 @@ export const usersService = {
       const index = mockUsers.findIndex(u => u.id === id);
       if (index > -1) {
         mockUsers.splice(index, 1);
-        syncUsers();
         return true;
       }
       return false;
@@ -1560,7 +1458,6 @@ export const activityLogsService = {
         createdAt: new Date().toISOString(),
       } as ActivityLog;
       mockActivityLogs.unshift(newLog);
-      syncActivity();
       return newLog;
     }
 
@@ -1629,8 +1526,6 @@ export const storeSettingsService = {
       
       // Keep local mock updated perfectly
       Object.assign(mockStoreSettings, transformed);
-      syncSettings();
-      
       return transformed;
     } catch (e) {
       return mockStoreSettings as StoreSettings;
@@ -1640,7 +1535,6 @@ export const storeSettingsService = {
   async update(settings: Partial<StoreSettings>): Promise<StoreSettings | null> {
     if (!isSupabaseConfigured()) {
       Object.assign(mockStoreSettings, settings);
-      syncSettings();
       return mockStoreSettings as StoreSettings;
     }
 
@@ -1667,7 +1561,6 @@ export const storeSettingsService = {
         console.error('Error updating store settings:', error);
         // Fallback to local
         Object.assign(mockStoreSettings, settings);
-        syncSettings();
         return mockStoreSettings as StoreSettings;
       }
       const transformed = {
@@ -1679,14 +1572,11 @@ export const storeSettingsService = {
       };
       // Always forcibly update local cache and storage even on success
       Object.assign(mockStoreSettings, transformed);
-      syncSettings();
-      
       return transformed;
     } catch (e) {
       console.error('Exception updating settings:', e);
       // Fallback to local
       Object.assign(mockStoreSettings, settings);
-      syncSettings();
       return mockStoreSettings as StoreSettings;
     }
   },

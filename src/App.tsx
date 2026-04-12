@@ -37,6 +37,8 @@ const SettingsPage = lazy(() => import('@/pages/admin/SettingsPage'));
 const AdsPage = lazy(() => import('@/pages/admin/AdsPage'));
 const CitiesPage = lazy(() => import('@/pages/admin/CitiesPage'));
 const CurrenciesPage = lazy(() => import('@/pages/admin/CurrenciesPage'));
+const CategoriesPage = lazy(() => import('@/pages/admin/CategoriesPage'));
+const CategoriesExplorerPage = lazy(() => import('@/pages/CategoriesExplorerPage'));
 
 const PageLoader = () => (
   <div className="min-h-[60vh] flex items-center justify-center">
@@ -59,6 +61,7 @@ function App() {
                     <Route path="/" element={<Layout />}>
                       <Route index element={<HomePage />} />
                       <Route path="products" element={<ProductsPage />} />
+                      <Route path="categories" element={<CategoriesExplorerPage />} />
                       <Route path="product/:id" element={<ProductDetailPage />} />
                       <Route path="cart" element={<CartPage />} />
                       <Route path="checkout" element={<CheckoutPage />} />
@@ -86,6 +89,7 @@ function App() {
                       <Route path="ads" element={<AdsPage />} />
                       <Route path="cities" element={<CitiesPage />} />
                       <Route path="currencies" element={<CurrenciesPage />} />
+                      <Route path="categories" element={<CategoriesPage />} />
                       <Route path="profile" element={<ProfilePage />} />
                     </Route>
 

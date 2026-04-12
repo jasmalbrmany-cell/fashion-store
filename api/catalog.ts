@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { rateLimit, corsHeaders, handleOptions } from './_middleware';
 
 async function fetchJSON(url: string, timeout = 10000): Promise<any> {
   const controller = new AbortController();
@@ -206,11 +207,22 @@ function normalizeShopifyProduct(p: any) {
 // Main Handler
 // ============================================================
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  // Handle CORS preflight
+  if (handleOptions(req, res)) return;
+  corsHeaders(res);
 
-  if (req.method === 'OPTIONS') return res.status(200).end();
+  // Apply rate limiting
+  const { allowed, remaining } = rateLimit(req);
+  res.setHeader('X-RateLimit-Remaining', remaining.toString());
+  
+  if (!allowed) {
+    return res.status(429).json({ 
+      success: false, 
+      error: 'تم تجاوز الحد المسموح من الطلبات. يرجى المحاولة بعد دقيقة.',
+      retryAfter: 60 
+    });
+  }
+
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const { url, page = 1 } = req.body || {};

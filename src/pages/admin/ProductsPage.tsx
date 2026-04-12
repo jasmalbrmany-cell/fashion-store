@@ -15,9 +15,9 @@ const AdminProductsPage: React.FC = () => {
   const { t, language, isRTL } = useLanguage();
   const { toast } = useToast();
   
-  const [products, setProducts] = useState<Product[]>(getCachedSync<Product[]>('products_admin_all') || []);
-  const [categories, setCategories] = useState<Category[]>(getCachedSync<Category[]>('categories_all') || []);
-  const [isLoading, setIsLoading] = useState(!hasValidCache('products_admin_all') || !hasValidCache('categories_all'));
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -35,9 +35,7 @@ const AdminProductsPage: React.FC = () => {
   const [pricingPercentage, setPricingPercentage] = useState<string>('');
 
   const loadData = async () => {
-    if (!hasValidCache('products_admin_all')) {
-        setIsLoading(true);
-    }
+    setIsLoading(true);
     try {
       const [prods, cats] = await Promise.all([
         productsService.getAllAdmin(),
@@ -424,8 +422,21 @@ const AdminProductsPage: React.FC = () => {
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-sm font-bold text-gray-600">
-                      {category?.name || '-'}
+                    <td className="px-6 py-4">
+                      {category ? (
+                        <div className="flex flex-col">
+                          {category.parentId && (
+                            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-0.5">
+                              {categories.find(c => c.id === category.parentId)?.name}
+                            </span>
+                          )}
+                          <span className="text-sm font-black text-gray-700">
+                            {category.parentId ? '↳ ' : ''}{category.name}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-gray-300">-</span>
+                      )}
                     </td>
                     
                     {/* Inline Edit UI: Price */}

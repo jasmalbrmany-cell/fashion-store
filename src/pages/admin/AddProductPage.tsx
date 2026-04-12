@@ -370,8 +370,22 @@ const AddProductPage: React.FC = () => {
                 required
               >
                 <option value="">{t.selectCategory}</option>
-                {categories.map(cat => (
-                  <option key={cat.id} value={cat.id}>{cat.name}</option>
+                {categories.filter(c => !c.parentId).map(parent => (
+                  <React.Fragment key={parent.id}>
+                    <option value={parent.id} className="font-black bg-gray-100">
+                      📁 {parent.name}
+                    </option>
+                    {categories.filter(c => c.parentId === parent.id).map(child => (
+                      <option key={child.id} value={child.id} className="font-bold">
+                        &nbsp;&nbsp;&nbsp;&nbsp;↳ {child.name}
+                      </option>
+                    ))}
+                  </React.Fragment>
+                ))}
+                {/* Fallback for categories without parents if any logic error occurred */}
+                {categories.filter(c => !c.parentId && !categories.some(p => p.id === c.parentId)).length === 0 && 
+                 categories.filter(c => c.parentId && !categories.some(p => p.id === c.parentId)).map(orphan => (
+                  <option key={orphan.id} value={orphan.id}>❓ {orphan.name}</option>
                 ))}
               </select>
             </div>

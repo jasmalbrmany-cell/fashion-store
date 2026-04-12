@@ -64,13 +64,21 @@ const ProductsPage: React.FC = () => {
     setSortBy(sort);
   }, [searchParams]);
 
+  // Get all sub-category IDs for a given categoryId (including itself)
+  const getCategoryIds = (catId: string): string[] => {
+    const children = categories.filter(c => c.parentId === catId);
+    return [catId, ...children.map(c => c.id)];
+  };
+
   const filteredProducts = useMemo(() => {
     if (loading) return [];
 
     let result = [...products];
 
     if (selectedCategory) {
-      result = result.filter(p => p.categoryId === selectedCategory);
+      // Include products from this category AND all its sub-categories
+      const validIds = new Set(getCategoryIds(selectedCategory));
+      result = result.filter(p => validIds.has(p.categoryId));
     }
 
     if (searchQuery) {
@@ -254,7 +262,46 @@ const ProductsPage: React.FC = () => {
                   >
                     {t.allProducts}
                   </button>
-                  {categories.map((category) => (
+                  {categories.filter(c => !c.parentId).map((parent) => {
+                    const children = categories.filter(c => c.parentId === parent.id);
+                    const isParentSelected = selectedCategory === parent.id;
+                    const isChildSelected = children.some(c => c.id === selectedCategory);
+                    const isExpanded = isParentSelected || isChildSelected;
+                    return (
+                      <div key={parent.id}>
+                        <button
+                          onClick={() => handleCategoryChange(parent.id)}
+                          className={`w-full text-start py-2.5 px-4 rounded-xl transition-all font-bold text-sm flex items-center justify-between gap-2 ${
+                            isParentSelected ? 'bg-black text-white shadow-lg' : 'text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800'
+                          }`}
+                        >
+                          <span>{translateCategory(parent.id, parent.name, language)}</span>
+                          {children.length > 0 && (
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-black ${isParentSelected ? 'bg-white/20 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-400'}`}>
+                              {children.length}
+                            </span>
+                          )}
+                        </button>
+                        {children.length > 0 && isExpanded && (
+                          <div className={`mt-1 mb-1 ${language === 'ar' ? 'mr-4 border-r-2' : 'ml-4 border-l-2'} border-gray-100 dark:border-gray-800 ${language === 'ar' ? 'pr-2' : 'pl-2'} space-y-1`}>
+                            {children.map(child => (
+                              <button
+                                key={child.id}
+                                onClick={() => handleCategoryChange(child.id)}
+                                className={`w-full text-start py-2 px-3 rounded-lg transition-all text-sm ${
+                                  selectedCategory === child.id ? 'bg-black text-white font-bold shadow' : 'text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 font-semibold'
+                                }`}
+                              >
+                                {translateCategory(child.id, child.name, language)}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                  {/* Flat categories if no hierarchy */}
+                  {categories.filter(c => !c.parentId).length === 0 && categories.map((category) => (
                     <button
                       key={category.id}
                       onClick={() => handleCategoryChange(category.id)}

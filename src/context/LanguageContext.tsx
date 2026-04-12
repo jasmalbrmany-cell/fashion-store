@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
-type Language = 'ar' | 'en';
+export type Language = 'ar' | 'en';
 
 interface Translations {
   // الهيدر

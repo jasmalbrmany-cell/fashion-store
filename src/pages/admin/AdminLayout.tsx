@@ -15,7 +15,8 @@ import {
   X,
   Store,
   DollarSign,
-  Languages
+  Languages,
+  FolderTree
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
@@ -32,6 +33,7 @@ const AdminLayout: React.FC = () => {
     { path: '/admin/products', icon: <Package className="w-5 h-5" />, label: t.adminProducts, show: canManageProducts },
     { path: '/admin/orders', icon: <ShoppingCart className="w-5 h-5" />, label: t.adminOrders, show: canManageOrders },
     { path: '/admin/users', icon: <Users className="w-5 h-5" />, label: t.adminUsers, show: canManageUsers },
+    { path: '/admin/categories', icon: <FolderTree className="w-5 h-5" />, label: isRTL ? 'إدارة الأقسام' : 'Categories', show: canManageProducts },
     { path: '/admin/cities', icon: <Globe className="w-5 h-5" />, label: t.adminCities, show: isAdmin || permissions.can_manage_cities },
     { path: '/admin/currencies', icon: <DollarSign className="w-5 h-5" />, label: t.adminCurrencies, show: isAdmin || permissions.can_manage_currencies },
     { path: '/admin/ads', icon: <Megaphone className="w-5 h-5" />, label: t.adminAds, show: canManageAds },

@@ -128,18 +128,53 @@ const ImportProductPage: React.FC = () => {
 
       setImportedProduct(productInfo);
 
-      // Auto-detect category
-      let autoCategoryId = '';
-      if (apiResult.suggestedCategory) {
-        const matched = categories.find(c =>
-          c.name.includes(apiResult.suggestedCategory) || apiResult.suggestedCategory.includes(c.name)
-        );
-        if (matched) autoCategoryId = matched.id;
-      }
-      if (!autoCategoryId && url.includes('pletino.com')) {
-        const kidscat = categories.find(c => c.name.includes('أطفال') || c.id === 'c0000000-0000-0000-0000-000000000007');
-        if (kidscat) autoCategoryId = kidscat.id;
-      }
+      // --- SMART AI-LIKE MATCHING ALGORITHM ---
+      const findBestCategory = () => {
+        const title = productInfo.name.toLowerCase() + ' ' + productInfo.description.toLowerCase();
+        
+        // 1. Check direct suggestions from API
+        if (apiResult.suggestedCategory) {
+          const matched = categories.find(c =>
+            c.name.toLowerCase().includes(apiResult.suggestedCategory.toLowerCase()) || 
+            apiResult.suggestedCategory.toLowerCase().includes(c.name.toLowerCase())
+          );
+          if (matched) return matched.id;
+        }
+
+        // 2. Keyword matching map (extends easily)
+        const keywordMap: Record<string, string[]> = {
+          'أطفال': ['طفل', 'baby', 'kid', 'child', 'بناتي', 'ولادي', 'أطفال'],
+          'رجالي': ['رجالي', 'men', 'man', 'male', 'قميص رجالي'],
+          'نسائي': ['نسائي', 'women', 'lady', 'female', 'فستان', 'حقيبة نسائية'],
+          'أحذية': ['حذاء', 'shoes', 'sneaker', 'بوت', 'نعال', 'جزمة'],
+          'عطور': ['عطر', 'perfume', 'fragrance', 'بخاخ'],
+          'إكسسوارات': ['ساعة', 'نظارة', 'خاتم', 'قلادة', 'accessories', 'watch'],
+        };
+
+        // Try to find a category whose name or synonyms match keywords in title
+        for (const cat of categories) {
+           const catName = cat.name.toLowerCase();
+           // Check if category name itself is in title
+           if (title.includes(catName)) return cat.id;
+
+           // Check keywords for common category types
+           for (const [key, keywords] of Object.entries(keywordMap)) {
+              if (catName.includes(key) && keywords.some(k => title.includes(k))) {
+                 return cat.id;
+              }
+           }
+        }
+        
+        // 3. Simple URL fallback
+        if (url.includes('pletino.com')) {
+          const kidscat = categories.find(c => c.name.includes('أطفال'));
+          if (kidscat) return kidscat.id;
+        }
+
+        return '';
+      };
+
+      const autoCategoryId = findBestCategory();
 
       setFormData({
         name:        productInfo.name,
@@ -413,7 +448,18 @@ const ImportProductPage: React.FC = () => {
                       required
                     >
                       <option value="">{isRTL ? 'اختر القسم' : 'Select'}</option>
-                      {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                      {categories.filter(c => !c.parentId).map(parent => (
+                        <React.Fragment key={parent.id}>
+                          <option value={parent.id} className="font-black bg-gray-100">
+                            📁 {parent.name}
+                          </option>
+                          {categories.filter(c => c.parentId === parent.id).map(child => (
+                            <option key={child.id} value={child.id} className="font-bold">
+                              &nbsp;&nbsp;&nbsp;&nbsp;↳ {child.name}
+                            </option>
+                          ))}
+                        </React.Fragment>
+                      ))}
                     </select>
                   </div>
                 </div>

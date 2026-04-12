@@ -119,7 +119,7 @@ const HomePage: React.FC = () => {
               <p className="text-lg md:text-xl text-zinc-600 dark:text-zinc-400 max-w-lg leading-relaxed font-medium">
                 {activeBanners.length > 0 
                   ? activeBanners[currentBanner].content 
-                  : 'اكتشف أحدث صيحات الموضة والأزياء العصرية مع تشكيلة واسعة وأسعار لا تقبل المنافسة'}
+                  : (isAr ? 'اكتشف أحدث صيحات الموضة والأزياء العصرية مع تشكيلة واسعة وأسعار لا تقبل المنافسة' : 'Discover the latest fashion trends and modern styles with a wide collection and unbeatable prices')}
               </p>
               
               <div className="flex flex-wrap gap-4 pt-4">

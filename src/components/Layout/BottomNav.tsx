@@ -18,7 +18,7 @@ const BottomNav: React.FC = () => {
 
   const navItems = [
     { to: '/', icon: <Home className="w-6 h-6" />, label: t.home || (isRTL ? 'الرئيسية' : 'Home') },
-    { to: '/products', icon: <Grid className="w-6 h-6" />, label: t.products || (isRTL ? 'الأقسام' : 'Categories') },
+    { to: '/categories', icon: <Grid className="w-6 h-6" />, label: t.products || (isRTL ? 'الأقسام' : 'Categories') },
     { to: '/cart', icon: <ShoppingCart className="w-6 h-6" />, label: t.cart || (isRTL ? 'السلة' : 'Cart'), badge: cartItemCount },
     { to: '/profile', icon: <User className="w-6 h-6" />, label: t.myAccount || (isRTL ? 'حسابي' : 'Profile') },
   ];

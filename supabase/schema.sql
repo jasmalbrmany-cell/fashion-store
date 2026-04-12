@@ -117,6 +117,21 @@ CREATE TABLE public.activity_logs (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- User permissions table
+CREATE TABLE public.user_permissions (
+    user_id UUID PRIMARY KEY REFERENCES profiles(id) ON DELETE CASCADE,
+    can_manage_products BOOLEAN DEFAULT false,
+    can_manage_orders BOOLEAN DEFAULT false,
+    can_manage_users BOOLEAN DEFAULT false,
+    can_manage_ads BOOLEAN DEFAULT false,
+    can_manage_cities BOOLEAN DEFAULT false,
+    can_manage_currencies BOOLEAN DEFAULT false,
+    can_view_reports BOOLEAN DEFAULT false,
+    can_export_data BOOLEAN DEFAULT false,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- Store settings table
 CREATE TABLE public.store_settings (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -140,6 +155,7 @@ CREATE INDEX idx_orders_status ON orders(status);
 CREATE INDEX idx_orders_created ON orders(created_at DESC);
 CREATE INDEX idx_activity_user ON activity_logs(user_id);
 CREATE INDEX idx_activity_created ON activity_logs(created_at DESC);
+CREATE INDEX idx_user_permissions_user ON user_permissions(user_id);
 
 -- ============================================
 -- ROW LEVEL SECURITY (RLS)
@@ -155,6 +171,7 @@ ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE ads ENABLE ROW LEVEL SECURITY;
 ALTER TABLE activity_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE store_settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_permissions ENABLE ROW LEVEL SECURITY;
 
 -- Profiles policies
 CREATE POLICY "Public profiles are viewable by everyone"
@@ -284,6 +301,26 @@ CREATE POLICY "Admins can manage store settings"
         )
     );
 
+-- User permissions policies
+CREATE POLICY "Users can view their own permissions"
+    ON user_permissions FOR SELECT USING (user_id = auth.uid());
+
+CREATE POLICY "Admins can view all permissions"
+    ON user_permissions FOR SELECT USING (
+        EXISTS (
+            SELECT 1 FROM profiles
+            WHERE id = auth.uid() AND role = 'admin'
+        )
+    );
+
+CREATE POLICY "Admins can manage all permissions"
+    ON user_permissions FOR ALL USING (
+        EXISTS (
+            SELECT 1 FROM profiles
+            WHERE id = auth.uid() AND role = 'admin'
+        )
+    );
+
 -- ============================================
 -- FUNCTIONS
 -- ============================================
@@ -328,6 +365,10 @@ CREATE TRIGGER update_ads_updated_at
 
 CREATE TRIGGER update_store_settings_updated_at
     BEFORE UPDATE ON store_settings
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_user_permissions_updated_at
+    BEFORE UPDATE ON user_permissions
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- Function to handle new user signup
@@ -439,6 +480,9 @@ INSERT INTO store_settings (name, currency, social_links) VALUES (
     'YER',
     '{"whatsapp": "967777123456", "whatsappCategory": {}, "facebook": "https://facebook.com/fashionhub", "instagram": "https://instagram.com/fashionhub", "tiktok": "https://tiktok.com/@fashionhub", "email": "info@fashionhub.com", "website": "https://fashionhub.com"}'
 );
+
+-- Note: User permissions will be created automatically when admin creates users
+-- Admins have full access by default (checked in code), no need for permissions row
 
 -- ============================================
 -- VIEWS

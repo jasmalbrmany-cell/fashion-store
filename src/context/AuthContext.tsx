@@ -73,6 +73,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         .eq('user_id', userId)
         .single();
       
+      if (error) {
+        // If table doesn't exist or no permissions found, use defaults
+        console.warn('Permissions fetch error (using defaults):', error.message);
+        setPermissions(defaultPermissions);
+        return;
+      }
+      
       if (data) {
         const d = data as any;
         setPermissions({
