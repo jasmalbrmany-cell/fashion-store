@@ -236,6 +236,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setUser(null);
     setPermissions(defaultPermissions);
     localStorage.removeItem('fashionHubUser');
+    // Force navigation to home without reload
+    if (window.location.pathname !== '/') {
+      window.history.pushState({}, '', '/');
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    }
   };
 
   const updateUser = (data: Partial<User>) => {

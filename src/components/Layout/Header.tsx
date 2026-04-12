@@ -232,7 +232,7 @@ const Header: React.FC = () => {
                       {(user?.role === 'admin' || user?.role === 'editor' || user?.role === 'viewer') && (
                         <Link to="/admin" className="block px-4 py-2.5 hover:bg-gray-100 transition" onClick={() => setIsUserMenuOpen(false)}>{t.dashboard}</Link>
                       )}
-                      <button onClick={() => { logout(); setIsUserMenuOpen(false); setTimeout(() => { window.location.href = '/' }, 100); }} className="w-full text-right px-4 py-2.5 hover:bg-red-50 text-red-600 transition">{t.logout}</button>
+                      <button onClick={async () => { await logout(); setIsUserMenuOpen(false); }} className="w-full text-right px-4 py-2.5 hover:bg-red-50 text-red-600 transition">{t.logout}</button>
                     </div>
                   </>
                 )}
