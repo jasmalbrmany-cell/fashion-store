@@ -57,9 +57,9 @@ const MyOrdersPage: React.FC = () => {
     }
   }, [user]);
 
-  const handleLogout = () => {
-    logout();
-    setTimeout(() => { window.location.href = '/' }, 100);
+  const handleLogout = async () => {
+    await logout();
+    navigate('/', { replace: true });
   };
 
   const getStatusDisplay = (status: OrderStatus) => {

@@ -65,9 +65,9 @@ const AdminLayout: React.FC = () => {
     return null;
   }
 
-  const handleLogout = () => {
-    logout();
-    setTimeout(() => { window.location.href = '/'; }, 100);
+  const handleLogout = async () => {
+    await logout();
+    navigate('/', { replace: true });
   };
 
   const isActive = (path: string, exact = false) => {
