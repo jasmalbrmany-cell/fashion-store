@@ -425,24 +425,15 @@ export const productsService = {
 
 export const categoriesService = {
   async getAll(): Promise<Category[]> {
-    const cached = getFromCache('categories_all');
-    if (cached) return cached;
-
     if (!isSupabaseConfigured()) {
       return [];
     }
 
-    const fetchPromise = (supabase as any)
-      .from('categories')
-      .select('*')
-      .order('order', { ascending: true });
-
-    const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Timeout')), 10000)
-    );
-
     try {
-      const { data, error } = await Promise.race([fetchPromise, timeoutPromise]) as any;
+      const { data, error } = await withTimeout((supabase as any)
+        .from('categories')
+        .select('*')
+        .order('order', { ascending: true }));
 
       if (error) {
         console.error('Error fetching categories:', error);
@@ -450,9 +441,9 @@ export const categoriesService = {
       }
 
       const transformed = (data || []).map(transformCategory);
-      setToCache('categories_all', transformed);
       return transformed;
     } catch (e) {
+      console.error('Exception fetching categories:', e);
       return [];
     }
   },
