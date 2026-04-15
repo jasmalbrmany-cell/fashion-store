@@ -40,6 +40,7 @@ const StoreImportPage: React.FC = () => {
   // Step 2
   const [categories, setCategories] = useState<Category[]>(mockCategories);
   const [selectedCategory, setSelectedCategory] = useState('');
+  const [isLoadingCategories, setIsLoadingCategories] = useState(true);
 
   // Step 3
   const [isLoading, setIsLoading] = useState(false);
@@ -60,10 +61,14 @@ const StoreImportPage: React.FC = () => {
   const [currentImageIdx, setCurrentImageIdx] = useState(0);
 
   useEffect(() => {
+    setIsLoadingCategories(true);
     categoriesService.getAll().then(data => {
-      if (data && data.length > 0) setCategories(data);
+      setCategories(data || []);
+      setIsLoadingCategories(false);
+    }).catch(() => {
+      setIsLoadingCategories(false);
     });
-    // Load saved stores from localStorage
+    // Load saved stores
     try {
       const saved = localStorage.getItem('demo_external_stores');
       if (saved) setSavedStores(JSON.parse(saved));
@@ -392,22 +397,37 @@ const StoreImportPage: React.FC = () => {
           </div>
 
           {/* Category grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-            {categories.map(cat => (
-              <button
-                key={cat.id}
-                onClick={() => setSelectedCategory(cat.id)}
-                className={`p-4 rounded-2xl border-2 transition-all text-center ${
-                  selectedCategory === cat.id
-                    ? 'border-black bg-black text-white shadow-lg'
-                    : 'border-gray-100 bg-white text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                <Tag className={`w-5 h-5 mx-auto mb-2 ${selectedCategory === cat.id ? 'text-white' : 'text-gray-300'}`} />
-                <p className="font-black text-sm">{cat.name}</p>
-              </button>
-            ))}
-          </div>
+          {isLoadingCategories ? (
+            <div className="flex flex-col items-center justify-center py-12 gap-3">
+              <Loader className="w-8 h-8 animate-spin text-gray-400" />
+              <p className="text-sm font-bold text-gray-400">{isRTL ? 'جاري تحميل الأقسام...' : 'Loading categories...'}</p>
+            </div>
+          ) : categories.length === 0 ? (
+            <div className="text-center py-12 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+              <Tag className="w-10 h-10 text-gray-300 mx-auto mb-3" />
+              <p className="text-sm font-bold text-gray-500">{isRTL ? 'لم يتم العثور على أقسام. يرجى إضافة قسم من لوحة التحكم أولاً.' : 'No categories found. Please add a category first.'}</p>
+              <Link to="/admin/categories" className="text-xs text-black font-black uppercase tracking-widest mt-4 inline-block hover:underline">
+                {isRTL ? '+ إضافة قسم الآن' : '+ Add Category Now'}
+              </Link>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+              {categories.map(cat => (
+                <button
+                  key={cat.id}
+                  onClick={() => setSelectedCategory(cat.id)}
+                  className={`p-4 rounded-2xl border-2 transition-all text-center ${
+                    selectedCategory === cat.id
+                      ? 'border-black bg-black text-white shadow-lg'
+                      : 'border-gray-100 bg-white text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  <Tag className={`w-5 h-5 mx-auto mb-2 ${selectedCategory === cat.id ? 'text-white' : 'text-gray-300'}`} />
+                  <p className="font-black text-sm">{cat.name}</p>
+                </button>
+              ))}
+            </div>
+          )}
 
           {/* Actions */}
           <div className="flex gap-3">
