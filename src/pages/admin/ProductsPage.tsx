@@ -248,13 +248,6 @@ const AdminProductsPage: React.FC = () => {
             <RefreshCw className={`w-5 h-5 text-gray-500 ${isLoading ? 'animate-spin' : ''}`} />
           </button>
           <Link
-            to="/admin/products/import"
-            className="flex items-center gap-2 px-6 py-3 bg-indigo-50 text-indigo-600 rounded-2xl hover:bg-indigo-100 transition-all font-black text-sm"
-          >
-            <Upload className="w-5 h-5" />
-            {t.importFromUrl}
-          </Link>
-          <Link
             to="/admin/products/add"
             className="flex items-center gap-2 px-6 py-3 bg-black text-white rounded-2xl hover:bg-gray-800 transition-all font-black text-sm shadow-xl shadow-gray-200"
           >

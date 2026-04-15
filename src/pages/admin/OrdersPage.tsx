@@ -18,9 +18,11 @@ import {
 import { ordersService, hasValidCache, getCachedSync } from '@/services/api';
 import { Order, OrderStatus } from '@/types';
 import { useLanguage } from '@/context/LanguageContext';
+import { useToast } from '@/components/Common/Toast';
 
 const AdminOrdersPage: React.FC = () => {
   const { t, language, isRTL } = useLanguage();
+  const { toast } = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
   const [orders, setOrders] = useState<Order[]>(getCachedSync<Order[]>('orders_all') || []);
   const [loading, setLoading] = useState(!hasValidCache('orders_all'));
@@ -39,6 +41,10 @@ const AdminOrdersPage: React.FC = () => {
         setOrders(data);
       } catch (error) {
         console.error('Failed to fetch orders:', error);
+        toast.error(
+          isRTL ? 'خطأ في التحميل' : 'Loading Error',
+          isRTL ? 'فشل في تحميل الطلبات. يرجى المحاولة مرة أخرى.' : 'Failed to load orders. Please try again.'
+        );
       } finally {
         setLoading(false);
       }
@@ -72,9 +78,30 @@ const AdminOrdersPage: React.FC = () => {
         const updated = await ordersService.updateStatus(orderId, newStatus);
         if (updated) {
             setOrders(prev => prev.map(o => o.id === orderId ? updated : o));
+            const statusLabels: Record<string, string> = {
+              pending: isRTL ? 'قيد الانتظار' : 'Pending',
+              waiting_payment: isRTL ? 'بانتظار الدفع' : 'Waiting Payment',
+              paid: isRTL ? 'تم الدفع' : 'Paid',
+              approved: isRTL ? 'تمت الموافقة' : 'Approved',
+              completed: isRTL ? 'مكتمل' : 'Completed',
+              cancelled: isRTL ? 'ملغي' : 'Cancelled',
+            };
+            toast.success(
+              isRTL ? 'تم تحديث الحالة' : 'Status Updated',
+              isRTL ? `تم تغيير حالة الطلب إلى: ${statusLabels[newStatus] || newStatus}` : `Order status changed to: ${statusLabels[newStatus] || newStatus}`
+            );
+        } else {
+            toast.error(
+              isRTL ? 'فشل التحديث' : 'Update Failed',
+              isRTL ? 'لم يتم تحديث حالة الطلب' : 'Order status could not be updated'
+            );
         }
     } catch (err) {
         console.error('Failed to update status', err);
+        toast.error(
+          isRTL ? 'خطأ في الاتصال' : 'Connection Error',
+          isRTL ? 'فشل الاتصال بالخادم. يرجى المحاولة مرة أخرى.' : 'Failed to connect to the server. Please try again.'
+        );
     }
     setMenuOpen(null);
   };
@@ -99,7 +126,10 @@ const AdminOrdersPage: React.FC = () => {
   };
 
   const handleGenerateInvoice = (order: Order) => {
-    alert(t.invoiceGenerated.replace('{orderNumber}', order.orderNumber));
+    toast.info(
+      isRTL ? 'إنشاء الفاتورة' : 'Invoice Generated',
+      t.invoiceGenerated.replace('{orderNumber}', order.orderNumber)
+    );
     setSelectedOrder(null);
   };
 

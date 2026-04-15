@@ -13,7 +13,7 @@ import {
 } from '@/data/mockData';
 
 // Helper to prevent infinite hangs when Supabase tables don't exist or network fails
-export const withTimeout = (promise: Promise<any>, timeoutMs = 3000): Promise<any> => {
+export const withTimeout = (promise: Promise<any>, timeoutMs = 10000): Promise<any> => {
   return Promise.race([
     promise,
     new Promise<any>((_, reject) => setTimeout(() => reject(new Error('Timeout after ' + timeoutMs + 'ms')), timeoutMs))
@@ -59,9 +59,8 @@ const mockActivityLogs: ActivityLog[] = [];
 const mockStoreSettings = initialStoreSettings;
 const mockUsers: User[] = [];
 
-// Cache duration (5 minutes)
-const CACHE_TTL = 5 * 60 * 1000;
-
+// Cache disabled (0 minutes) to ensure data is always fresh and never reverts to old state
+const CACHE_TTL = 0;
 // Simple session + local storage hybrid cache
 const memoryCache: Record<string, { data: any; timestamp: number }> = {};
 
@@ -220,7 +219,7 @@ export const productsService = {
     if (cached) return cached;
 
     if (!isSupabaseConfigured()) {
-      return mockProducts.filter(p => p.isVisible);
+      return [].filter(p => p.isVisible);
     }
 
     const fetchPromise = (supabase as any)
@@ -230,7 +229,7 @@ export const productsService = {
       .order('created_at', { ascending: false });
 
     const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Timeout')), 2000)
+      setTimeout(() => reject(new Error('Timeout')), 10000)
     );
 
     try {
@@ -238,20 +237,20 @@ export const productsService = {
 
       if (error) {
         console.error('Error fetching products:', error);
-        return mockProducts.filter(p => p.isVisible);
+        return [].filter(p => p.isVisible);
       }
 
       const transformed = (data || []).map(transformProduct);
       setToCache('products_all', transformed);
       return transformed;
     } catch (e) {
-      return mockProducts.filter(p => p.isVisible);
+      return [].filter(p => p.isVisible);
     }
   },
 
   async getByCategory(categoryId: string): Promise<Product[]> {
     if (!isSupabaseConfigured()) {
-      return mockProducts.filter(p => p.categoryId === categoryId && p.isVisible);
+      return [].filter(p => p.categoryId === categoryId && p.isVisible);
     }
 
     const fetchPromise = (supabase as any)
@@ -270,18 +269,18 @@ export const productsService = {
 
       if (error) {
         console.error('Error fetching products by category:', error);
-        return mockProducts.filter(p => p.categoryId === categoryId && p.isVisible);
+        return [].filter(p => p.categoryId === categoryId && p.isVisible);
       }
 
       return (data || []).map(transformProduct);
     } catch (e) {
-      return mockProducts.filter(p => p.categoryId === categoryId && p.isVisible);
+      return [].filter(p => p.categoryId === categoryId && p.isVisible);
     }
   },
 
   async getById(id: string): Promise<Product | null> {
     if (!isSupabaseConfigured()) {
-      return mockProducts.find(p => p.id === id) || null;
+      return [].find(p => p.id === id) || null;
     }
 
     const { data, error } = await (supabase as any)
@@ -292,7 +291,7 @@ export const productsService = {
 
     if (error) {
       console.error('Error fetching product:', error);
-      return mockProducts.find(p => p.id === id) || null;
+      return [].find(p => p.id === id) || null;
     }
 
     return transformProduct(data);
@@ -301,7 +300,7 @@ export const productsService = {
   async search(query: string): Promise<Product[]> {
     if (!isSupabaseConfigured()) {
       const q = query.toLowerCase();
-      return mockProducts.filter(
+      return [].filter(
         p => p.isVisible && (p.name.toLowerCase().includes(q) || p.description?.toLowerCase().includes(q))
       );
     }
@@ -326,7 +325,7 @@ export const productsService = {
     if (cached) return cached;
 
     if (!isSupabaseConfigured()) {
-      return mockProducts;
+      return [];
     }
 
     const fetchPromise = (supabase as any)
@@ -335,7 +334,7 @@ export const productsService = {
       .order('created_at', { ascending: false });
 
     const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Timeout')), 2000)
+      setTimeout(() => reject(new Error('Timeout')), 10000)
     );
 
     try {
@@ -343,14 +342,14 @@ export const productsService = {
 
       if (error) {
         console.error('Error fetching admin products:', error);
-        return mockProducts;
+        return [];
       }
 
       const transformed = (data || []).map(transformProduct);
       setToCache('products_admin_all', transformed);
       return transformed;
     } catch (e) {
-      return mockProducts;
+      return [];
     }
   },
 
@@ -430,7 +429,7 @@ export const categoriesService = {
     if (cached) return cached;
 
     if (!isSupabaseConfigured()) {
-      return mockCategories;
+      return [];
     }
 
     const fetchPromise = (supabase as any)
@@ -439,7 +438,7 @@ export const categoriesService = {
       .order('order', { ascending: true });
 
     const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Timeout')), 2000)
+      setTimeout(() => reject(new Error('Timeout')), 10000)
     );
 
     try {
@@ -447,20 +446,20 @@ export const categoriesService = {
 
       if (error) {
         console.error('Error fetching categories:', error);
-        return mockCategories;
+        return [];
       }
 
       const transformed = (data || []).map(transformCategory);
       setToCache('categories_all', transformed);
       return transformed;
     } catch (e) {
-      return mockCategories;
+      return [];
     }
   },
 
   async getById(id: string): Promise<Category | null> {
     if (!isSupabaseConfigured()) {
-      return mockCategories.find(c => c.id === id) || null;
+      return [].find(c => c.id === id) || null;
     }
 
     const { data, error } = await (supabase as any)
@@ -471,7 +470,7 @@ export const categoriesService = {
 
     if (error) {
       console.error('Error fetching category:', error);
-      return mockCategories.find(c => c.id === id) || null;
+      return [].find(c => c.id === id) || null;
     }
 
     return transformCategory(data);
@@ -509,7 +508,7 @@ export const categoriesService = {
       const index = mockCategories.findIndex(c => c.id === id);
       if (index > -1) {
         mockCategories[index] = { ...mockCategories[index], ...updates };
-        return mockCategories[index];
+        return [][index];
       }
       return null;
     }
@@ -561,7 +560,7 @@ export const citiesService = {
     if (cached) return cached;
 
     if (!isSupabaseConfigured()) {
-      return mockCities;
+      return [];
     }
 
     const fetchPromise = (supabase as any)
@@ -570,7 +569,7 @@ export const citiesService = {
       .order('name', { ascending: true });
 
     const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Timeout')), 2000)
+      setTimeout(() => reject(new Error('Timeout')), 10000)
     );
 
     try {
@@ -578,7 +577,7 @@ export const citiesService = {
 
       if (error) {
         console.error('Error fetching cities:', error);
-        return mockCities;
+        return [];
       }
 
       const results = (data || []).map(transformCity);
@@ -596,7 +595,7 @@ export const citiesService = {
       setToCache('cities_all', uniqueResults);
       return uniqueResults;
     } catch (e) {
-      return mockCities;
+      return [];
     }
   },
 
@@ -605,7 +604,7 @@ export const citiesService = {
     if (cached) return cached;
 
     if (!isSupabaseConfigured()) {
-      return mockCities.filter(c => c.isActive);
+      return [].filter(c => c.isActive);
     }
 
     const fetchPromise = (supabase as any)
@@ -615,7 +614,7 @@ export const citiesService = {
       .order('name', { ascending: true });
 
     const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Timeout')), 2000)
+      setTimeout(() => reject(new Error('Timeout')), 10000)
     );
 
     try {
@@ -623,7 +622,7 @@ export const citiesService = {
 
       if (error) {
         console.error('Error fetching active cities:', error);
-        return mockCities.filter(c => c.isActive);
+        return [].filter(c => c.isActive);
       }
 
       const results = (data || []).map(transformCity);
@@ -641,13 +640,13 @@ export const citiesService = {
       setToCache('cities_active', uniqueResults);
       return uniqueResults;
     } catch (e) {
-      return mockCities.filter(c => c.isActive);
+      return [].filter(c => c.isActive);
     }
   },
 
   async getById(id: string): Promise<City | null> {
     if (!isSupabaseConfigured()) {
-      return mockCities.find(c => c.id === id) || null;
+      return [].find(c => c.id === id) || null;
     }
 
     const { data, error } = await (supabase as any)
@@ -658,7 +657,7 @@ export const citiesService = {
 
     if (error) {
       console.error('Error fetching city:', error);
-      return mockCities.find(c => c.id === id) || null;
+      return [].find(c => c.id === id) || null;
     }
 
     return transformCity(data);
@@ -696,7 +695,7 @@ export const citiesService = {
       const index = mockCities.findIndex(c => c.id === id);
       if (index > -1) {
         mockCities[index] = { ...mockCities[index], ...updates };
-        return mockCities[index];
+        return [][index];
       }
       return null;
     }
@@ -758,7 +757,7 @@ export const currenciesService = {
     if (cached) return cached;
 
     if (!isSupabaseConfigured()) {
-      return mockCurrencies;
+      return [];
     }
 
     const fetchPromise = (supabase as any)
@@ -767,7 +766,7 @@ export const currenciesService = {
       .order('code', { ascending: true });
 
     const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Timeout')), 2000)
+      setTimeout(() => reject(new Error('Timeout')), 10000)
     );
 
     try {
@@ -775,20 +774,20 @@ export const currenciesService = {
 
       if (error) {
         console.error('Error fetching currencies:', error);
-        return mockCurrencies;
+        return [];
       }
 
       const transformed = (data || []).map(transformCurrency);
       setToCache('currencies_all', transformed);
       return transformed;
     } catch (e) {
-      return mockCurrencies;
+      return [];
     }
   },
 
   async getByCode(code: string): Promise<Currency | null> {
     if (!isSupabaseConfigured()) {
-      return mockCurrencies.find(c => c.code === code) || null;
+      return [].find(c => c.code === code) || null;
     }
 
     const { data, error } = await (supabase as any)
@@ -799,7 +798,7 @@ export const currenciesService = {
 
     if (error) {
       console.error('Error fetching currency:', error);
-      return mockCurrencies.find(c => c.code === code) || null;
+      return [].find(c => c.code === code) || null;
     }
 
     return transformCurrency(data);
@@ -845,7 +844,7 @@ export const currenciesService = {
       const index = mockCurrencies.findIndex(c => c.id === id);
       if (index > -1) {
         mockCurrencies[index] = { ...mockCurrencies[index], ...updates };
-        return mockCurrencies[index];
+        return [][index];
       }
       return null;
     }
@@ -1144,7 +1143,7 @@ export const adsService = {
       .order('order', { ascending: true });
 
     const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Timeout')), 2000)
+      setTimeout(() => reject(new Error('Timeout')), 10000)
     );
 
     try {
@@ -1177,7 +1176,7 @@ export const adsService = {
       .order('order', { ascending: true });
 
     const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Timeout')), 2000)
+      setTimeout(() => reject(new Error('Timeout')), 10000)
     );
 
     try {
@@ -1315,7 +1314,7 @@ export const usersService = {
     if (cached) return cached;
 
     if (!isSupabaseConfigured()) {
-      return mockUsers;
+      return [];
     }
 
     const { data, error } = await withTimeout((supabase as any)
@@ -1325,7 +1324,7 @@ export const usersService = {
 
     if (error) {
       console.error('Error fetching users:', error);
-      return mockUsers;
+      return [];
     }
 
     const transformed = (data || []).map(transformProfile);
@@ -1335,7 +1334,7 @@ export const usersService = {
 
   async getById(id: string): Promise<User | null> {
     if (!isSupabaseConfigured()) {
-      return mockUsers.find(u => u.id === id) || null;
+      return [].find(u => u.id === id) || null;
     }
 
     const { data, error } = await (supabase as any)
@@ -1346,7 +1345,7 @@ export const usersService = {
 
     if (error) {
       console.error('Error fetching user:', error);
-      return mockUsers.find(u => u.id === id) || null;
+      return [].find(u => u.id === id) || null;
     }
 
     return transformProfile(data);
@@ -1357,7 +1356,7 @@ export const usersService = {
       const index = mockUsers.findIndex(u => u.id === id);
       if (index > -1) {
         mockUsers[index] = { ...mockUsers[index], ...updates };
-        return mockUsers[index];
+        return [][index];
       }
       return null;
     }
@@ -1505,7 +1504,7 @@ export const storeSettingsService = {
       .single();
 
     const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Timeout')), 2000)
+      setTimeout(() => reject(new Error('Timeout')), 10000)
     );
 
     try {
@@ -1626,7 +1625,7 @@ export const statisticsService = {
       .single();
 
     const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Timeout')), 2000)
+      setTimeout(() => reject(new Error('Timeout')), 10000)
     );
 
     try {
@@ -1819,3 +1818,96 @@ function transformActivityLog(row: Record<string, unknown>): ActivityLog {
     createdAt: row.created_at as string,
   };
 }
+
+// ============================================
+// SCRAPING RULES SERVICE
+// ============================================
+
+export interface ScrapingRule {
+  id?: string;
+  domain: string;
+  name_selector?: string;
+  price_selector?: string;
+  image_selector?: string;
+  description_selector?: string;
+  sizes_selector?: string;
+  active: boolean;
+  created_at?: string;
+}
+
+export const scrapingRulesService = {
+  async getAll(): Promise<ScrapingRule[]> {
+    if (!isSupabaseConfigured()) return [];
+    try {
+      const { data, error } = await (supabase as any)
+        .from('store_scraping_rules')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data || [];
+    } catch (e) {
+      console.error('Error fetching rules:', e);
+      return [];
+    }
+  },
+
+  async getByDomain(domain: string): Promise<ScrapingRule | null> {
+    if (!isSupabaseConfigured()) return null;
+    try {
+      const { data, error } = await (supabase as any)
+        .from('store_scraping_rules')
+        .select('*')
+        .eq('domain', domain)
+        .eq('active', true)
+        .single();
+      if (error) return null;
+      return data;
+    } catch {
+      return null;
+    }
+  },
+
+  async create(rule: Omit<ScrapingRule, 'id'>): Promise<ScrapingRule | null> {
+    if (!isSupabaseConfigured()) return null;
+    try {
+      const { data, error } = await (supabase as any)
+        .from('store_scraping_rules')
+        .insert([rule])
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    } catch (e) {
+      console.error('Error creating rule:', e);
+      return null;
+    }
+  },
+
+  async update(id: string, updates: Partial<ScrapingRule>): Promise<boolean> {
+    if (!isSupabaseConfigured()) return false;
+    try {
+      const { error } = await (supabase as any)
+        .from('store_scraping_rules')
+        .update(updates)
+        .eq('id', id);
+      return !error;
+    } catch (e) {
+      console.error('Error updating rule:', e);
+      return false;
+    }
+  },
+
+  async delete(id: string): Promise<boolean> {
+    if (!isSupabaseConfigured()) return false;
+    try {
+      const { error } = await (supabase as any)
+        .from('store_scraping_rules')
+        .delete()
+        .eq('id', id);
+      return !error;
+    } catch (e) {
+      console.error('Error deleting rule:', e);
+      return false;
+    }
+  }
+};

@@ -27,10 +27,7 @@ const AdminLayout = lazy(() => import('@/pages/admin/AdminLayout'));
 const DashboardPage = lazy(() => import('@/pages/admin/DashboardPage'));
 const AdminProductsPage = lazy(() => import('@/pages/admin/ProductsPage'));
 const AddProductPage = lazy(() => import('@/pages/admin/AddProductPage'));
-const ImportProductPage = lazy(() => import('@/pages/admin/ImportProductPage'));
-const BulkImportPage = lazy(() => import('@/pages/admin/BulkImportPage'));
 const StoreImportPage = lazy(() => import('@/pages/admin/StoreImportPage'));
-const UnifiedImportPage = lazy(() => import('@/pages/admin/UnifiedImportPage'));
 const AdminOrdersPage = lazy(() => import('@/pages/admin/OrdersPage'));
 const UsersPage = lazy(() => import('@/pages/admin/UsersPage'));
 const ActivityPage = lazy(() => import('@/pages/admin/ActivityPage'));
@@ -39,6 +36,8 @@ const AdsPage = lazy(() => import('@/pages/admin/AdsPage'));
 const CitiesPage = lazy(() => import('@/pages/admin/CitiesPage'));
 const CurrenciesPage = lazy(() => import('@/pages/admin/CurrenciesPage'));
 const CategoriesPage = lazy(() => import('@/pages/admin/CategoriesPage'));
+const ExternalStoresPage = lazy(() => import('@/pages/admin/ExternalStoresPage'));
+const ScrapingRulesPage = lazy(() => import('@/pages/admin/ScrapingRulesPage'));
 const CategoriesExplorerPage = lazy(() => import('@/pages/CategoriesExplorerPage'));
 
 const PageLoader = () => (
@@ -80,10 +79,7 @@ function App() {
                       <Route path="products" element={<AdminProductsPage />} />
                       <Route path="products/add" element={<AddProductPage />} />
                       <Route path="products/edit/:id" element={<AddProductPage />} />
-                      <Route path="products/import" element={<ImportProductPage />} />
-                      <Route path="products/bulk" element={<BulkImportPage />} />
                       <Route path="products/store" element={<StoreImportPage />} />
-                      <Route path="products/unified-import" element={<UnifiedImportPage />} />
                       <Route path="orders" element={<AdminOrdersPage />} />
                       <Route path="users" element={<UsersPage />} />
                       <Route path="activity" element={<ActivityPage />} />
@@ -92,6 +88,8 @@ function App() {
                       <Route path="cities" element={<CitiesPage />} />
                       <Route path="currencies" element={<CurrenciesPage />} />
                       <Route path="categories" element={<CategoriesPage />} />
+                      <Route path="products/connections" element={<ExternalStoresPage />} />
+                      <Route path="api-mappings" element={<ScrapingRulesPage />} />
                       <Route path="profile" element={<ProfilePage />} />
                     </Route>
 

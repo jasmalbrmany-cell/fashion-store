@@ -279,6 +279,71 @@ export interface Database {
           updated_at?: string;
         };
       };
+      external_stores: {
+        Row: {
+          id: string;
+          name: string;
+          url: string;
+          username: string | null;
+          password: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          url: string;
+          username?: string | null;
+          password?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          name?: string;
+          url?: string;
+          username?: string | null;
+          password?: string | null;
+          updated_at?: string;
+        };
+      };
+      user_permissions: {
+        Row: {
+          user_id: string;
+          can_manage_products: boolean;
+          can_manage_orders: boolean;
+          can_manage_users: boolean;
+          can_manage_ads: boolean;
+          can_manage_cities: boolean;
+          can_manage_currencies: boolean;
+          can_view_reports: boolean;
+          can_export_data: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          can_manage_products?: boolean;
+          can_manage_orders?: boolean;
+          can_manage_users?: boolean;
+          can_manage_ads?: boolean;
+          can_manage_cities?: boolean;
+          can_manage_currencies?: boolean;
+          can_view_reports?: boolean;
+          can_export_data?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          can_manage_products?: boolean;
+          can_manage_orders?: boolean;
+          can_manage_users?: boolean;
+          can_manage_ads?: boolean;
+          can_manage_cities?: boolean;
+          can_manage_currencies?: boolean;
+          can_view_reports?: boolean;
+          can_export_data?: boolean;
+          updated_at?: string;
+        };
+      };
     };
     Views: {
       statistics: {

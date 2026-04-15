@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
-  ArrowLeft, Loader, Check, X, Globe, Package, ChevronRight,
-  ChevronLeft, Search, ShoppingBag, RefreshCw, AlertCircle,
-  Download, Filter, Zap, Tag, Image as ImageIcon, Eye
+  ArrowLeft, Loader, Check, X, Globe, Package, 
+  Search, ShoppingBag, RefreshCw, AlertCircle,
+  Download, Zap, Tag, Image as ImageIcon, Eye,
+  ChevronDown, Store, ArrowRight, CheckCircle2
 } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 import { productsService, categoriesService } from '@/services/api';
@@ -25,28 +26,36 @@ interface CatalogProduct {
   status: 'idle' | 'saving' | 'saved' | 'error';
 }
 
-const STORE_PRESETS = [
-  { name: 'Pletino', url: 'https://pletino.com', emoji: '👶' },
-  { name: 'مثال WooCommerce', url: 'https://woocommerce.com', emoji: '🛒' },
-];
-
 const StoreImportPage: React.FC = () => {
-  const { isRTL, t } = useLanguage();
+  const { isRTL } = useLanguage();
   const navigate = useNavigate();
 
+  // Wizard step: 1=URL, 2=Category, 3=Products, 4=Done
+  const [step, setStep] = useState(1);
+
+  // Step 1
   const [storeUrl, setStoreUrl] = useState('');
+  const [savedStores, setSavedStores] = useState<{id:string;name:string;url:string}[]>([]);
+
+  // Step 2
+  const [categories, setCategories] = useState<Category[]>(mockCategories);
+  const [selectedCategory, setSelectedCategory] = useState('');
+
+  // Step 3
   const [isLoading, setIsLoading] = useState(false);
   const [products, setProducts] = useState<CatalogProduct[]>([]);
   const [strategy, setStrategy] = useState('');
   const [hasMore, setHasMore] = useState(false);
   const [nextPage, setNextPage] = useState(2);
   const [error, setError] = useState('');
-  const [categories, setCategories] = useState<Category[]>(mockCategories);
-  const [selectedCategory, setSelectedCategory] = useState('');
+  const [filterText, setFilterText] = useState('');
+
+  // Step 4
   const [isSaving, setIsSaving] = useState(false);
   const [savedCount, setSavedCount] = useState(0);
   const [totalDone, setTotalDone] = useState(false);
-  const [filterText, setFilterText] = useState('');
+
+  // Preview
   const [previewProduct, setPreviewProduct] = useState<CatalogProduct | null>(null);
   const [currentImageIdx, setCurrentImageIdx] = useState(0);
 
@@ -54,6 +63,11 @@ const StoreImportPage: React.FC = () => {
     categoriesService.getAll().then(data => {
       if (data && data.length > 0) setCategories(data);
     });
+    // Load saved stores from localStorage
+    try {
+      const saved = localStorage.getItem('demo_external_stores');
+      if (saved) setSavedStores(JSON.parse(saved));
+    } catch {}
   }, []);
 
   const fetchCatalog = async (url: string, page = 1) => {
@@ -84,6 +98,7 @@ const StoreImportPage: React.FC = () => {
         setStrategy(data.strategy || '');
         setHasMore(data.hasMore || false);
         setNextPage(data.nextPage || page + 1);
+        setStep(3);
       } else {
         setError(data.error || (isRTL ? 'لم يتم العثور على منتجات. تأكد من الرابط.' : 'No products found. Check the URL.'));
       }
@@ -94,8 +109,8 @@ const StoreImportPage: React.FC = () => {
     }
   };
 
-  const handleImport = () => {
-    if (!storeUrl.trim()) return;
+  const handleStartImport = () => {
+    if (!storeUrl.trim() || !selectedCategory) return;
     let url = storeUrl.trim();
     if (!url.startsWith('http')) url = 'https://' + url;
     setStoreUrl(url);
@@ -113,11 +128,6 @@ const StoreImportPage: React.FC = () => {
   const selectedProds = products.filter(p => p.selected && p.status === 'idle');
 
   const handleSaveAll = async () => {
-    if (!selectedCategory) {
-      alert(isRTL ? 'يرجى اختيار القسم أولاً!' : 'Please select a category first!');
-      return;
-    }
-
     setIsSaving(true);
     setSavedCount(0);
     let count = 0;
@@ -127,7 +137,7 @@ const StoreImportPage: React.FC = () => {
       try {
         const ok = await productsService.create({
           name: prod.name,
-          description: prod.description || (isRTL ? 'منتج مستورد من ' + storeUrl : 'Imported from ' + storeUrl),
+          description: prod.description || (isRTL ? 'منتج مستورد' : 'Imported product'),
           price: prod.price || 0,
           categoryId: selectedCategory,
           images: prod.images.slice(0, 5).map((url, i) => ({
@@ -137,7 +147,7 @@ const StoreImportPage: React.FC = () => {
           })),
           sizes: prod.sizes.map((s, i) => ({ id: `s${i}`, name: s, stock: 10, priceModifier: 0 })),
           colors: prod.colors.map((c, i) => ({ id: `c${i}`, name: c.name, hex: c.hex, stock: 10 })),
-          isVisible: false, // Default to hidden for admin review
+          isVisible: false,
           sourceUrl: prod.sourceUrl,
           stock: 10,
         });
@@ -156,51 +166,40 @@ const StoreImportPage: React.FC = () => {
     }
 
     setIsSaving(false);
-    if (count > 0) setTotalDone(true);
+    if (count > 0) {
+      setTotalDone(true);
+      setStep(4);
+    }
   };
 
   const filteredProducts = products.filter(p =>
-    !filterText || p.name.includes(filterText) || p.category.includes(filterText)
+    !filterText || p.name.toLowerCase().includes(filterText.toLowerCase()) || p.category.toLowerCase().includes(filterText.toLowerCase())
   );
 
-  const strategyLabel: Record<string, string> = {
-    woocommerce: isRTL ? '✅ WooCommerce API (بيانات كاملة)' : '✅ WooCommerce API (Full data)',
-    woocommerce_v3: isRTL ? '✅ WooCommerce V3 API' : '✅ WooCommerce V3 API',
-    shopify: isRTL ? '✅ Shopify API (بيانات كاملة)' : '✅ Shopify API (Full data)',
-    scrape: isRTL ? '⚡ HTML سحب من الصفحة' : '⚡ HTML Scraping mode',
+  const selectedCategoryName = categories.find(c => c.id === selectedCategory)?.name || '';
+
+  const strategyLabels: Record<string, string> = {
+    woocommerce: 'WooCommerce API',
+    woocommerce_v3: 'WooCommerce V3',
+    shopify: 'Shopify API',
+    scrape: 'HTML Scrape',
+    shein: 'Shein Engine',
+    'shein-specialized': 'Shein Engine',
+    mapped_rules: isRTL ? 'قواعد دقيقة (API المخصص)' : 'Dynamic Rule Mapping',
+    'direct-fetch': isRTL ? 'استخراج مباشر' : 'Direct Extract',
+    'html-proxy': isRTL ? 'استخراج عبر وسيط' : 'Proxy Extract',
+    jina: 'Jina AI Reader',
+    firecrawl: 'Firecrawl AI',
+    none: isRTL ? 'لم يتم العثور' : 'Not Found',
   };
 
   return (
     <div className="space-y-6 pb-20" dir={isRTL ? 'rtl' : 'ltr'}>
 
-      {/* Success Modal */}
-      {totalDone && (
-        <div className="fixed inset-0 z-[200] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-10 max-w-sm w-full text-center space-y-6 shadow-2xl animate-in zoom-in-95 duration-300">
-            <div className="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center mx-auto">
-              <Check className="w-10 h-10 text-white" />
-            </div>
-            <div>
-              <h2 className="text-2xl font-black text-gray-900">{isRTL ? '🎉 تم الاستيراد!' : '🎉 Import Done!'}</h2>
-              <p className="text-gray-500 mt-2 font-semibold">
-                {isRTL ? `تمت إضافة ${savedCount} منتج إلى متجرك بنجاح!` : `${savedCount} products added to your store!`}
-              </p>
-            </div>
-            <button onClick={() => navigate('/admin/products')}
-              className="w-full py-4 bg-black text-white rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-gray-800 transition-all">
-              {isRTL ? 'عرض المنتجات' : 'View Products'}
-            </button>
-            <button onClick={() => setTotalDone(false)} className="text-sm text-gray-400 font-bold hover:text-black transition">
-              {isRTL ? 'متابعة الاستيراد' : 'Continue Importing'}
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* Product Preview Modal */}
       {previewProduct && (
         <div className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-md flex items-center justify-center p-4" onClick={() => setPreviewProduct(null)}>
-          <div className="bg-white rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+          <div className="bg-white rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl" onClick={e => e.stopPropagation()}>
             {previewProduct.images.length > 0 ? (
               <div className="relative h-72 bg-gray-100">
                 <img src={previewProduct.images[currentImageIdx]} alt="" className="w-full h-full object-cover" onError={e => (e.currentTarget.style.display = 'none')} />
@@ -230,19 +229,6 @@ const StoreImportPage: React.FC = () => {
                   <span key={s} className="px-3 py-1 bg-gray-100 rounded-full text-xs font-bold">{s}</span>
                 ))}
               </div>
-              <div className="flex gap-2">
-                {previewProduct.colors.map(c => (
-                  <div key={c.name} className="w-6 h-6 rounded-full border-2 border-white shadow" style={{ background: c.hex }} title={c.name} />
-                ))}
-              </div>
-              {previewProduct.images.length > 1 && (
-                <div className="flex gap-2 overflow-x-auto py-2">
-                  {previewProduct.images.map((img, i) => (
-                    <img key={i} src={img} alt="" className={`w-16 h-16 object-cover rounded-xl flex-shrink-0 cursor-pointer border-2 transition ${i === currentImageIdx ? 'border-black' : 'border-transparent'}`}
-                      onClick={() => setCurrentImageIdx(i)} onError={e => e.currentTarget.remove()} />
-                  ))}
-                </div>
-              )}
             </div>
           </div>
         </div>
@@ -255,135 +241,272 @@ const StoreImportPage: React.FC = () => {
         </Link>
         <div className="flex-1">
           <h1 className="text-xl font-black text-gray-900 uppercase tracking-tight">
-            {isRTL ? '🏪 استيراد من متجر كامل' : '🏪 Full Store Import'}
+            {isRTL ? '🛒 استيراد منتجات' : '🛒 Import Products'}
           </h1>
           <p className="text-gray-400 text-xs font-bold uppercase tracking-widest">
-            {isRTL ? 'ألصق رابط أي متجر واستورد كل منتجاته دفعة واحدة' : 'Paste any store URL and import all products at once'}
+            {isRTL ? 'ألصق رابط متجر واستورد منتجاته بسهولة' : 'Paste a store URL and import products easily'}
           </p>
         </div>
-        {strategy && (
-          <span className="text-xs font-bold px-3 py-1 bg-green-100 text-green-700 rounded-full">
-            {strategyLabel[strategy] || strategy}
-          </span>
-        )}
       </div>
 
-      {/* URL Input Card */}
-      <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-3xl p-8 text-white space-y-6 shadow-2xl relative overflow-hidden">
-        <div className="absolute top-0 right-0 opacity-5">
-          <Globe className="w-64 h-64" />
+      {/* Steps Progress */}
+      <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+        <div className="flex items-center justify-between relative">
+          {/* Progress line */}
+          <div className="absolute top-5 left-8 right-8 h-0.5 bg-gray-200 z-0" />
+          <div className="absolute top-5 left-8 h-0.5 bg-black z-0 transition-all duration-500"
+            style={{ width: step === 1 ? '0%' : step === 2 ? '33%' : step === 3 ? '66%' : '85%' }}
+          />
+
+          {[
+            { num: 1, label: isRTL ? 'الرابط' : 'URL' },
+            { num: 2, label: isRTL ? 'القسم' : 'Category' },
+            { num: 3, label: isRTL ? 'المنتجات' : 'Products' },
+            { num: 4, label: isRTL ? 'تم' : 'Done' },
+          ].map(s => (
+            <div key={s.num} className="flex flex-col items-center z-10">
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-black border-2 transition-all duration-300 ${
+                step > s.num ? 'bg-black text-white border-black' :
+                step === s.num ? 'bg-white text-black border-black shadow-lg' :
+                'bg-gray-100 text-gray-400 border-gray-200'
+              }`}>
+                {step > s.num ? <Check className="w-5 h-5" /> : s.num}
+              </div>
+              <span className={`text-xs font-black mt-2 uppercase tracking-widest ${
+                step >= s.num ? 'text-black' : 'text-gray-300'
+              }`}>{s.label}</span>
+            </div>
+          ))}
         </div>
-        <div className="relative z-10 space-y-4">
-          <h2 className="text-2xl font-black">{isRTL ? 'أدخل رابط المتجر' : 'Enter Store URL'}</h2>
-          <p className="text-white/50 text-sm font-semibold">
-            {isRTL
-              ? 'يدعم: WooCommerce، Shopify، وأي موقع متجر. مثال: https://pletino.com'
-              : 'Supports: WooCommerce, Shopify, and any store. Example: https://pletino.com'}
-          </p>
+      </div>
 
-          {/* Presets */}
-          <div className="flex gap-2 flex-wrap">
-            {STORE_PRESETS.map(p => (
-              <button key={p.url} onClick={() => setStoreUrl(p.url)}
-                className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-xl text-sm font-bold transition flex items-center gap-2">
-                {p.emoji} {p.name}
-              </button>
-            ))}
-          </div>
+      {/* ═══════════════ STEP 1: URL ═══════════════ */}
+      {step === 1 && (
+        <div className="space-y-4">
+          <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-3xl p-8 text-white shadow-2xl relative overflow-hidden">
+            <div className="absolute top-0 right-0 opacity-5">
+              <Globe className="w-64 h-64" />
+            </div>
+            <div className="relative z-10 space-y-5">
+              <div>
+                <h2 className="text-2xl font-black">{isRTL ? 'الخطوة 1: أدخل رابط المتجر' : 'Step 1: Enter Store URL'}</h2>
+                <p className="text-white/50 text-sm font-bold mt-1">
+                  {isRTL ? 'ألصق رابط أي متجر (WooCommerce, Shopify, Shein) واضغط التالي' : 'Paste any store URL (WooCommerce, Shopify, Shein) and click Next'}
+                </p>
+              </div>
 
-          <div className="flex gap-3">
-            <div className="flex-1 relative">
+              {/* Saved stores shortcuts */}
+              {savedStores.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-xs font-black uppercase tracking-widest text-white/30">
+                    {isRTL ? 'المتاجر المحفوظة:' : 'Saved Stores:'}
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {savedStores.map(s => (
+                      <button
+                        key={s.id}
+                        onClick={() => setStoreUrl(s.url)}
+                        className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${
+                          storeUrl === s.url
+                            ? 'bg-white text-black'
+                            : 'bg-white/10 text-white/70 hover:bg-white/20'
+                        }`}
+                      >
+                        <Store className="w-3 h-3 inline mr-1" />
+                        {s.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <input
                 type="url"
                 value={storeUrl}
                 onChange={e => setStoreUrl(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleImport()}
-                placeholder="https://pletino.com"
-                className="w-full px-5 py-4 bg-white/10 border border-white/20 rounded-2xl text-white placeholder:text-white/30 font-bold outline-none focus:border-white/60 transition-all"
+                placeholder={isRTL ? 'https://pletino.com أو أي رابط متجر...' : 'https://pletino.com or any store URL...'}
+                className="w-full px-6 py-5 bg-white/10 border border-white/20 rounded-2xl text-white placeholder:text-white/30 font-bold outline-none focus:border-white/60 transition-all text-lg"
               />
+
+              <button
+                onClick={() => storeUrl.trim() && setStep(2)}
+                disabled={!storeUrl.trim()}
+                className="w-full py-5 bg-white text-black rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-yellow-400 transition-all active:scale-[0.99] disabled:opacity-30 flex items-center justify-center gap-3"
+              >
+                {isRTL ? 'التالي: اختر القسم' : 'Next: Choose Category'}
+                <ArrowRight className={`w-5 h-5 ${isRTL ? 'rotate-180' : ''}`} />
+              </button>
             </div>
-            <button
-              onClick={handleImport}
-              disabled={isLoading || !storeUrl.trim()}
-              className="px-8 py-4 bg-white text-black rounded-2xl font-black hover:bg-yellow-400 transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2 whitespace-nowrap"
-            >
-              {isLoading ? <Loader className="w-5 h-5 animate-spin" /> : <Zap className="w-5 h-5" />}
-              {isRTL ? 'استيراد الكل' : 'Import All'}
-            </button>
           </div>
-        </div>
-      </div>
 
-      {/* Error */}
-      {error && (
-        <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-2xl text-red-700">
-          <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
-          <p className="font-semibold text-sm">{error}</p>
-        </div>
-      )}
-
-      {/* Loading shimmer */}
-      {isLoading && products.length === 0 && (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="bg-white rounded-2xl overflow-hidden border border-gray-100 animate-pulse">
-              <div className="h-48 bg-gray-100" />
-              <div className="p-3 space-y-2">
-                <div className="h-4 bg-gray-100 rounded-full w-3/4" />
-                <div className="h-3 bg-gray-100 rounded-full w-1/2" />
+          {/* Supported sites info */}
+          <div className="bg-gray-50 rounded-2xl p-6 space-y-3">
+            <p className="font-black text-sm text-gray-700">{isRTL ? '🔥 المواقع المدعومة:' : '🔥 Supported Sites:'}</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              <div className="bg-white rounded-xl p-4 border border-gray-100">
+                <p className="font-black text-sm">✅ WooCommerce</p>
+                <p className="text-xs text-gray-400 mt-1">{isRTL ? 'مثل Pletino.com — استيراد كامل تلقائي' : 'Like Pletino.com — Full auto import'}</p>
+              </div>
+              <div className="bg-white rounded-xl p-4 border border-gray-100">
+                <p className="font-black text-sm">✅ Shopify</p>
+                <p className="text-xs text-gray-400 mt-1">{isRTL ? 'أغلب متاجر Shopify — بيانات كاملة' : 'Most Shopify stores — Full data'}</p>
+              </div>
+              <div className="bg-white rounded-xl p-4 border border-gray-100">
+                <p className="font-black text-sm">🌐 {isRTL ? 'أي موقع آخر' : 'Any Website'}</p>
+                <p className="text-xs text-gray-400 mt-1">{isRTL ? 'Zahraah, Noon, Namshi... — استخراج ذكي' : 'Zahraah, Noon, Namshi... — Smart extraction'}</p>
+              </div>
+              <div className="bg-white rounded-xl p-4 border border-gray-100">
+                <p className="font-black text-sm">👗 Shein</p>
+                <p className="text-xs text-gray-400 mt-1">{isRTL ? 'محرك متخصص لـ Shein' : 'Specialized Shein engine'}</p>
+              </div>
+              <div className="bg-white rounded-xl p-4 border border-gray-100">
+                <p className="font-black text-sm">🛍️ Amazon</p>
+                <p className="text-xs text-gray-400 mt-1">{isRTL ? 'Amazon.sa / Amazon.com' : 'Amazon.sa / Amazon.com'}</p>
+              </div>
+              <div className="bg-white rounded-xl p-4 border border-gray-100">
+                <p className="font-black text-sm">🔗 AliExpress</p>
+                <p className="text-xs text-gray-400 mt-1">{isRTL ? 'استيراد من AliExpress' : 'Import from AliExpress'}</p>
               </div>
             </div>
-          ))}
+          </div>
         </div>
       )}
 
-      {/* Products Grid */}
-      {products.length > 0 && (
-        <div className="space-y-4">
-          {/* Controls bar */}
-          <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm flex flex-wrap gap-3 items-center">
-            {/* Category Select */}
-            <div className="flex items-center gap-2 flex-1 min-w-[200px]">
-              <Tag className="w-4 h-4 text-gray-400 flex-shrink-0" />
-              <select
-                value={selectedCategory}
-                onChange={e => setSelectedCategory(e.target.value)}
-                className="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-bold text-sm focus:outline-none focus:border-black cursor-pointer"
-              >
-                <option value="">{isRTL ? '🏷️ اختر القسم للمنتجات' : '🏷️ Select Category'}</option>
-                {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
-            </div>
+      {/* ═══════════════ STEP 2: CATEGORY ═══════════════ */}
+      {step === 2 && (
+        <div className="bg-white rounded-3xl p-8 border border-gray-100 shadow-sm space-y-6">
+          <div>
+            <h2 className="text-2xl font-black text-gray-900">{isRTL ? 'الخطوة 2: اختر القسم' : 'Step 2: Choose Category'}</h2>
+            <p className="text-gray-400 text-sm font-bold mt-1">
+              {isRTL ? 'حدد القسم الذي ستُضاف إليه المنتجات المستوردة' : 'Select the category where imported products will be added'}
+            </p>
+          </div>
 
-            {/* Filter */}
+          {/* Show selected URL */}
+          <div className="bg-gray-50 rounded-2xl p-4 flex items-center gap-3">
+            <Globe className="w-5 h-5 text-gray-400 flex-shrink-0" />
+            <span className="font-bold text-sm text-gray-700 truncate">{storeUrl}</span>
+            <button onClick={() => setStep(1)} className="text-xs text-blue-600 font-bold hover:underline flex-shrink-0">
+              {isRTL ? 'تغيير' : 'Change'}
+            </button>
+          </div>
+
+          {/* Category grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+            {categories.map(cat => (
+              <button
+                key={cat.id}
+                onClick={() => setSelectedCategory(cat.id)}
+                className={`p-4 rounded-2xl border-2 transition-all text-center ${
+                  selectedCategory === cat.id
+                    ? 'border-black bg-black text-white shadow-lg'
+                    : 'border-gray-100 bg-white text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <Tag className={`w-5 h-5 mx-auto mb-2 ${selectedCategory === cat.id ? 'text-white' : 'text-gray-300'}`} />
+                <p className="font-black text-sm">{cat.name}</p>
+              </button>
+            ))}
+          </div>
+
+          {/* Actions */}
+          <div className="flex gap-3">
+            <button
+              onClick={() => setStep(1)}
+              className="flex-1 py-4 bg-gray-100 text-gray-600 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-gray-200 transition-all"
+            >
+              {isRTL ? '← السابق' : '← Back'}
+            </button>
+            <button
+              onClick={handleStartImport}
+              disabled={!selectedCategory || isLoading}
+              className="flex-[2] py-4 bg-black text-white rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-gray-800 transition-all disabled:opacity-30 flex items-center justify-center gap-3"
+            >
+              {isLoading
+                ? <><Loader className="w-5 h-5 animate-spin" />{isRTL ? 'جارٍ الاستخراج...' : 'Extracting...'}</>
+                : <><Zap className="w-5 h-5" />{isRTL ? 'بدء الاستيراد' : 'Start Import'}</>
+              }
+            </button>
+          </div>
+
+          {/* Error */}
+          {error && (
+            <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-2xl text-red-700">
+              <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-semibold text-sm">{error}</p>
+                <button onClick={() => { setError(''); setStep(1); }} className="text-xs mt-1 underline">
+                  {isRTL ? 'جرب رابطاً آخر' : 'Try a different URL'}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ═══════════════ STEP 3: PRODUCTS ═══════════════ */}
+      {step === 3 && (
+        <div className="space-y-4">
+          {/* Info bar */}
+          <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm flex flex-wrap gap-3 items-center">
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <div className="flex items-center gap-2 text-sm text-gray-500 truncate">
+                <Globe className="w-4 h-4 flex-shrink-0" />
+                <span className="font-bold truncate">{storeUrl}</span>
+              </div>
+              {strategy && (
+                <span className="text-xs font-bold px-2 py-1 bg-green-100 text-green-700 rounded-full whitespace-nowrap">
+                  {strategyLabels[strategy] || strategy}
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-2 text-sm">
+              <Tag className="w-4 h-4 text-gray-400" />
+              <span className="font-black text-black">{selectedCategoryName}</span>
+            </div>
+          </div>
+
+          {/* Controls */}
+          <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm flex flex-wrap gap-3 items-center">
             <div className="relative flex-1 min-w-[160px]">
-              <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300" />
+              <Search className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300`} />
               <input
                 type="text"
                 value={filterText}
                 onChange={e => setFilterText(e.target.value)}
-                placeholder={isRTL ? 'فلتر المنتجات...' : 'Filter...'}
-                className="w-full pr-9 pl-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm font-semibold focus:outline-none focus:border-black"
+                placeholder={isRTL ? 'بحث في المنتجات...' : 'Search products...'}
+                className={`w-full ${isRTL ? 'pr-9 pl-4' : 'pl-9 pr-4'} py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm font-semibold focus:outline-none focus:border-black`}
               />
             </div>
-
-            {/* Select all / none */}
             <div className="flex gap-2">
               <button onClick={() => toggleAll(true)} className="px-3 py-2 text-xs font-black uppercase tracking-widest bg-gray-50 hover:bg-black hover:text-white rounded-xl transition">
-                {isRTL ? 'تحديد الكل' : 'All'}
+                {isRTL ? 'الكل' : 'All'}
               </button>
               <button onClick={() => toggleAll(false)} className="px-3 py-2 text-xs font-black uppercase tracking-widest bg-gray-50 hover:bg-black hover:text-white rounded-xl transition">
-                {isRTL ? 'إلغاء' : 'None'}
+                {isRTL ? 'لا شيء' : 'None'}
               </button>
             </div>
-
-            {/* Count */}
             <span className="text-sm font-bold text-gray-500">
-              {isRTL ? `${filteredProducts.length} منتج` : `${filteredProducts.length} products`}
+              {filteredProducts.length} {isRTL ? 'منتج' : 'products'}
             </span>
           </div>
 
-          {/* Product Cards Grid */}
+          {/* Loading shimmer */}
+          {isLoading && products.length === 0 && (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="bg-white rounded-2xl overflow-hidden border border-gray-100 animate-pulse">
+                  <div className="h-48 bg-gray-100" />
+                  <div className="p-3 space-y-2">
+                    <div className="h-4 bg-gray-100 rounded-full w-3/4" />
+                    <div className="h-3 bg-gray-100 rounded-full w-1/2" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Product Grid */}
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {filteredProducts.map(prod => (
               <div
@@ -395,7 +518,7 @@ const StoreImportPage: React.FC = () => {
                     prod.selected ? 'border-black shadow-lg scale-[1.01]' :
                     'border-gray-100 hover:border-gray-300'}`}
               >
-                {/* Status badge */}
+                {/* Status badges */}
                 {prod.status === 'saved' && (
                   <div className="absolute top-2 right-2 z-10 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
                     <Check className="w-4 h-4 text-white" />
@@ -415,26 +538,17 @@ const StoreImportPage: React.FC = () => {
                 {/* Image */}
                 <div className="relative h-44 bg-gray-50 overflow-hidden">
                   {prod.images.length > 0 ? (
-                    <img
-                      src={prod.images[0]}
-                      alt={prod.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                      onError={e => { e.currentTarget.style.display = 'none'; }}
-                    />
+                    <img src={prod.images[0]} alt={prod.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" onError={e => { e.currentTarget.style.display = 'none'; }} />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
                       <ImageIcon className="w-10 h-10 text-gray-200" />
                     </div>
                   )}
-
-                  {/* Image count */}
                   {prod.images.length > 1 && (
                     <div className="absolute bottom-2 left-2 px-2 py-0.5 bg-black/60 text-white text-xs font-bold rounded-full">
                       {prod.images.length} 📷
                     </div>
                   )}
-
-                  {/* Preview button */}
                   <button
                     onClick={e => { e.stopPropagation(); setCurrentImageIdx(0); setPreviewProduct(prod); }}
                     className="absolute top-2 left-2 w-7 h-7 bg-white/80 backdrop-blur rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition hover:bg-white"
@@ -452,7 +566,6 @@ const StoreImportPage: React.FC = () => {
                   {prod.sizes.length > 0 && prod.sizes[0] !== 'حسب الطلب' && (
                     <p className="text-xs text-gray-400 font-semibold truncate">
                       📏 {prod.sizes.slice(0, 3).join(' · ')}
-                      {prod.sizes.length > 3 && ` +${prod.sizes.length - 3}`}
                     </p>
                   )}
                 </div>
@@ -465,35 +578,28 @@ const StoreImportPage: React.FC = () => {
             <button onClick={loadMore}
               className="w-full py-4 bg-white border-2 border-gray-200 rounded-2xl font-black text-sm uppercase tracking-widest hover:border-black hover:bg-black hover:text-white transition-all flex items-center justify-center gap-2">
               <RefreshCw className="w-4 h-4" />
-              {isRTL ? 'تحميل المزيد من المنتجات' : 'Load More Products'}
+              {isRTL ? 'تحميل المزيد' : 'Load More'}
             </button>
           )}
 
           {isLoading && products.length > 0 && (
             <div className="flex items-center justify-center py-6 gap-3">
               <Loader className="w-5 h-5 animate-spin" />
-              <span className="font-bold text-gray-500">{isRTL ? 'جاري التحميل...' : 'Loading...'}</span>
+              <span className="font-bold text-gray-500">{isRTL ? 'جارٍ التحميل...' : 'Loading...'}</span>
             </div>
           )}
 
-          {/* Save Button - Sticky Footer */}
+          {/* Save Footer */}
           {selectedProds.length > 0 && (
-            <div className="fixed bottom-4 left-4 right-4 z-50 flex gap-3 max-w-2xl mx-auto">
-              <div className="flex-1 bg-black rounded-2xl p-4 flex items-center gap-3 shadow-2xl shadow-black/40">
+            <div className="fixed bottom-4 left-4 right-4 z-50 max-w-2xl mx-auto">
+              <div className="bg-black rounded-2xl p-4 flex items-center gap-3 shadow-2xl shadow-black/40">
                 <div className="flex-1">
                   <p className="text-white font-black text-sm">
                     {isRTL ? `${selectedProds.length} منتج محدد` : `${selectedProds.length} selected`}
                   </p>
-                  {!selectedCategory && (
-                    <p className="text-yellow-400 text-xs font-bold animate-pulse">
-                      {isRTL ? '⚠️ اختر القسم أولاً ↑' : '⚠️ Choose a category ↑'}
-                    </p>
-                  )}
-                  {selectedCategory && (
-                    <p className="text-green-400 text-xs font-bold">
-                      {isRTL ? '✅ جاهز للحفظ' : '✅ Ready to save'}
-                    </p>
-                  )}
+                  <p className="text-green-400 text-xs font-bold">
+                    → {selectedCategoryName}
+                  </p>
                 </div>
                 {isSaving && (
                   <span className="text-white/60 text-sm font-bold">
@@ -502,7 +608,7 @@ const StoreImportPage: React.FC = () => {
                 )}
                 <button
                   onClick={handleSaveAll}
-                  disabled={isSaving || !selectedCategory}
+                  disabled={isSaving}
                   className="px-6 py-3 bg-white text-black rounded-xl font-black text-sm uppercase tracking-widest hover:bg-yellow-400 transition-all disabled:opacity-50 flex items-center gap-2 whitespace-nowrap"
                 >
                   {isSaving
@@ -516,18 +622,32 @@ const StoreImportPage: React.FC = () => {
         </div>
       )}
 
-      {/* Empty state */}
-      {!isLoading && products.length === 0 && !error && (
-        <div className="text-center py-20 space-y-4">
-          <ShoppingBag className="w-16 h-16 text-gray-200 mx-auto" />
-          <p className="text-gray-400 font-bold">
-            {isRTL ? 'أدخل رابط المتجر أعلاه وسيتم استيراد المنتجات تلقائياً' : 'Enter a store URL above to start importing'}
-          </p>
-          <div className="bg-gray-50 rounded-2xl p-6 max-w-md mx-auto text-right space-y-2">
-            <p className="font-black text-sm text-gray-700">{isRTL ? '🔥 المواقع المدعومة:' : '🔥 Supported Sites:'}</p>
-            <p className="text-sm text-gray-500">✅ <strong>WooCommerce</strong> – {isRTL ? 'مثل Pletino.com' : 'like Pletino.com'}</p>
-            <p className="text-sm text-gray-500">✅ <strong>Shopify</strong> – {isRTL ? 'أغلب متاجر Shopify' : 'Most Shopify stores'}</p>
-            <p className="text-sm text-gray-500">⚡ <strong>{isRTL ? 'مواقع أخرى' : 'Other sites'}</strong> – {isRTL ? 'سحب HTML تلقائي' : 'Auto HTML scrape'}</p>
+      {/* ═══════════════ STEP 4: DONE ═══════════════ */}
+      {step === 4 && (
+        <div className="bg-white rounded-3xl p-12 text-center space-y-8 border border-gray-100 shadow-sm">
+          <div className="w-24 h-24 bg-green-500 rounded-full flex items-center justify-center mx-auto shadow-2xl shadow-green-200">
+            <CheckCircle2 className="w-12 h-12 text-white" />
+          </div>
+          <div>
+            <h2 className="text-3xl font-black text-gray-900">{isRTL ? '🎉 تم الاستيراد بنجاح!' : '🎉 Import Complete!'}</h2>
+            <p className="text-gray-500 mt-3 font-bold text-lg">
+              {isRTL ? `تمت إضافة ${savedCount} منتج إلى قسم "${selectedCategoryName}"` : `${savedCount} products added to "${selectedCategoryName}"`}
+            </p>
+            <p className="text-gray-400 mt-1 text-sm">
+              {isRTL ? 'المنتجات مخفية حالياً — يمكنك مراجعتها وإظهارها من صفحة المنتجات' : 'Products are hidden by default — review and publish them from the Products page'}
+            </p>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
+            <button onClick={() => navigate('/admin/products')}
+              className="flex-1 py-4 bg-black text-white rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-gray-800 transition-all flex items-center justify-center gap-2">
+              <Package className="w-4 h-4" />
+              {isRTL ? 'عرض المنتجات' : 'View Products'}
+            </button>
+            <button onClick={() => { setStep(1); setProducts([]); setStoreUrl(''); setSelectedCategory(''); setSavedCount(0); setTotalDone(false); }}
+              className="flex-1 py-4 bg-gray-100 text-gray-700 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-gray-200 transition-all flex items-center justify-center gap-2">
+              <RefreshCw className="w-4 h-4" />
+              {isRTL ? 'استيراد آخر' : 'Import More'}
+            </button>
           </div>
         </div>
       )}

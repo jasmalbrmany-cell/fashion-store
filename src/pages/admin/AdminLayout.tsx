@@ -16,7 +16,8 @@ import {
   Store,
   DollarSign,
   Languages,
-  FolderTree
+  FolderTree,
+  Link as LinkIcon
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
@@ -39,8 +40,9 @@ const AdminLayout: React.FC = () => {
     { path: '/admin/ads', icon: <Megaphone className="w-5 h-5" />, label: t.adminAds, show: canManageAds },
     { path: '/admin/activity', icon: <Activity className="w-5 h-5" />, label: t.adminActivity, show: isAdmin || permissions.can_view_reports },
     { path: '/admin/settings', icon: <Settings className="w-5 h-5" />, label: t.adminSettings, show: canManageUsers },
-    { path: '/admin/products/bulk', icon: <ShoppingCart className="w-5 h-5" />, label: t.bulkImport, show: canManageProducts },
-    { path: '/admin/products/store', icon: <Globe className="w-5 h-5" />, label: isRTL ? 'استيراد متجر كامل' : 'Store Import', show: canManageProducts },
+    { path: '/admin/api-mappings', icon: <LinkIcon className="w-5 h-5" />, label: isRTL ? 'ربط المواقع (API)' : 'API Mappings', show: isAdmin },
+    { path: '/admin/products/store', icon: <Store className="w-5 h-5" />, label: isRTL ? '🛒 استيراد منتجات' : '🛒 Import Products', show: canManageProducts },
+    { path: '/admin/products/connections', icon: <LinkIcon className="w-5 h-5" />, label: isRTL ? '🔗 ربط المتاجر' : '🔗 Store Connections', show: isAdmin },
   ].filter(item => item.show !== false), [t, isRTL, canManageProducts, canManageOrders, canManageUsers, canManageAds, isAdmin, permissions]);
 
   useEffect(() => {
@@ -220,13 +222,12 @@ const AdminLayout: React.FC = () => {
       {/* Main Content */}
       <main className={`transition-all duration-300 ${isRTL ? 'lg:mr-64' : 'lg:ml-64'} pt-16 lg:pt-0 min-h-screen relative`}>
         <div className="p-4 md:p-8">
-          <AnimatePresence mode="wait">
+          <AnimatePresence>
             <motion.div
               key={location.pathname}
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -15 }}
-              transition={{ duration: 0.3, ease: 'easeInOut' }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.15 }}
             >
               <Outlet />
             </motion.div>
