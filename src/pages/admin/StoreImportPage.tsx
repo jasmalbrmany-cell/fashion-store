@@ -4,7 +4,7 @@ import {
   ArrowLeft, Loader, Check, X, Globe, Package, 
   Search, ShoppingBag, RefreshCw, AlertCircle,
   Download, Zap, Tag, Image as ImageIcon, Eye,
-  ChevronDown, Store, ArrowRight, CheckCircle2
+  ChevronDown, Store, ArrowRight, CheckCircle2, Upload, FileText
 } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 import { productsService, categoriesService } from '@/services/api';
@@ -114,7 +114,77 @@ const StoreImportPage: React.FC = () => {
     }
   };
 
+  const handleCsvUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsLoading(true);
+    setStoreUrl(file.name);
+    setStrategy('csv-import');
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const text = event.target?.result as string;
+        const lines = text.split(/\r?\n/).filter(line => line.trim());
+        if (lines.length < 2) throw new Error(isRTL ? 'ملف CSV فارغ أو لا يحتوي على بيانات' : 'CSV file is empty or has no data');
+
+        const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+        const parsedProducts: CatalogProduct[] = [];
+
+        for (let i = 1; i < lines.length; i++) {
+          // simple csv split that handles commas inside quotes
+          const match = lines[i].match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
+          const cells = match ? match.map(m => m.replace(/^"|"$/g, '').trim()) : lines[i].split(',');
+
+          const obj: any = {};
+          headers.forEach((h, idx) => {
+             obj[h] = cells[idx] || '';
+          });
+
+          // Fallbacks for common naming conventions
+          const name = obj.name || obj.title || obj.product_name || `Product ${i}`;
+          const price = parseFloat(obj.price || obj.regular_price || obj.sale_price) || 0;
+          const image = obj.image || obj.imageurl || obj.images || obj.image_src;
+          const images = image ? image.split('|').map((s:string) => s.trim()) : [];
+
+          parsedProducts.push({
+            id: `csv-${Date.now()}-${i}`,
+            name,
+            description: obj.description || obj.short_description || '',
+            price,
+            currency: 'YER',
+            images,
+            sizes: obj.sizes ? obj.sizes.split('|').map((s:string) => s.trim()) : [],
+            colors: obj.colors ? obj.colors.split('|').map((c:string) => ({ name: c.trim(), hex: '#000000'})) : [],
+            sourceUrl: '',
+            category: obj.category || obj.categories || '',
+            selected: true,
+            status: 'idle'
+          });
+        }
+
+        setProducts(parsedProducts);
+        setStep(2); // CSV already loaded products, skip to category selection
+      } catch (err: any) {
+        setError(err.message || (isRTL ? 'خطأ في قراءة الملف. تأكد من أنه بصيغة CSV صحيحة.' : 'Error reading file. Ensure it is a valid CSV.'));
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    reader.onerror = () => {
+      setError(isRTL ? 'خطأ في قراءة ملف CSV' : 'Error reading CSV file');
+      setIsLoading(false);
+    };
+    reader.readAsText(file);
+  };
+
   const handleStartImport = () => {
+    if (strategy === 'csv-import') {
+       // Products already loaded physically, just go to step 3
+       setStep(3);
+       return;
+    }
     if (!storeUrl.trim() || !selectedCategory) return;
     let url = storeUrl.trim();
     if (!url.startsWith('http')) url = 'https://' + url;
@@ -195,6 +265,7 @@ const StoreImportPage: React.FC = () => {
     'html-proxy': isRTL ? 'استخراج عبر وسيط' : 'Proxy Extract',
     jina: 'Jina AI Reader',
     firecrawl: 'Firecrawl AI',
+    'csv-import': isRTL ? 'ملف CSV محلي' : 'Local CSV File',
     none: isRTL ? 'لم يتم العثور' : 'Not Found',
   };
 
@@ -341,6 +412,29 @@ const StoreImportPage: React.FC = () => {
                 {isRTL ? 'التالي: اختر القسم' : 'Next: Choose Category'}
                 <ArrowRight className={`w-5 h-5 ${isRTL ? 'rotate-180' : ''}`} />
               </button>
+
+              <div className="flex items-center gap-4 my-2 opacity-50">
+                <div className="flex-1 h-px bg-white"></div>
+                <span className="text-xs font-black uppercase tracking-widest">{isRTL ? 'أو' : 'OR'}</span>
+                <div className="flex-1 h-px bg-white"></div>
+              </div>
+
+              <div className="w-full relative bg-white/5 border-2 border-dashed border-white/20 rounded-2xl p-6 text-center hover:bg-white/10 hover:border-white/40 transition-all cursor-pointer flex flex-col items-center justify-center gap-3">
+                <input 
+                  type="file" 
+                  accept=".csv" 
+                  onChange={handleCsvUpload} 
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" 
+                  title={isRTL ? 'ارفع ملف CSV' : 'Upload CSV file'}
+                />
+                <FileText className="w-8 h-8 text-white/50" />
+                <div>
+                  <p className="text-sm font-black text-white">{isRTL ? 'استيراد من ملف CSV' : 'Import from CSV File'}</p>
+                  <p className="text-xs text-white/50 font-bold mt-1">
+                    {isRTL ? 'الأعمدة المدعومة: name, price, description, images, sizes' : 'Supported cols: name, price, description, images, sizes'}
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -443,8 +537,8 @@ const StoreImportPage: React.FC = () => {
               className="flex-[2] py-4 bg-black text-white rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-gray-800 transition-all disabled:opacity-30 flex items-center justify-center gap-3"
             >
               {isLoading
-                ? <><Loader className="w-5 h-5 animate-spin" />{isRTL ? 'جارٍ الاستخراج...' : 'Extracting...'}</>
-                : <><Zap className="w-5 h-5" />{isRTL ? 'بدء الاستيراد' : 'Start Import'}</>
+                ? <><Loader className="w-5 h-5 animate-spin" />{isRTL ? 'جارٍ المعالجة...' : 'Processing...'}</>
+                : <><Zap className="w-5 h-5" />{isRTL ? (strategy === 'csv-import' ? 'معاينة المنتجات' : 'بدء الاستخراج') : (strategy === 'csv-import' ? 'Preview Products' : 'Start Extract')}</>
               }
             </button>
           </div>

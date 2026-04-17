@@ -1,11 +1,9 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User, UserRole } from '@/types';
-import { usersService } from '@/services';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import type { Database } from '@/types/database';
 
 type ProfileRow = Database['public']['Tables']['profiles']['Row'];
-type ProfileData = ProfileRow | null | undefined;
 
 // Helper function to convert profile to User
 const profileToUser = (profile: ProfileRow): User => ({
@@ -64,6 +62,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [permissions, setPermissions] = useState<UserPermissions>(defaultPermissions);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Fetch permissions from database (not localStorage)
   const fetchPermissions = async (userId: string) => {
     if (!isSupabaseConfigured()) return;
     try {
@@ -73,72 +72,90 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         .eq('user_id', userId)
         .single();
       
-      if (error) {
-        // If table doesn't exist or no permissions found, use defaults
-        console.warn('Permissions fetch error (using defaults):', error.message);
+      if (error || !data) {
         setPermissions(defaultPermissions);
         return;
       }
       
-      if (data) {
-        const d = data as any;
-        setPermissions({
-          can_manage_products: d.can_manage_products ?? false,
-          can_manage_orders: d.can_manage_orders ?? false,
-          can_manage_users: d.can_manage_users ?? false,
-          can_manage_ads: d.can_manage_ads ?? false,
-          can_manage_cities: d.can_manage_cities ?? false,
-          can_manage_currencies: d.can_manage_currencies ?? false,
-          can_view_reports: d.can_view_reports ?? false,
-          can_export_data: d.can_export_data ?? false,
-        });
-      } else {
-        setPermissions(defaultPermissions);
-      }
+      const d = data as any;
+      setPermissions({
+        can_manage_products: d.can_manage_products ?? false,
+        can_manage_orders: d.can_manage_orders ?? false,
+        can_manage_users: d.can_manage_users ?? false,
+        can_manage_ads: d.can_manage_ads ?? false,
+        can_manage_cities: d.can_manage_cities ?? false,
+        can_manage_currencies: d.can_manage_currencies ?? false,
+        can_view_reports: d.can_view_reports ?? false,
+        can_export_data: d.can_export_data ?? false,
+      });
     } catch (e) {
       console.error('Error fetching permissions:', e);
       setPermissions(defaultPermissions);
     }
   };
 
+  // Load user profile from database using session
+  const loadProfileFromSession = async (sessionUserId: string): Promise<User | null> => {
+    try {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', sessionUserId)
+        .single();
+
+      if (profile) {
+        const userData = profileToUser(profile);
+        // Store in localStorage as cache only (will always be verified against DB)
+        localStorage.setItem('fashionHubUser', JSON.stringify(userData));
+        if (userData.role !== 'customer') await fetchPermissions(userData.id);
+        return userData;
+      }
+    } catch (e) {
+      console.error('Error loading profile:', e);
+    }
+    return null;
+  };
+
   useEffect(() => {
     const initAuth = async () => {
+      // Safety timeout to prevent infinite loading
       const timeoutId = setTimeout(() => {
         setIsLoading(false);
-      }, 3000);
+      }, 5000);
 
       try {
-        const savedUser = localStorage.getItem('fashionHubUser');
-        if (savedUser) {
-          try {
-            const parsed = JSON.parse(savedUser);
-            setUser(parsed);
-            if (parsed.role !== 'customer') fetchPermissions(parsed.id);
-          } catch (e) {
-            console.error('Failed to parse saved user:', e);
-            localStorage.removeItem('fashionHubUser');
-          }
-        }
-
         if (isSupabaseConfigured()) {
+          // ALWAYS check Supabase session first (source of truth)
           const { data: { session } } = await supabase.auth.getSession();
+          
           if (session?.user) {
-            const { data: profile } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('id', session.user.id)
-              .single();
-
-            if (profile) {
-              const userData = profileToUser(profile);
+            const userData = await loadProfileFromSession(session.user.id);
+            if (userData) {
               setUser(userData);
-              localStorage.setItem('fashionHubUser', JSON.stringify(userData));
-              if (userData.role !== 'customer') await fetchPermissions(userData.id);
+            }
+          } else {
+            // No active session - clear any stale localStorage
+            localStorage.removeItem('fashionHubUser');
+            setUser(null);
+          }
+        } else {
+          // Supabase not configured - show cached user for display only
+          const savedUser = localStorage.getItem('fashionHubUser');
+          if (savedUser) {
+            try {
+              setUser(JSON.parse(savedUser));
+            } catch {
+              localStorage.removeItem('fashionHubUser');
             }
           }
         }
       } catch (globalError) {
-        console.error('Auth error:', globalError);
+        console.error('Auth initialization error:', globalError);
+        // On error, try localStorage as fallback for display
+        const savedUser = localStorage.getItem('fashionHubUser');
+        if (savedUser) {
+          try { setUser(JSON.parse(savedUser)); } catch { /* ignore */ }
+        }
       } finally {
         clearTimeout(timeoutId);
         setIsLoading(false);
@@ -147,22 +164,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     initAuth();
 
+    // Listen for auth state changes
     if (isSupabaseConfigured()) {
       const { data: { subscription } } = supabase.auth.onAuthStateChange(
         async (event, session) => {
           if (session?.user) {
-            const { data: profile } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('id', session.user.id)
-              .single();
-
-            if (profile) {
-              const userData = profileToUser(profile);
-              setUser(userData);
-              localStorage.setItem('fashionHubUser', JSON.stringify(userData));
-              if (userData.role !== 'customer') fetchPermissions(userData.id);
-            }
+            const userData = await loadProfileFromSession(session.user.id);
+            if (userData) setUser(userData);
           } else {
             setUser(null);
             setPermissions(defaultPermissions);
@@ -172,63 +180,60 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       );
       return () => subscription.unsubscribe();
     }
-  }, []);
+  }, [fetchPermissions, loadProfileFromSession]);
 
   const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
     setIsLoading(true);
 
-    if (isSupabaseConfigured()) {
-      try {
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email: email.trim().toLowerCase(),
-          password,
-        });
-
-        if (error) {
-          setIsLoading(false);
-          if (error.message.includes('confirmed')) return { success: false, error: 'email_not_confirmed' };
-          return { success: false, error: 'invalid_credentials' };
-        }
-
-        if (data.user) {
-          let { data: profile } = await supabase.from('profiles').select('*').eq('id', data.user.id).single();
-
-          if (!profile) {
-            const metaRole = data.user.app_metadata?.role || data.user.user_metadata?.role || 'customer';
-            const { data: newProfile } = await (supabase as any).from('profiles').upsert({
-              id: data.user.id, email, name: data.user.user_metadata?.name || email.split('@')[0], role: metaRole
-            }).select().single();
-            profile = newProfile;
-          }
-
-          if (profile) {
-            const userData = profileToUser(profile);
-            setUser(userData);
-            localStorage.setItem('fashionHubUser', JSON.stringify(userData));
-            if (userData.role !== 'customer') await fetchPermissions(userData.id);
-            setIsLoading(false);
-            return { success: true };
-          }
-        }
-      } catch (e) {
-        setIsLoading(false);
-        return { success: false, error: 'unknown' };
-      }
+    if (!isSupabaseConfigured()) {
+      setIsLoading(false);
+      return { success: false, error: 'قاعدة البيانات غير متصلة' };
     }
 
-    // Demo Mode logic remains but should fetch permissions if existing in storage
-    const allUsers = await usersService.getAll();
-    const foundUser = allUsers.find(u => u.email.toLowerCase().trim() === email.toLowerCase().trim());
-    
-    if (foundUser && (password === 'demo123' || foundUser.id.startsWith('user-'))) {
-      setUser(foundUser);
-      localStorage.setItem('fashionHubUser', JSON.stringify(foundUser));
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.trim().toLowerCase(),
+        password,
+      });
+
+      if (error) {
+        setIsLoading(false);
+        if (error.message.includes('confirmed')) return { success: false, error: 'email_not_confirmed' };
+        return { success: false, error: 'invalid_credentials' };
+      }
+
+      if (data.user) {
+        let { data: profile } = await supabase.from('profiles').select('*').eq('id', data.user.id).single();
+
+        if (!profile) {
+          // Auto-create profile if missing
+          const metaRole = data.user.app_metadata?.role || data.user.user_metadata?.role || 'customer';
+          const { data: newProfile } = await (supabase as any).from('profiles').upsert({
+            id: data.user.id,
+            email,
+            name: data.user.user_metadata?.name || email.split('@')[0],
+            role: metaRole,
+          }).select().single();
+          profile = newProfile;
+        }
+
+        if (profile) {
+          const userData = profileToUser(profile);
+          setUser(userData);
+          localStorage.setItem('fashionHubUser', JSON.stringify(userData));
+          if (userData.role !== 'customer') await fetchPermissions(userData.id);
+          setIsLoading(false);
+          return { success: true };
+        }
+      }
+    } catch (e) {
+      console.error('Login error:', e);
       setIsLoading(false);
-      return { success: true };
+      return { success: false, error: 'unknown' };
     }
 
     setIsLoading(false);
-    return { success: false, error: 'invalid_credentials' };
+    return { success: false, error: 'unknown' };
   };
 
   const logout = async () => {
@@ -236,7 +241,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setUser(null);
     setPermissions(defaultPermissions);
     localStorage.removeItem('fashionHubUser');
-    // Force navigation to home without reload
+    // Navigate to home
     if (window.location.pathname !== '/') {
       window.history.pushState({}, '', '/');
       window.dispatchEvent(new PopStateEvent('popstate'));
@@ -256,7 +261,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const isEditor = user?.role?.toLowerCase() === 'editor' || isAdmin;
   const isViewer = user?.role?.toLowerCase() === 'viewer' || isEditor || isAdmin;
   
-  // Real granular permissions
   const canManageProducts = isAdmin || permissions.can_manage_products;
   const canManageOrders = isAdmin || permissions.can_manage_orders;
   const canManageUsers = isAdmin || permissions.can_manage_users;

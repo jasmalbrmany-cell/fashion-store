@@ -1,19 +1,6 @@
-// Export all services
-export * from './api';
-
-// Export individual services for convenience
-import { productsService } from './api';
-import { categoriesService } from './api';
-import { citiesService } from './api';
-import { currenciesService } from './api';
-import { ordersService } from './api';
-import { adsService } from './api';
-import { usersService } from './api';
-import { activityLogsService } from './api';
-import { storeSettingsService } from './api';
-import { statisticsService } from './api';
-
+// Export all services from the main API module
 export {
+  // Services
   productsService,
   categoriesService,
   citiesService,
@@ -24,4 +11,14 @@ export {
   activityLogsService,
   storeSettingsService,
   statisticsService,
-};
+  scrapingRulesService,
+
+  // Helpers
+  withTimeout,
+  clearCache,
+  hasValidCache,
+  getCachedSync,
+} from './api';
+
+// Re-export types
+export type { ScrapingRule } from './api';

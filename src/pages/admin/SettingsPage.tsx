@@ -180,7 +180,7 @@ const SettingsPage: React.FC = () => {
               <label className="block text-xs font-black uppercase tracking-widest text-gray-400 px-2">{t.officialStoreName}</label>
               <input
                 type="text"
-                value={settings.name}
+                value={finalSettings.name}
                 onChange={(e) => setSettings(prev => prev ? ({ ...prev, name: e.target.value }) : null)}
                 className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-black focus:bg-white transition-all outline-none font-bold"
               />
@@ -189,7 +189,7 @@ const SettingsPage: React.FC = () => {
               <label className="block text-xs font-black uppercase tracking-widest text-gray-400 px-2">{t.logoUrl}</label>
               <input
                 type="text"
-                value={settings.logo}
+                value={finalSettings.logo}
                 onChange={(e) => setSettings(prev => prev ? ({ ...prev, logo: e.target.value }) : null)}
                 placeholder="https://..."
                 className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-black focus:bg-white transition-all outline-none font-medium"
@@ -221,7 +221,7 @@ const SettingsPage: React.FC = () => {
                 </div>
                 <input
                   type="tel"
-                  value={settings.socialLinks.whatsapp.replace(/^967/, '')}
+                  value={(finalSettings.socialLinks?.whatsapp || '').replace(/^967/, '')}
                   onChange={(e) => updateSocialLink('whatsapp', '967' + e.target.value.replace(/[^0-9]/g, '').substring(0, 9))}
                   placeholder="77XXXXXXX"
                   className="w-full px-6 py-4 bg-transparent transition-all outline-none font-black"
@@ -238,7 +238,7 @@ const SettingsPage: React.FC = () => {
               </label>
               <input
                 type="url"
-                value={settings.socialLinks.instagram || ''}
+                value={finalSettings.socialLinks?.instagram || ''}
                 onChange={(e) => updateSocialLink('instagram', e.target.value)}
                 placeholder="https://instagram.com/..."
                 className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-black focus:bg-white transition-all outline-none font-medium"
@@ -254,7 +254,7 @@ const SettingsPage: React.FC = () => {
               </label>
               <input
                 type="url"
-                value={settings.socialLinks.facebook || ''}
+                value={finalSettings.socialLinks?.facebook || ''}
                 onChange={(e) => updateSocialLink('facebook', e.target.value)}
                 placeholder="https://facebook.com/..."
                 className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-black focus:bg-white transition-all outline-none font-medium"
@@ -270,7 +270,7 @@ const SettingsPage: React.FC = () => {
               </label>
               <input
                 type="url"
-                value={settings.socialLinks.tiktok || ''}
+                value={finalSettings.socialLinks?.tiktok || ''}
                 onChange={(e) => updateSocialLink('tiktok', e.target.value)}
                 placeholder="https://tiktok.com/@..."
                 className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-black focus:bg-white transition-all outline-none font-medium"
@@ -286,7 +286,7 @@ const SettingsPage: React.FC = () => {
               </label>
               <input
                 type="email"
-                value={settings.socialLinks.email || ''}
+                value={finalSettings.socialLinks?.email || ''}
                 onChange={(e) => updateSocialLink('email', e.target.value)}
                 placeholder="info@yourstore.com"
                 className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-black focus:bg-white transition-all outline-none font-medium"
@@ -323,7 +323,7 @@ const SettingsPage: React.FC = () => {
                   </div>
                   <input
                     type="tel"
-                    value={(settings.socialLinks.whatsappCategory?.[cat.id as keyof typeof settings.socialLinks.whatsappCategory] || '').replace(/^967/, '')}
+                    value={(finalSettings.socialLinks?.whatsappCategory?.[cat.id as keyof typeof finalSettings.socialLinks.whatsappCategory] || '').replace(/^967/, '')}
                     onChange={(e) => {
                       const val = '967' + e.target.value.replace(/[^0-9]/g, '').substring(0, 9);
                       setSettings(prev => {

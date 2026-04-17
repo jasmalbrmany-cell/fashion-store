@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Package, ShoppingCart, Users, TrendingUp, Clock,
@@ -10,7 +10,8 @@ import { Statistics, Product, Order, Category } from '@/types';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { Skeleton, CardSkeleton, TableSkeleton } from '@/components/Common/Skeleton';
-import { SalesChart, CategoryChart } from '@/components/Admin/DashboardCharts';
+const SalesChart = lazy(() => import('@/components/Admin/DashboardCharts').then(module => ({ default: module.SalesChart })));
+const CategoryChart = lazy(() => import('@/components/Admin/DashboardCharts').then(module => ({ default: module.CategoryChart })));
 import { LowStockAlerts } from '@/components/Admin/LowStockAlerts';
 
 const DashboardPage: React.FC = () => {
@@ -202,12 +203,20 @@ const DashboardPage: React.FC = () => {
                     <span className="text-[10px] font-black">{t.statusCompleted || (isRTL ? 'مكتملة' : 'Completed')}</span>
                 </div>
               </div>
-              {isLoading && !stats ? <Skeleton className="h-[300px] w-full" /> : <SalesChart isRTL={isRTL} salesData={salesData} />}
+              {isLoading && !stats ? <Skeleton className="h-[300px] w-full" /> : (
+                <Suspense fallback={<Skeleton className="h-[300px] w-full" />}>
+                  <SalesChart isRTL={isRTL} salesData={salesData} />
+                </Suspense>
+              )}
           </div>
 
           <div className="bg-white rounded-3xl border-2 border-gray-100 p-8 shadow-sm space-y-6">
               <h2 className="text-xl font-black text-gray-900 tracking-tighter">{t.topCategories || (isRTL ? 'أفضل الفئات' : 'Top Categories')}</h2>
-              {isLoading && !stats ? <Skeleton className="h-[250px] w-full" /> : <CategoryChart isRTL={isRTL} categoryData={categoryData} />}
+              {isLoading && !stats ? <Skeleton className="h-[250px] w-full" /> : (
+                <Suspense fallback={<Skeleton className="h-[250px] w-full" />}>
+                  <CategoryChart isRTL={isRTL} categoryData={categoryData} />
+                </Suspense>
+              )}
               <div className="pt-4 border-t border-gray-50 space-y-3">
                   <div className="flex items-center justify-between">
                       <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">{t.totalOrders}</span>

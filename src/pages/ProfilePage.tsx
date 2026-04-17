@@ -89,6 +89,21 @@ const ProfilePage: React.FC = () => {
           if (newPassword === currentPassword) {
              throw new Error(isRTL ? 'يجب أن تكون كلمة المرور الجديدة مختلفة عن كلمة المرور الحالية' : 'New password must be different from current');
           }
+          if (newPassword.length < 6) {
+             throw new Error(isRTL ? 'كلمة المرور الجديدة يجب أن تكون 6 أحرف على الأقل' : 'New password must be at least 6 characters');
+          }
+
+          // Verify current password by re-authenticating
+          const { error: reAuthError } = await supabase.auth.signInWithPassword({
+            email: user.email,
+            password: currentPassword,
+          });
+
+          if (reAuthError) {
+            throw new Error(isRTL ? 'كلمة المرور الحالية غير صحيحة' : 'Current password is incorrect');
+          }
+
+          // Now update to new password
           const { error: passwordError } = await supabase.auth.updateUser({
             password: newPassword
           });
