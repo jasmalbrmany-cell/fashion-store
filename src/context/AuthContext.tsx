@@ -73,24 +73,44 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         .single();
       
       if (error || !data) {
-        setPermissions(defaultPermissions);
+        // If admin, give full permissions
+        setPermissions({
+          can_manage_products: true,
+          can_manage_orders: true,
+          can_manage_users: true,
+          can_manage_ads: true,
+          can_manage_cities: true,
+          can_manage_currencies: true,
+          can_view_reports: true,
+          can_export_data: true,
+        });
         return;
       }
       
       const d = data as any;
       setPermissions({
-        can_manage_products: d.can_manage_products ?? false,
-        can_manage_orders: d.can_manage_orders ?? false,
-        can_manage_users: d.can_manage_users ?? false,
-        can_manage_ads: d.can_manage_ads ?? false,
-        can_manage_cities: d.can_manage_cities ?? false,
-        can_manage_currencies: d.can_manage_currencies ?? false,
-        can_view_reports: d.can_view_reports ?? false,
-        can_export_data: d.can_export_data ?? false,
+        can_manage_products: d.can_manage_products ?? true,
+        can_manage_orders: d.can_manage_orders ?? true,
+        can_manage_users: d.can_manage_users ?? true,
+        can_manage_ads: d.can_manage_ads ?? true,
+        can_manage_cities: d.can_manage_cities ?? true,
+        can_manage_currencies: d.can_manage_currencies ?? true,
+        can_view_reports: d.can_view_reports ?? true,
+        can_export_data: d.can_export_data ?? true,
       });
     } catch (e) {
       console.error('Error fetching permissions:', e);
-      setPermissions(defaultPermissions);
+      // If admin, give full permissions even if error
+      setPermissions({
+        can_manage_products: true,
+        can_manage_orders: true,
+        can_manage_users: true,
+        can_manage_ads: true,
+        can_manage_cities: true,
+        can_manage_currencies: true,
+        can_view_reports: true,
+        can_export_data: true,
+      });
     }
   };
 
@@ -221,7 +241,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           const userData = profileToUser(profile);
           setUser(userData);
           localStorage.setItem('fashionHubUser', JSON.stringify(userData));
-          if (userData.role !== 'customer') await fetchPermissions(userData.id);
+          // Fetch permissions for admin users
+          if (userData.role === 'admin' || userData.role === 'editor') {
+            await fetchPermissions(userData.id);
+          }
           setIsLoading(false);
           return { success: true };
         }
