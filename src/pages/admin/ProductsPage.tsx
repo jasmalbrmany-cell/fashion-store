@@ -9,11 +9,11 @@ import { productsService, categoriesService, hasValidCache, getCachedSync } from
 import { Product, Category } from '@/types';
 import { useLanguage } from '@/context/LanguageContext';
 import { Skeleton, TableSkeleton } from '@/components/Common/Skeleton';
-import { useToast } from '@/components/Common/Toast';
+import { useNotificationContext } from '@/context/NotificationContext';
 
 const AdminProductsPage: React.FC = () => {
   const { t, language, isRTL } = useLanguage();
-  const { toast } = useToast();
+  const { showSuccess, showError } = useNotificationContext();
   
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -76,10 +76,10 @@ const AdminProductsPage: React.FC = () => {
     try {
       await Promise.all(selectedIds.map(id => productsService.update(id, { isVisible: visible })));
       setProducts(prev => prev.map(p => selectedIds.includes(p.id) ? { ...p, isVisible: visible } : p));
-      toast.success(isRTL ? 'نجاح' : 'Success', t.updatedCount.replace('{count}', String(selectedIds.length)));
+      showSuccess(isRTL ? `✅ تم تحديث ${selectedIds.length} منتج` : `✅ Updated ${selectedIds.length} products`);
       setSelectedIds([]);
     } catch (err) {
-      toast.error(isRTL ? 'خطأ' : 'Error', t.errorBulkUpdate);
+      showError(isRTL ? '❌ فشل التحديث' : '❌ Update Failed');
     } finally {
       setIsBulkLoading(false);
     }
@@ -92,10 +92,10 @@ const AdminProductsPage: React.FC = () => {
       try {
         await Promise.all(selectedIds.map(id => productsService.delete(id)));
         setProducts(prev => prev.filter(p => !selectedIds.includes(p.id)));
-        toast.success(isRTL ? 'تم الحذف' : 'Deleted', t.deletedSuccessfully);
+        showSuccess(isRTL ? `✅ تم حذف ${selectedIds.length} منتج` : `✅ Deleted ${selectedIds.length} products`);
         setSelectedIds([]);
       } catch (err) {
-        toast.error(isRTL ? 'خطأ' : 'Error', t.errorBulkUpdate);
+        showError(isRTL ? '❌ فشل الحذف' : '❌ Delete Failed');
       } finally {
         setIsBulkLoading(false);
       }
@@ -138,15 +138,12 @@ const AdminProductsPage: React.FC = () => {
          return p;
       }));
       
-      toast.success(
-        isRTL ? 'تحديث الأسعار' : 'Prices Updated',
-        isRTL ? `تم تحديث تخفيضات/أسعار ${selectedIds.length} منتج بنجاح!` : `Updated prices for ${selectedIds.length} products!`
-      );
+      showSuccess(isRTL ? `✅ تم تحديث أسعار ${selectedIds.length} منتج` : `✅ Updated prices for ${selectedIds.length} products`);
       setSelectedIds([]);
       setPricingPercentage('');
     } catch (err) {
       console.error(err);
-      toast.error(isRTL ? 'خطأ' : 'Error', t.errorBulkUpdate || (isRTL ? 'خطأ أثناء تحديث الأسعار' : 'Error updating prices'));
+      showError(isRTL ? 'خطأ في تحديث الأسعار' : 'Error updating prices');
     } finally {
       setIsBulkLoading(false);
     }
@@ -157,10 +154,10 @@ const AdminProductsPage: React.FC = () => {
         const updated = await productsService.toggleVisibility(product.id);
         if (updated) {
             setProducts(prev => prev.map(p => p.id === product.id ? updated : p));
-            toast.success(isRTL ? 'تم التحديث' : 'Updated', updated.isVisible ? t.productVisibleMsg : t.productHiddenMsg);
+            showSuccess(updated.isVisible ? isRTL ? '✅ المنتج مرئي الآن' : '✅ Product is now visible' : isRTL ? '✅ المنتج مخفي الآن' : '✅ Product is now hidden');
         }
     } catch (err) {
-        toast.error(isRTL ? 'فشل التحديث' : 'Update Failed', isRTL ? 'حدث خطأ أثناء الاتصال بالخادم.' : 'Error while saving state.');
+        showError(isRTL ? '❌ فشل التحديث' : '❌ Update Failed');
         console.error('Failed to toggle visibility', err);
     }
   };
@@ -171,10 +168,10 @@ const AdminProductsPage: React.FC = () => {
         const success = await productsService.delete(productId);
         if (success) {
             setProducts(prev => prev.filter(p => p.id !== productId));
-            toast.success(isRTL ? 'تم الحذف' : 'Deleted', t.deletedSuccessfully);
+            showSuccess(isRTL ? '✅ تم حذف المنتج' : '✅ Product Deleted');
         }
       } catch (err) {
-        toast.error(isRTL ? 'خطأ في الاتصال' : 'Connection Error', isRTL ? 'فشل الحذف' : 'Delete failed');
+        showError(isRTL ? '❌ فشل الحذف' : '❌ Delete Failed');
         console.error('Failed to delete product', err);
       }
     }
@@ -196,10 +193,10 @@ const AdminProductsPage: React.FC = () => {
       const updated = await productsService.update(productId, { price: p, stock: s });
       if (updated) {
         setProducts(prev => prev.map(prod => prod.id === productId ? { ...prod, price: p, stock: s } : prod));
-        toast.success(isRTL ? '✅ تم الحفظ' : '✅ Saved', isRTL ? 'تم التعديل السريع بنجاح' : 'Inline edit saved successfully');
+        showSuccess(isRTL ? '✅ تم الحفظ بنجاح' : '✅ Saved Successfully');
       }
     } catch (err) {
-      toast.error(isRTL ? '❌ خطأ' : '❌ Error', isRTL ? 'قيم غير صالحة' : 'Invalid values');
+      showError(isRTL ? '❌ قيم غير صالحة' : '❌ Invalid values');
     } finally {
       setIsSavingInline(false);
       setEditingRow(null);

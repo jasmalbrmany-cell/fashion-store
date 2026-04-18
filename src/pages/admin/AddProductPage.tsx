@@ -9,14 +9,15 @@ import { categoriesService, productsService } from '@/services';
 import { Category, Product } from '@/types';
 import { compressImage } from '@/lib/imageCompression';
 import { useLanguage } from '@/context/LanguageContext';
-import { useToast } from '@/components/Common/Toast';
+import { useNotificationContext } from '@/context/NotificationContext';
+import { ImageUploader } from '@/components/Admin/ImageUploader';
 
 const AddProductPage: React.FC = () => {
   const { id } = useParams<{ id?: string }>();
   const isEditMode = !!id;
   const navigate = useNavigate();
   const { isRTL, t, language } = useLanguage();
-  const { toast } = useToast();
+  const { showSuccess, showError } = useNotificationContext();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [categories, setCategories] = useState<Category[]>([]);
@@ -64,7 +65,7 @@ const AddProductPage: React.FC = () => {
         }
       } catch (err) {
         console.error('Failed to init data', err);
-        toast.error(isRTL ? 'خطأ في تحميل البيانات' : 'Error Loading Data', isRTL ? 'حدث خطأ أثناء تحميل البيانات' : 'An error occurred while loading data.');
+        showError(isRTL ? 'خطأ في تحميل البيانات' : 'Error Loading Data');
       } finally {
         setIsLoading(false);
       }
@@ -139,10 +140,7 @@ const AddProductPage: React.FC = () => {
       }));
     } catch (err) {
       console.error('Bulk upload error:', err);
-      toast.error(
-        isRTL ? 'فشل رفع الصور' : 'Image Upload Failed',
-        isRTL ? 'حدث خطأ أثناء رفع الصور، حاول مجدداً' : 'An error occurred uploading images. Please try again.'
-      );
+      showError(isRTL ? 'فشل رفع الصور' : 'Image Upload Failed');
     } finally {
       setUploadingImages(false);
       // Reset file input
@@ -267,25 +265,16 @@ const AddProductPage: React.FC = () => {
         if (isEditMode && id) {
             const updated = await productsService.update(id, productData);
             if (!updated) throw new Error(t.errorSavingProduct);
-            toast.success(
-              isRTL ? '✅ تم التحديث بنجاح' : '✅ Product Updated',
-              isRTL ? 'تم حفظ التعديلات على المنتج بالكامل' : 'All product changes have been saved successfully.'
-            );
+            showSuccess(isRTL ? '✅ تم التحديث بنجاح' : '✅ Product Updated Successfully');
         } else {
             const created = await productsService.create(productData);
             if (!created) throw new Error(t.errorSavingProduct);
-            toast.success(
-              isRTL ? '✅ تمت إضافة المنتج' : '✅ Product Added',
-              isRTL ? 'تم حفظ المنتج الجديد في قاعدة البيانات' : 'New product saved to database successfully.'
-            );
+            showSuccess(isRTL ? '✅ تمت إضافة المنتج بنجاح' : '✅ Product Added Successfully');
         }
 
         setTimeout(() => navigate('/admin/products'), 1500);
     } catch (err: any) {
-        toast.error(
-          isRTL ? '❌ فشل الحفظ' : '❌ Save Failed',
-          err.message || t.errorSavingProduct
-        );
+        showError(err.message || t.errorSavingProduct);
     } finally {
         setIsSubmitting(false);
     }
