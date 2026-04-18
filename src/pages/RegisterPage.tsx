@@ -4,7 +4,7 @@ import { Eye, EyeOff, User, Mail, Lock, Phone, ShoppingBag, CheckCircle, AlertCi
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
-import { usersService } from '@/services';
+import { usersService, withTimeout } from '@/services/api';
 
 // Auto-format name: add space between words if typed without spaces
 const formatName = (value: string): string => {
@@ -101,13 +101,13 @@ const RegisterPage: React.FC = () => {
         return;
       }
 
-      const { data, error: signUpError } = await supabase.auth.signUp({
+      const { data, error: signUpError } = await withTimeout(supabase.auth.signUp({
         email: formData.email.trim().toLowerCase(),
         password: formData.password,
         options: {
           data: { name: formData.name.trim(), phone: formData.phone },
         },
-      });
+      }), 12000);
 
       if (signUpError) {
         if (signUpError.message.includes('already registered') || signUpError.message.includes('already been registered')) {
