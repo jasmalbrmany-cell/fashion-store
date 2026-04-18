@@ -72,7 +72,9 @@ const StoreImportPage: React.FC = () => {
     try {
       const saved = localStorage.getItem('demo_external_stores');
       if (saved) setSavedStores(JSON.parse(saved));
-    } catch {}
+    } catch (e) {
+      // Ignore localStorage errors
+    }
   }, []);
 
   const fetchCatalog = async (url: string, page = 1) => {

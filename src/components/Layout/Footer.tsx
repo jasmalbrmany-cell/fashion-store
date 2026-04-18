@@ -2,20 +2,21 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Store, Phone, MessageCircle, Facebook, Instagram } from 'lucide-react';
 import { storeSettingsService } from '@/services/api';
-import { mockStoreSettings } from '@/data/mockData';
 import { StoreSettings } from '@/types';
 import { useLanguage, categoryNames } from '@/context/LanguageContext';
 
 const Footer: React.FC = () => {
   const currentYear = new Date().getFullYear();
   const { t, language } = useLanguage();
-  const [settings, setSettings] = useState<StoreSettings>(mockStoreSettings);
+  const [settings, setSettings] = useState<StoreSettings | null>(null);
 
   useEffect(() => {
     storeSettingsService.get().then(data => {
       if (data) setSettings(data);
     });
   }, []);
+
+  if (!settings) return null;
 
   return (
     <footer className="bg-gray-900 text-white" dir={language === 'ar' ? 'rtl' : 'ltr'}>

@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { Minus, Plus, Trash2, ShoppingBag, X, MessageCircle, ArrowRight, ArrowLeft } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useLanguage } from '@/context/LanguageContext';
-import { mockStoreSettings } from '@/data/mockData';
 
 const CartDrawer: React.FC = () => {
   const navigate = useNavigate();

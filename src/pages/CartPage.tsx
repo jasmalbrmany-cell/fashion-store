@@ -5,8 +5,8 @@ import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { mockStoreSettings } from '@/data/mockData';
-import { productsService } from '@/services';
-import { Product } from '@/types';
+import { productsService, storeSettingsService } from '@/services';
+import { Product, StoreSettings } from '@/types';
 
 const CartPage: React.FC = () => {
   const navigate = useNavigate();
@@ -14,20 +14,31 @@ const CartPage: React.FC = () => {
   const { isAuthenticated } = useAuth();
   const { t, language } = useLanguage();
   const [suggestedProducts, setSuggestedProducts] = useState<Product[]>([]);
+  const [settings, setSettings] = useState<StoreSettings | null>(null);
 
   const subtotal = getSubtotal();
   const currencySymbol = t.rial;
 
-  // جلب المنتجات المقترحة
+  // جلب البيانات (الإعدادات والمنتجات المقترحة)
   useEffect(() => {
-    const loadSuggested = async () => {
-      const products = await productsService.getAll();
-      // إظهار منتجات عشوائية مختلفة عن ما في السلة
-      const cartProductIds = items.map(i => i.productId);
-      const filtered = products.filter(p => !cartProductIds.includes(p.id));
-      setSuggestedProducts(filtered.slice(0, 6));
+    const fetchData = async () => {
+      try {
+        const [products, settingsData] = await Promise.all([
+          productsService.getAll(),
+          storeSettingsService.get()
+        ]);
+        
+        setSettings(settingsData);
+        
+        // إظهار منتجات عشوائية مختلفة عن ما في السلة
+        const cartProductIds = items.map(i => i.productId);
+        const filtered = products.filter(p => !cartProductIds.includes(p.id));
+        setSuggestedProducts(filtered.slice(0, 6));
+      } catch (error) {
+        console.error('Failed to load cart data:', error);
+      }
     };
-    loadSuggested();
+    fetchData();
   }, [items]);
 
   const handleCheckout = () => {
@@ -44,8 +55,10 @@ const CartPage: React.FC = () => {
 
     const message = `${t.whatsappOrderTemplate}:\n\n${itemsList}\n\n${t.total}: ${formatPrice(subtotal)} ${currencySymbol}`;
 
+    const whatsappNumber = settings?.socialLinks.whatsapp || '967777123456';
+
     window.open(
-      `https://wa.me/${mockStoreSettings.socialLinks.whatsapp}?text=${encodeURIComponent(message)}`,
+      `https://wa.me/${whatsappNumber.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(message)}`,
       '_blank'
     );
   };

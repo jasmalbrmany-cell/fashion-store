@@ -1,8 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, Package, CheckCircle, Clock, XCircle, Phone } from 'lucide-react';
-import { mockOrders } from '@/data/mockData';
-import { Order, OrderStatus } from '@/types';
-import { mockStoreSettings } from '@/data/mockData';
+import { ordersService, storeSettingsService } from '@/services/api';
+import { Order, OrderStatus, StoreSettings } from '@/types';
 import { useLanguage } from '@/context/LanguageContext';
 
 const TrackOrderPage: React.FC = () => {
@@ -10,22 +9,35 @@ const TrackOrderPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [foundOrder, setFoundOrder] = useState<Order | null>(null);
   const [notFound, setNotFound] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [settings, setSettings] = useState<StoreSettings | null>(null);
 
-  const handleSearch = (e: React.FormEvent) => {
+  useEffect(() => {
+    storeSettingsService.get().then(setSettings);
+  }, []);
+
+  const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
-    const query = searchQuery.trim().toLowerCase();
-    const order = mockOrders.find(
-      o =>
-        o.orderNumber.toLowerCase().includes(query) ||
-        o.customerPhone.includes(query)
-    );
+    const query = searchQuery.trim();
+    if (!query) return;
 
-    if (order) {
-      setFoundOrder(order);
-      setNotFound(false);
-    } else {
-      setFoundOrder(null);
+    setLoading(true);
+    setNotFound(false);
+    setFoundOrder(null);
+
+    try {
+      const order = await ordersService.getByNumber(query);
+
+      if (order) {
+        setFoundOrder(order);
+      } else {
+        setNotFound(true);
+      }
+    } catch (err) {
+      console.error('Tracking search error:', err);
       setNotFound(true);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -81,8 +93,10 @@ const TrackOrderPage: React.FC = () => {
               </div>
               <button
                 type="submit"
-                className="px-6 py-3 bg-black text-white rounded-xl font-semibold hover:bg-gray-800 transition-colors"
+                disabled={loading}
+                className="px-6 py-3 bg-black text-white rounded-xl font-semibold hover:bg-gray-800 transition-colors disabled:opacity-50 flex items-center gap-2"
               >
+                {loading && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
                 {t.search}
               </button>
             </div>
@@ -91,11 +105,11 @@ const TrackOrderPage: React.FC = () => {
 
         {/* Not Found */}
         {notFound && (
-          <div className="max-w-xl mx-auto bg-white rounded-2xl shadow-sm p-8 text-center">
-            <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
+          <div className="max-w-xl mx-auto bg-white rounded-2xl shadow-sm p-8 text-center animate-in fade-in zoom-in-95 duration-500">
+            <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 dark:bg-zinc-900 rounded-full flex items-center justify-center">
               <Search className="w-8 h-8 text-gray-400" />
             </div>
-            <h3 className="text-xl font-bold text-gray-900 mb-2">{t.orderNotFound}</h3>
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">{t.orderNotFound}</h3>
             <p className="text-gray-500">
               {t.orderNotFoundDesc}
             </p>
@@ -104,8 +118,8 @@ const TrackOrderPage: React.FC = () => {
 
         {/* Found Order */}
         {foundOrder && (
-          <div className="max-w-2xl mx-auto">
-            <div className="bg-white rounded-2xl shadow-sm overflow-hidden border">
+          <div className="max-w-2xl mx-auto animate-in fade-in slide-in-from-bottom-5 duration-700">
+            <div className="bg-white dark:bg-zinc-950 rounded-2xl shadow-sm overflow-hidden border dark:border-zinc-800">
               {/* Header */}
               <div className="bg-black text-white p-6">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -121,12 +135,12 @@ const TrackOrderPage: React.FC = () => {
               </div>
 
               {/* Visual Progress Stepper */}
-              <div className="p-6 md:p-10 border-b bg-gray-50/30">
-                <h3 className="font-bold text-gray-900 mb-8">{t.orderTracking}</h3>
+              <div className="p-6 md:p-10 border-b dark:border-zinc-800 bg-gray-50/30 dark:bg-zinc-900/10">
+                <h3 className="font-bold text-gray-900 dark:text-white mb-8">{t.orderTracking}</h3>
                 
                 <div className="relative max-w-4xl mx-auto">
                   {/* Desktop Progress Line */}
-                  <div className="hidden sm:block absolute top-5 left-10 right-10 h-1 bg-gray-100 rounded-full z-0 overflow-hidden">
+                  <div className="hidden sm:block absolute top-5 left-10 right-10 h-1 bg-gray-100 dark:bg-zinc-800 rounded-full z-0 overflow-hidden">
                      <div className={`h-full bg-green-500 transition-all duration-1000 ${
                        foundOrder.status === 'pending' || foundOrder.status === 'waiting_payment' ? 'w-0' :
                        foundOrder.status === 'paid' || foundOrder.status === 'approved' ? 'w-1/2' :
@@ -135,7 +149,7 @@ const TrackOrderPage: React.FC = () => {
                   </div>
                   
                   {/* Mobile Progress Line */}
-                  <div className={`sm:hidden absolute top-0 ${isRTL ? 'right-[27px]' : 'left-[27px]'} bottom-0 w-1 bg-gray-100 rounded-full z-0`} />
+                  <div className={`sm:hidden absolute top-0 ${isRTL ? 'right-[27px]' : 'left-[27px]'} bottom-0 w-1 bg-gray-100 dark:bg-zinc-800 rounded-full z-0`} />
 
                   <div className="flex flex-col sm:flex-row justify-between gap-8 sm:gap-4 relative z-10">
                     
@@ -145,22 +159,22 @@ const TrackOrderPage: React.FC = () => {
                         <CheckCircle className="w-6 h-6" />
                       </div>
                       <div className={`flex flex-col sm:items-center ${isRTL ? 'sm:text-center text-right' : 'sm:text-center text-left'}`}>
-                        <p className="font-bold text-gray-900">{t.orderReceived}</p>
+                        <p className="font-bold text-gray-900 dark:text-white">{t.orderReceived}</p>
                         <p className="text-xs font-semibold text-gray-500 mt-0.5">{formatDate(foundOrder.createdAt)}</p>
                       </div>
                     </div>
 
                     {/* Step 2: Processing / Paid */}
                     <div className={`flex sm:flex-col items-center gap-4 sm:gap-3 shrink-0 ${foundOrder.status === 'cancelled' ? 'opacity-20' : ''}`}>
-                      <div className={`w-14 h-14 rounded-full flex items-center justify-center ring-4 ring-white shadow-md shrink-0 transition-all duration-500 ${
+                      <div className={`w-14 h-14 rounded-full flex items-center justify-center ring-4 ring-white dark:ring-zinc-900 shadow-md shrink-0 transition-all duration-500 ${
                         foundOrder.status === 'pending' || foundOrder.status === 'waiting_payment' 
-                        ? 'bg-white border-2 border-dashed border-gray-300 text-gray-400' 
+                        ? 'bg-white dark:bg-zinc-900 border-2 border-dashed border-gray-300 dark:border-zinc-700 text-gray-400' 
                         : 'bg-green-500 text-white shadow-green-200 shadow-xl'
                       }`}>
                         {foundOrder.status === 'pending' || foundOrder.status === 'waiting_payment' ? <Clock className="w-6 h-6 animate-pulse" /> : <CheckCircle className="w-6 h-6" />}
                       </div>
                       <div className={`flex flex-col sm:items-center ${isRTL ? 'sm:text-center text-right' : 'sm:text-center text-left'}`}>
-                        <p className={`font-bold ${foundOrder.status === 'pending' || foundOrder.status === 'waiting_payment' ? 'text-gray-400' : 'text-gray-900'}`}>
+                        <p className={`font-bold ${foundOrder.status === 'pending' || foundOrder.status === 'waiting_payment' ? 'text-gray-400' : 'text-gray-900 dark:text-white'}`}>
                           {t.paymentConfirmed}
                         </p>
                         {(foundOrder.status === 'paid' || foundOrder.status === 'approved' || foundOrder.status === 'completed') && (
@@ -175,15 +189,15 @@ const TrackOrderPage: React.FC = () => {
                     {/* Step 3: Delivered */}
                     {foundOrder.status !== 'cancelled' ? (
                       <div className="flex sm:flex-col items-center gap-4 sm:gap-3 shrink-0">
-                        <div className={`w-14 h-14 rounded-full flex items-center justify-center ring-4 ring-white shadow-md shrink-0 transition-all duration-500 ${
+                        <div className={`w-14 h-14 rounded-full flex items-center justify-center ring-4 ring-white dark:ring-zinc-900 shadow-md shrink-0 transition-all duration-500 ${
                           foundOrder.status === 'completed' 
-                          ? 'bg-black text-white shadow-2xl shadow-black/40 scale-110' 
-                          : 'bg-white border-2 border-dashed border-gray-300 text-gray-300'
+                          ? 'bg-black dark:bg-white dark:text-black text-white shadow-2xl shadow-black/40 scale-110' 
+                          : 'bg-white dark:bg-zinc-900 border-2 border-dashed border-gray-300 dark:border-zinc-700 text-gray-300'
                         }`}>
                           <Package className="w-6 h-6" />
                         </div>
                         <div className={`flex flex-col sm:items-center ${isRTL ? 'sm:text-center text-right' : 'sm:text-center text-left'}`}>
-                          <p className={`font-bold ${foundOrder.status === 'completed' ? 'text-black text-lg' : 'text-gray-400'}`}>
+                          <p className={`font-bold ${foundOrder.status === 'completed' ? 'text-black dark:text-white text-lg' : 'text-gray-400'}`}>
                             {t.orderDelivered}
                           </p>
                           {foundOrder.status === 'completed' && (
@@ -211,27 +225,27 @@ const TrackOrderPage: React.FC = () => {
 
               {/* Order Details */}
               <div className="p-6">
-                <h3 className="font-bold text-gray-900 mb-4">{t.orderDetails}</h3>
+                <h3 className="font-bold text-gray-900 dark:text-white mb-4">{t.orderDetails}</h3>
 
                 {/* Customer Info */}
-                <div className="bg-gray-50 rounded-xl p-4 mb-6 border border-gray-100">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                <div className="bg-gray-50 dark:bg-zinc-900 rounded-xl p-4 mb-6 border border-gray-100 dark:border-zinc-800">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-gray-500 dark:text-gray-400">
                     <div>
-                      <p className="text-gray-500 text-xs mb-1">{t.name}</p>
-                      <p className="font-bold">{foundOrder.customerName}</p>
+                      <p className="text-xs mb-1">{t.name}</p>
+                      <p className="font-bold text-gray-900 dark:text-white">{foundOrder.customerName}</p>
                     </div>
                     <div>
-                      <p className="text-gray-500 text-xs mb-1">{t.phone}</p>
-                      <p className="font-bold" dir="ltr">{foundOrder.customerPhone}</p>
+                      <p className="text-xs mb-1">{t.phone}</p>
+                      <p className="font-bold text-gray-900 dark:text-white" dir="ltr">{foundOrder.customerPhone}</p>
                     </div>
                     <div>
-                      <p className="text-gray-500 text-xs mb-1">{t.city}</p>
-                      <p className="font-bold">{foundOrder.city}</p>
+                      <p className="text-xs mb-1">{t.city}</p>
+                      <p className="font-bold text-gray-900 dark:text-white">{foundOrder.city}</p>
                     </div>
                     {foundOrder.address && (
                       <div>
-                        <p className="text-gray-500 text-xs mb-1">{t.address}</p>
-                        <p className="font-bold">{foundOrder.address}</p>
+                        <p className="text-xs mb-1">{t.address}</p>
+                        <p className="font-bold text-gray-900 dark:text-white">{foundOrder.address}</p>
                       </div>
                     )}
                   </div>
@@ -240,28 +254,28 @@ const TrackOrderPage: React.FC = () => {
                 {/* Items */}
                 <div className="space-y-4 mb-6">
                   {foundOrder.items.map((item) => (
-                    <div key={item.id} className="flex gap-4 p-2 hover:bg-gray-50 transition-colors rounded-lg">
+                    <div key={item.id} className="flex gap-4 p-2 hover:bg-gray-50 dark:hover:bg-zinc-900 transition-colors rounded-lg">
                       <img
                         src={item.productImage}
                         alt={item.productName}
                         className="w-20 h-20 object-cover rounded-xl shadow-sm"
                       />
                       <div className="flex-1">
-                        <h4 className="font-bold text-gray-900 text-sm">{item.productName}</h4>
+                        <h4 className="font-bold text-gray-900 dark:text-white text-sm leading-tight">{item.productName}</h4>
                         <div className="flex gap-2 mt-1">
                           {item.size && (
-                            <span className="text-[10px] px-2 py-0.5 bg-white border rounded text-gray-500">
+                            <span className="text-[10px] px-2 py-0.5 bg-white dark:bg-zinc-800 border dark:border-zinc-700 rounded text-gray-500">
                               {t.size}: {item.size}
                             </span>
                           )}
                           {item.color && (
-                            <span className="text-[10px] px-2 py-0.5 bg-white border rounded text-gray-500">
+                            <span className="text-[10px] px-2 py-0.5 bg-white dark:bg-zinc-800 border dark:border-zinc-700 rounded text-gray-500">
                               {t.color}: {item.color}
                             </span>
                           )}
                         </div>
                         <p className="text-xs text-gray-500 mt-1">{t.quantity}: {item.quantity}</p>
-                        <p className="font-bold text-black mt-1">
+                        <p className="font-bold text-black dark:text-white mt-1">
                           {formatPrice(item.price * item.quantity)} {t.rial}
                         </p>
                       </div>
@@ -270,29 +284,29 @@ const TrackOrderPage: React.FC = () => {
                 </div>
 
                 {/* Total */}
-                <div className="border-t pt-4 space-y-2">
+                <div className="border-t dark:border-zinc-800 pt-4 space-y-2">
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-500">{t.subtotal}</span>
-                    <span className="font-medium">{formatPrice(foundOrder.subtotal)} {t.rial}</span>
+                    <span className="font-medium dark:text-white">{formatPrice(foundOrder.subtotal)} {t.rial}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-500">{t.shipping}</span>
-                    <span className="font-medium">{formatPrice(foundOrder.shippingCost)} {t.rial}</span>
+                    <span className="font-medium dark:text-white">{formatPrice(foundOrder.shippingCost)} {t.rial}</span>
                   </div>
-                  <div className="flex justify-between text-lg font-bold border-t pt-3 mt-2">
-                    <span>{t.orderTotal}</span>
-                    <span className="text-black">{formatPrice(foundOrder.total)} {t.rial}</span>
+                  <div className="flex justify-between text-lg font-bold border-t dark:border-zinc-800 pt-3 mt-2">
+                    <span className="dark:text-white">{t.orderTotal}</span>
+                    <span className="text-black dark:text-white">{formatPrice(foundOrder.total)} {t.rial}</span>
                   </div>
                 </div>
               </div>
             </div>
 
             {/* Contact */}
-            <div className="mt-8 text-center bg-white rounded-2xl p-8 shadow-sm border">
-              <h3 className="text-lg font-bold mb-2">{language === 'ar' ? 'تحتاج مساعدة؟' : 'Need Help?'}</h3>
+            <div className="mt-8 text-center bg-white dark:bg-zinc-950 rounded-2xl p-8 shadow-sm border dark:border-zinc-800">
+              <h3 className="text-lg font-bold mb-2 dark:text-white">{language === 'ar' ? 'تحتاج مساعدة؟' : 'Need Help?'}</h3>
               <p className="text-gray-500 mb-6">{language === 'ar' ? 'يسعدنا خدمتك عبر واتساب' : 'We are happy to serve you via WhatsApp'}</p>
               <a
-                href={`https://wa.me/${mockStoreSettings.socialLinks.whatsapp}`}
+                href={`https://wa.me/${(settings?.socialLinks.whatsapp || '967777123456').replace(/[^0-9]/g, '')}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-green-500 text-white rounded-xl font-bold hover:bg-green-600 transition-all shadow-lg hover:shadow-green-200"

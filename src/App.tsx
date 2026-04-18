@@ -1,11 +1,10 @@
-import React, { lazy, Suspense } from 'react';
+import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { CartProvider } from '@/context/CartContext';
 import { AuthProvider } from '@/context/AuthContext';
 import { LanguageProvider } from '@/context/LanguageContext';
 import { ThemeProvider } from '@/context/ThemeContext';
 import { Layout } from '@/components/Layout';
-import { Loader2 } from 'lucide-react';
 import CartDrawer from '@/components/Cart/CartDrawer';
 import ToastProvider, { ToastContainer } from '@/components/Common/Toast';
 

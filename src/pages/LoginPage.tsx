@@ -35,7 +35,8 @@ const LoginPage: React.FC = () => {
 
     if (result.success) {
       const loggedInUser = JSON.parse(localStorage.getItem('fashionHubUser') || '{}');
-      if (loggedInUser.role === 'admin' || loggedInUser.role === 'editor' || loggedInUser.role === 'viewer') {
+      const role = (loggedInUser.role || '').toLowerCase();
+      if (role === 'admin' || role === 'editor' || role === 'viewer') {
         navigate('/admin', { replace: true });
       } else {
         navigate('/my-orders', { replace: true });

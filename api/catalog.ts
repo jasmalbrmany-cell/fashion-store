@@ -203,7 +203,9 @@ async function scrapeProductLinks(listingUrl: string): Promise<{ href: string; n
             }
           }
         }
-      } catch {}
+      } catch (e) {
+        // Ignore JSON parsing errors
+      }
     }
 
     if (results.length > 3) return results.slice(0, 60);
@@ -223,7 +225,7 @@ async function scrapeProductLinks(listingUrl: string): Promise<{ href: string; n
       const isProd = urlL.includes('/product/') || urlL.includes('/products/') ||
         urlL.includes('/p-') || urlL.includes('/item/') || urlL.includes('/dp/') ||
         (urlL.includes('-p-') && urlL.endsWith('.html')) ||
-        urlL.match(/\/\d{3,}\-/);
+        urlL.match(/\/\d{3,}-/);
 
       if (isProd && !seen.has(url)) {
         seen.add(url);

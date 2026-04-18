@@ -23,18 +23,57 @@ dist-ssr
 *.sln
 *.sw?
 
-# Environment variables (contain secret API keys)
+# Environment variables (contain secret API keys) - CRITICAL
 .env
 .env.local
-.env.vercel
+.env.*.local
 .env.development.local
 .env.test.local
 .env.production.local
+.env.vercel
 !.env.example
+
+# Supabase
+.supabase
+supabase/.env*
+
+# Secrets and credentials
+secrets/
+*.key
+*.pem
+*.p12
+*.pfx
+.ssh/
+
+# API Keys and tokens
+**/api-keys.json
+**/credentials.json
+**/tokens.json
 
 # Vercel
 .vercel
 
-# Supabase
-.supabase
-.env*.local
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# Build artifacts
+build/
+out/
+dist/
+
+# Testing
+coverage/
+.nyc_output/
+
+# Temporary files
+tmp/
+temp/
+*.tmp

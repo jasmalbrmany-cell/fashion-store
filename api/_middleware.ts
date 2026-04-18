@@ -50,15 +50,38 @@ if (typeof setInterval !== 'undefined') {
   }, 60 * 1000); // Clean every minute
 }
 
-export function corsHeaders(res: any) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+// Enhanced rate limiting with user-based tracking
+export function rateLimitByUser(req: any, userId?: string): { allowed: boolean; remaining: number } {
+  const ip = req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || 'unknown';
+  const key = userId ? `user:${userId}` : `ip:${Array.isArray(ip) ? ip[0] : ip}`;
+  
+  return rateLimit({ ...req, headers: { ...req.headers, 'x-forwarded-for': key } });
+}
+
+export function corsHeaders(res: any, origin?: string) {
+  // Whitelist allowed origins
+  const allowedOrigins = [
+    'http://localhost:3000',
+    'http://localhost:5173',
+    'https://fashionhub.vercel.app',
+    // Add your production domain here
+  ];
+  
+  const requestOrigin = origin || '';
+  const isAllowed = allowedOrigins.includes(requestOrigin) || process.env.NODE_ENV === 'development';
+  
+  if (isAllowed) {
+    res.setHeader('Access-Control-Allow-Origin', requestOrigin || '*');
+  }
+  
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Max-Age', '86400');
 }
 
 export function handleOptions(req: any, res: any): boolean {
   if (req.method === 'OPTIONS') {
-    corsHeaders(res);
+    corsHeaders(res, req.headers.origin);
     res.status(200).end();
     return true;
   }

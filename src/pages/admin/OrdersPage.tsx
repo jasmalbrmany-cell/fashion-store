@@ -15,16 +15,18 @@ import {
   Loader2,
   Package
 } from 'lucide-react';
-import { ordersService, hasValidCache, getCachedSync } from '@/services/api';
-import { Order, OrderStatus } from '@/types';
+import { ordersService, storeSettingsService, hasValidCache, getCachedSync } from '@/services/api';
+import { Order, OrderStatus, StoreSettings } from '@/types';
 import { useLanguage } from '@/context/LanguageContext';
 import { useToast } from '@/components/Common/Toast';
+import { downloadInvoice } from '@/lib/pdfGenerator';
 
 const AdminOrdersPage: React.FC = () => {
   const { t, language, isRTL } = useLanguage();
   const { toast } = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
   const [orders, setOrders] = useState<Order[]>(getCachedSync<Order[]>('orders_all') || []);
+  const [settings, setSettings] = useState<StoreSettings | null>(null);
   const [loading, setLoading] = useState(!hasValidCache('orders_all'));
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>(searchParams.get('status') || '');
@@ -32,24 +34,28 @@ const AdminOrdersPage: React.FC = () => {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
   useEffect(() => {
-    const fetchOrders = async () => {
+    const fetchData = async () => {
       try {
         if (!hasValidCache('orders_all')) {
             setLoading(true);
         }
-        const data = await ordersService.getAll();
-        setOrders(data);
+        const [ordersData, settingsData] = await Promise.all([
+          ordersService.getAll(),
+          storeSettingsService.get()
+        ]);
+        setOrders(ordersData);
+        setSettings(settingsData);
       } catch (error) {
-        console.error('Failed to fetch orders:', error);
+        console.error('Failed to fetch admin data:', error);
         toast.error(
           isRTL ? 'خطأ في التحميل' : 'Loading Error',
-          isRTL ? 'فشل في تحميل الطلبات. يرجى المحاولة مرة أخرى.' : 'Failed to load orders. Please try again.'
+          isRTL ? 'فشل في تحميل البيانات. يرجى المحاولة مرة أخرى.' : 'Failed to load data. Please try again.'
         );
       } finally {
         setLoading(false);
       }
     };
-    fetchOrders();
+    fetchData();
   }, []);
 
   const filteredOrders = orders.filter(order => {
@@ -126,8 +132,15 @@ const AdminOrdersPage: React.FC = () => {
   };
 
   const handleGenerateInvoice = (order: Order) => {
-    toast.info(
-      isRTL ? 'إنشاء الفاتورة' : 'Invoice Generated',
+    if (!settings) {
+      toast.error(isRTL ? 'بيانات المتجر غير متوفرة' : 'Store settings not available');
+      return;
+    }
+    
+    downloadInvoice(order, settings);
+    
+    toast.success(
+      isRTL ? 'تم إنشاء الفاتورة' : 'Invoice Generated',
       t.invoiceGenerated.replace('{orderNumber}', order.orderNumber)
     );
     setSelectedOrder(null);

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { User, UserRole } from '@/types';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import type { Database } from '@/types/database';
@@ -95,7 +95,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   // Load user profile from database using session
-  const loadProfileFromSession = async (sessionUserId: string): Promise<User | null> => {
+  const loadProfileFromSession = useCallback(async (sessionUserId: string): Promise<User | null> => {
     try {
       const { data: profile } = await supabase
         .from('profiles')
@@ -114,7 +114,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       console.error('Error loading profile:', e);
     }
     return null;
-  };
+  }, [fetchPermissions]);
 
   useEffect(() => {
     const initAuth = async () => {
@@ -180,7 +180,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       );
       return () => subscription.unsubscribe();
     }
-  }, [fetchPermissions, loadProfileFromSession]);
+  }, [loadProfileFromSession, fetchPermissions]);
 
   const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
     setIsLoading(true);

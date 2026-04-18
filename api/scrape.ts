@@ -222,7 +222,9 @@ function extractImages(html: string): string[] {
       if (product?.image) {
         (Array.isArray(product.image) ? product.image : [product.image]).forEach(addImage);
       }
-    } catch {}
+    } catch (e) {
+      // Ignore JSON parsing errors
+    }
   }
 
   // Open Graph images
@@ -233,8 +235,8 @@ function extractImages(html: string): string[] {
   [...html.matchAll(/data-(?:src|image|zoom|large|original|full|big)=["'](https?:\/\/[^"']+\.(?:jpg|jpeg|png|webp)[^"']*)/gi)].forEach(m => addImage(m[1]));
 
   // Cloudinary / CDN images
-  [...html.matchAll(/(https?:\/\/pub-[a-z0-9]+\.r2\.dev\/[^\s"'<>]+\.(?:jpg|jpeg|png|webp))/gi)].forEach(m => addImage(m[1]));
-  [...html.matchAll(/(https?:\/\/res\.cloudinary\.com\/[^\s"'<>]+\.(?:jpg|jpeg|png|webp)[^\s"'<>]*)/gi)].forEach(m => addImage(m[1]));
+  [...html.matchAll(/(https:\/\/pub-[a-z0-9]+\.r2\.dev\/[^\s"'<>]+\.(?:jpg|jpeg|png|webp))/gi)].forEach(m => addImage(m[1]));
+  [...html.matchAll(/(https:\/\/res\.cloudinary\.com\/[^\s"'<>]+\.(?:jpg|jpeg|png|webp)[^\s"'<>]*)/gi)].forEach(m => addImage(m[1]));
 
   // General image URLs
   [...html.matchAll(/["'](https?:\/\/[^"']+\.(?:jpg|jpeg|png|webp)(?:\?[^"']*)?)/gi)].forEach(m => { if (images.length < 15) addImage(m[1]); });
@@ -326,7 +328,9 @@ function parseHtml(html: string, url: string, currency = 'YER') {
         description = description || product.description || '';
         price       = price       || parseFloat(product.offers?.price || product.offers?.lowPrice || '0') || 0;
       }
-    } catch {}
+    } catch (e) {
+      // Ignore JSON parsing errors
+    }
   }
 
   // 2. Open Graph / Meta tags
@@ -339,8 +343,8 @@ function parseHtml(html: string, url: string, currency = 'YER') {
     const pricePatterns = [
       /["']price["']\s*:\s*["']?(\d+[.,]?\d*)["']?/i,
       /(\d{2,6})\s*(?:ر\.ي|ريال|YER|SAR)/i,
-      /class=["'][^"']*price[^"']*["'][^>]*>[\s]*(?:<[^>]+>)*[\s]*(\d[\d,\.]+)/gi,
-      /(\d[\d,\.]+)\s*(?:ر\.ي|ريال|YER|SAR|\$|USD|€)/i,
+      /class=["'][^"']*price[^"']*["'][^>]*>[\s]*(?:<[^>]+>)*[\s]*(\d[\d,.]+)/gi,
+      /(\d[\d,.]+)\s*(?:ر\.ي|ريال|YER|SAR|\$|USD|€)/i,
     ];
     for (const p of pricePatterns) { const m = html.match(p); if (m) { price = parseFloat(m[1].replace(',', '.')); if (price > 0) break; } }
   }
@@ -361,7 +365,7 @@ function extractDescFromMarkdown(md: string): string {
 }
 
 function extractPriceFromMarkdown(md: string): number {
-  const m = md.match(/(\d[\d,\.]+)\s*(?:ريال|YER|SAR|USD|\$|﷼)/i);
+  const m = md.match(/(\d[\d,.]+)\s*(?:ريال|YER|SAR|USD|\$|﷼)/i);
   if (m) return parseFloat(m[1].replace(/,/g, ''));
   return 0;
 }

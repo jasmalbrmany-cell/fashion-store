@@ -331,7 +331,8 @@ export const productsService = {
     const fetchPromise = (supabase as any)
       .from('products')
       .select('*')
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .limit(500);
 
     const timeoutPromise = new Promise((_, reject) => 
       setTimeout(() => reject(new Error('Timeout')), 10000)
@@ -349,6 +350,7 @@ export const productsService = {
       setToCache('products_admin_all', transformed);
       return transformed;
     } catch (e) {
+      console.error('Exception fetching admin products:', e);
       return [];
     }
   },
@@ -912,11 +914,12 @@ export const ordersService = {
     const { data, error } = await withTimeout((supabase as any)
       .from('orders')
       .select('*')
-      .order('created_at', { ascending: false }));
+      .order('created_at', { ascending: false })
+      .limit(500));
 
     if (error) {
       console.error('Error fetching orders:', error);
-      return mockOrders;
+      return [];
     }
 
     const transformed = (data || []).map(transformOrder);
@@ -1479,6 +1482,8 @@ export const activityLogsService = {
 // STORE SETTINGS SERVICE
 // ============================================
 
+const SETTINGS_ID = '00000000-0000-0000-0000-000000000000';
+
 export const storeSettingsService = {
   async get(): Promise<StoreSettings | null> {
     const cached = getFromCache('settings_main');
@@ -1491,7 +1496,7 @@ export const storeSettingsService = {
     const fetchPromise = (supabase as any)
       .from('store_settings')
       .select('*')
-      .limit(1)
+      .eq('id', SETTINGS_ID)
       .single();
 
     const timeoutPromise = new Promise((_, reject) => 
@@ -1502,11 +1507,12 @@ export const storeSettingsService = {
       const { data, error } = await Promise.race([fetchPromise, timeoutPromise]) as any;
 
       if (error || !data) {
+        console.warn('Settings not found in DB, using default');
         return mockStoreSettings as StoreSettings;
       }
 
-      const transformed = {
-        id: data.id || 'settings_main',
+      const transformed: StoreSettings = {
+        id: data.id,
         name: data.name || mockStoreSettings.name,
         logo: data.logo || mockStoreSettings.logo,
         currency: data.currency || mockStoreSettings.currency,
@@ -1514,8 +1520,7 @@ export const storeSettingsService = {
         isMaintenanceMode: data.is_maintenance_mode ?? false,
       };
       
-      // Keep local mock updated perfectly
-      Object.assign(mockStoreSettings, transformed);
+      setToCache('settings_main', transformed);
       return transformed;
     } catch (e) {
       return mockStoreSettings as StoreSettings;
@@ -1528,46 +1533,48 @@ export const storeSettingsService = {
       return mockStoreSettings as StoreSettings;
     }
 
+    const updates = {
+      id: SETTINGS_ID,
+      name: settings.name,
+      logo: settings.logo,
+      currency: settings.currency,
+      social_links: settings.socialLinks,
+      is_maintenance_mode: settings.isMaintenanceMode,
+      updated_at: new Date().toISOString()
+    };
+
     const fetchPromise = (supabase as any)
       .from('store_settings')
-      .upsert({
-        id: settings.id || 'settings_main',
-        name: settings.name,
-        logo: settings.logo,
-        currency: settings.currency,
-        social_links: settings.socialLinks,
-        is_maintenance_mode: settings.isMaintenanceMode,
-      })
+      .upsert(updates)
       .select()
       .single();
 
     const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Timeout')), 5000)
+      setTimeout(() => reject(new Error('Timeout')), 10000)
     );
 
     try {
       const { data, error } = await Promise.race([fetchPromise, timeoutPromise]) as any;
       if (error || !data) {
         console.error('Error updating store settings:', error);
-        // Fallback to local
-        Object.assign(mockStoreSettings, settings);
-        return mockStoreSettings as StoreSettings;
+        throw error;
       }
-      const transformed = {
+      
+      const transformed: StoreSettings = {
         id: data.id,
         name: data.name,
         logo: data.logo || '',
         currency: data.currency,
         socialLinks: data.social_links || {},
+        isMaintenanceMode: data.is_maintenance_mode ?? false,
       };
-      // Always forcibly update local cache and storage even on success
-      Object.assign(mockStoreSettings, transformed);
+      
+      clearCache('settings_main');
+      setToCache('settings_main', transformed);
       return transformed;
     } catch (e) {
       console.error('Exception updating settings:', e);
-      // Fallback to local
-      Object.assign(mockStoreSettings, settings);
-      return mockStoreSettings as StoreSettings;
+      throw e;
     }
   },
 };
