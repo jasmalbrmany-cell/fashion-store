@@ -3,11 +3,11 @@ import { Plus, Edit, Trash2, Search, MapPin, X, Loader2, CheckCircle2, AlertCirc
 import { citiesService, hasValidCache, getCachedSync } from '@/services/api';
 import { City } from '@/types';
 import { useLanguage } from '@/context/LanguageContext';
-import { useToast } from '@/components/Common/Toast';
+import { useNotificationContext } from '@/context/NotificationContext';
 
 const CitiesPage: React.FC = () => {
   const { t, language, isRTL } = useLanguage();
-  const { toast } = useToast();
+  const { showSuccess, showError } = useNotificationContext();
   const [cities, setCities] = useState<City[]>(getCachedSync<City[]>('cities_all') || []);
   const [loading, setLoading] = useState(!hasValidCache('cities_all'));
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -20,8 +20,8 @@ const CitiesPage: React.FC = () => {
   });
 
   const showToast = (type: 'success' | 'error', msg: string) => {
-    if (type === 'success') toast.success(msg);
-    else toast.error(msg);
+    if (type === 'success') showSuccess(msg);
+    else showError(msg);
   };
 
   const loadCities = async () => {

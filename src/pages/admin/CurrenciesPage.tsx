@@ -3,11 +3,11 @@ import { Plus, Edit, Trash2, Search, DollarSign, X, Loader2, Info, CheckCircle2,
 import { currenciesService, hasValidCache, getCachedSync } from '@/services/api';
 import { Currency } from '@/types';
 import { useLanguage } from '@/context/LanguageContext';
-import { useToast } from '@/components/Common/Toast';
+import { useNotificationContext } from '@/context/NotificationContext';
 
 const CurrenciesPage: React.FC = () => {
   const { t, language, isRTL } = useLanguage();
-  const { toast } = useToast();
+  const { showSuccess, showError } = useNotificationContext();
   const [currencies, setCurrencies] = useState<Currency[]>(getCachedSync<Currency[]>('currencies_all') || []);
   const [loading, setLoading] = useState(!hasValidCache('currencies_all'));
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -93,25 +93,25 @@ const CurrenciesPage: React.FC = () => {
         }
       }
       handleCloseModal();
-      toast.success(isRTL ? 'نجاح' : 'Success', editingCurrency ? t.currencyUpdated : t.currencyAdded);
+      showSuccess(editingCurrency ? t.currencyUpdated : t.currencyAdded);
     } catch (error) {
       console.error('Failed to save currency:', error);
-      toast.error(isRTL ? 'خطأ' : 'Error', t.currencySaveError);
+      showError(t.currencySaveError);
     }
   };
 
   const handleDelete = async (id: string) => {
     if (id === 'cur-1' || id === '1') { // Protect base currency
-      alert(t.cannotDeleteBaseCurrency);
+      showError(t.cannotDeleteBaseCurrency);
       return;
     }
     if (window.confirm(t.confirmDeleteCurrency)) {
       const success = await currenciesService.delete(id);
       if (success) {
         setCurrencies(prev => prev.filter(c => c.id !== id));
-        toast.success(isRTL ? 'نجاح' : 'Success', t.currencyDeleted);
+        showSuccess(t.currencyDeleted);
       } else {
-        toast.error(isRTL ? 'خطأ' : 'Error', t.currencyDeleteError);
+        showError(t.currencyDeleteError);
       }
     }
   };

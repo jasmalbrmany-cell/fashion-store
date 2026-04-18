@@ -6,7 +6,7 @@ import {
 import { categoriesService, clearCache } from '@/services/api';
 import { Category } from '@/types';
 import { useLanguage } from '@/context/LanguageContext';
-import { useToast } from '@/components/Common/Toast';
+import { useNotificationContext } from '@/context/NotificationContext';
 
 // ─── Available Icons list ──────────────────────────────────────
 const ICON_OPTIONS = [
@@ -291,7 +291,7 @@ const CategoryRowItem: React.FC<CategoryRowProps> = ({
 // ─── Main Categories Page ──────────────────────────────────────
 const CategoriesPage: React.FC = () => {
   const { isRTL } = useLanguage();
-  const { toast } = useToast();
+  const { showSuccess, showError } = useNotificationContext();
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -349,28 +349,23 @@ const CategoriesPage: React.FC = () => {
       if (editCategory) {
         const result = await categoriesService.update(editCategory.id, payload);
         if (result) {
-          toast.success(
-            isRTL ? '✅ تم تحديث القسم' : '✅ Category Updated',
-            isRTL ? 'تم حفظ التغييرات بنجاح' : 'Changes saved successfully'
-          );
+          showSuccess(isRTL ? '✅ تم تحديث القسم بنجاح' : '✅ Category Updated Successfully');
+          setShowModal(false);
+          setEditCategory(null);
+          await loadCategories();
         }
       } else {
         const result = await categoriesService.create(payload);
         if (result) {
-          toast.success(
-            isRTL ? '✅ تمت إضافة القسم' : '✅ Category Added',
-            isRTL ? 'تمت إضافة القسم بنجاح' : 'Category added successfully'
-          );
+          showSuccess(isRTL ? '✅ تمت إضافة القسم بنجاح' : '✅ Category Added Successfully');
+          setShowModal(false);
+          setEditCategory(null);
+          await loadCategories();
         }
       }
-      setShowModal(false);
-      setEditCategory(null);
-      await loadCategories();
     } catch (e) {
-      toast.error(
-        isRTL ? '❌ فشل الحفظ' : '❌ Save Failed',
-        isRTL ? 'حدث خطأ، أعد المحاولة' : 'An error occurred, please retry'
-      );
+      console.error('Save error:', e);
+      showError(isRTL ? '❌ فشل الحفظ - حاول مرة أخرى' : '❌ Save Failed - Please Try Again');
     } finally {
       setIsSaving(false);
     }
@@ -380,20 +375,18 @@ const CategoriesPage: React.FC = () => {
     if (!deleteTarget) return;
     const children = getChildren(deleteTarget.id);
     if (children.length > 0) {
-      toast.error(
-        isRTL ? '❌ لا يمكن الحذف' : '❌ Cannot Delete',
-        isRTL ? 'يجب حذف الأقسام الفرعية أولاً' : 'Please delete sub-categories first'
-      );
+      showError(isRTL ? '❌ يجب حذف الأقسام الفرعية أولاً' : '❌ Please delete sub-categories first');
       setDeleteTarget(null);
       return;
     }
     try {
       await categoriesService.delete(deleteTarget.id);
-      toast.success(isRTL ? '🗑️ تم الحذف' : '🗑️ Deleted', '');
+      showSuccess(isRTL ? '🗑️ تم حذف القسم بنجاح' : '🗑️ Category Deleted Successfully');
       setDeleteTarget(null);
       await loadCategories();
     } catch (e) {
-      toast.error(isRTL ? '❌ فشل الحذف' : '❌ Delete Failed', '');
+      console.error('Delete error:', e);
+      showError(isRTL ? '❌ فشل الحذف - حاول مرة أخرى' : '❌ Delete Failed - Please Try Again');
     }
   };
 
