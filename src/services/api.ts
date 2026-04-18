@@ -356,62 +356,85 @@ export const productsService = {
   },
 
   async create(product: Partial<Product>): Promise<Product | null> {
-    const { data, error } = await (supabase as any)
-      .from('products')
-      .insert(transformProductToDb(product))
-      .select()
-      .single();
+    try {
+      const fetchPromise = (supabase as any)
+        .from('products')
+        .insert(transformProductToDb(product))
+        .select()
+        .single();
 
-    if (error) {
-      console.error('Error creating product:', error);
-      throw error;
+      const { data, error } = await withTimeout(fetchPromise, 8000);
+
+      if (error) {
+        const errorMsg = error.message || 'فشل إنشاء المنتج';
+        console.error('❌ Error creating product:', error);
+        throw new Error(errorMsg);
+      }
+
+      clearCache('products_all');
+      clearCache('products_admin_all');
+      return transformProduct(data);
+    } catch (e: any) {
+      const errorMessage = e?.message || 'خطأ غير متوقع عند إنشاء المنتج - تحقق من الاتصال';
+      console.error('❌ Exception creating product:', errorMessage);
+      throw new Error(errorMessage);
     }
-
-    clearCache('products_all');
-    clearCache('products_admin_all');
-    return transformProduct(data);
   },
 
   async update(id: string, updates: Partial<Product>): Promise<Product | null> {
-    const { data, error } = await (supabase as any)
-      .from('products')
-      .update(transformProductToDb(updates))
-      .eq('id', id)
-      .select()
-      .single();
+    try {
+      const fetchPromise = (supabase as any)
+        .from('products')
+        .update(transformProductToDb(updates))
+        .eq('id', id)
+        .select()
+        .single();
 
-    if (error) {
-      console.error('Error updating product:', error);
-      throw error;
+      const { data, error } = await withTimeout(fetchPromise, 8000);
+
+      if (error) {
+        const errorMsg = error.message || 'فشل تحديث المنتج';
+        console.error('❌ Error updating product:', error);
+        throw new Error(errorMsg);
+      }
+
+      clearCache('products_all');
+      clearCache('products_admin_all');
+      return transformProduct(data);
+    } catch (e: any) {
+      const errorMessage = e?.message || 'خطأ غير متوقع عند تحديث المنتج - تحقق من الاتصال';
+      console.error('❌ Exception updating product:', errorMessage);
+      throw new Error(errorMessage);
     }
-
-    clearCache('products_all');
-    clearCache('products_admin_all');
-    return transformProduct(data);
   },
 
   async delete(id: string): Promise<boolean> {
     if (!isSupabaseConfigured()) {
-      const index = mockProducts.findIndex(p => p.id === id);
-      if (index > -1) {
-        mockProducts.splice(index, 1);
-        return true;
+      return false;
+    }
+
+    try {
+      const fetchPromise = (supabase as any)
+        .from('products')
+        .delete()
+        .eq('id', id);
+
+      const { error } = await withTimeout(fetchPromise, 8000);
+
+      if (error) {
+        const errorMsg = error.message || 'فشل حذف المنتج';
+        console.error('❌ Error deleting product:', error);
+        throw new Error(errorMsg);
       }
-      return false;
+
+      clearCache('products_all');
+      clearCache('products_admin_all');
+      return true;
+    } catch (e: any) {
+      const errorMessage = e?.message || 'خطأ غير متوقع عند حذف المنتج';
+      console.error('❌ Exception deleting product:', errorMessage);
+      throw new Error(errorMessage);
     }
-
-    const { error } = await (supabase as any)
-      .from('products')
-      .delete()
-      .eq('id', id);
-
-    if (error) {
-      console.error('Error deleting product:', error);
-      return false;
-    }
-
-    clearCache('products_all');
-    return true;
   },
 
   async toggleVisibility(id: string): Promise<Product | null> {
@@ -470,76 +493,88 @@ export const categoriesService = {
   },
 
   async create(category: Partial<Category>): Promise<Category | null> {
-    if (!isSupabaseConfigured()) {
-      const newCategory = { ...category, id: `cat-${Date.now()}`, order: category.order || mockCategories.length + 1 } as Category;
-      mockCategories.push(newCategory);
-      return newCategory;
+    try {
+      const fetchPromise = (supabase as any)
+        .from('categories')
+        .insert({
+          name: category.name || '',
+          icon: category.icon,
+          parent_id: category.parentId || null,
+          order: category.order || 0,
+        })
+        .select()
+        .single();
+
+      const { data, error } = await withTimeout(fetchPromise, 8000);
+
+      if (error) {
+        const errorMsg = error.message || 'فشل إنشاء القسم';
+        console.error('❌ Error creating category:', error);
+        throw new Error(errorMsg);
+      }
+
+      clearCache('categories_all');
+      return transformCategory(data);
+    } catch (e: any) {
+      const errorMessage = e?.message || 'خطأ غير متوقع عند إنشاء القسم';
+      console.error('❌ Exception creating category:', errorMessage);
+      throw new Error(errorMessage);
     }
-
-    const { data, error } = await (supabase as any)
-      .from('categories')
-      .insert({
-        name: category.name || '',
-        icon: category.icon,
-        parent_id: category.parentId || null,
-        order: category.order || 0,
-      })
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Error creating category:', error);
-      return null;
-    }
-
-    clearCache('categories_all');
-    return transformCategory(data);
   },
 
   async update(id: string, updates: Partial<Category>): Promise<Category | null> {
-    if (!isSupabaseConfigured()) {
-      const index = mockCategories.findIndex(c => c.id === id);
-      if (index > -1) {
-        mockCategories[index] = { ...mockCategories[index], ...updates };
-        return [][index];
+    try {
+      const fetchPromise = (supabase as any)
+        .from('categories')
+        .update({
+          name: updates.name,
+          icon: updates.icon,
+          parent_id: updates.parentId !== undefined ? (updates.parentId || null) : undefined,
+          order: updates.order,
+        })
+        .eq('id', id)
+        .select()
+        .single();
+
+      const { data, error } = await withTimeout(fetchPromise, 8000);
+
+      if (error) {
+        const errorMsg = error.message || 'فشل تحديث القسم';
+        console.error('❌ Error updating category:', error);
+        throw new Error(errorMsg);
       }
-      return null;
+
+      clearCache('categories_all');
+      return transformCategory(data);
+    } catch (e: any) {
+      const errorMessage = e?.message || 'خطأ غير متوقع عند تحديث القسم';
+      console.error('❌ Exception updating category:', errorMessage);
+      throw new Error(errorMessage);
     }
-
-    const { data, error } = await (supabase as any)
-      .from('categories')
-      .update({
-        name: updates.name,
-        icon: updates.icon,
-        parent_id: updates.parentId !== undefined ? (updates.parentId || null) : undefined,
-        order: updates.order,
-      })
-      .eq('id', id)
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Error updating category:', error);
-      return null;
-    }
-
-    clearCache('categories_all');
-    return transformCategory(data);
   },
 
   async delete(id: string): Promise<boolean> {
-    const { error } = await (supabase as any)
-      .from('categories')
-      .delete()
-      .eq('id', id);
+    try {
+      const fetchPromise = (supabase as any)
+        .from('categories')
+        .delete()
+        .eq('id', id);
 
-    if (error) {
-      console.error('Error deleting category:', error);
-      throw error;
+      const { error } = await withTimeout(fetchPromise, 8000);
+
+      if (error) {
+        const errorMsg = error.message || 'فشل حذف القسم';
+        console.error('❌ Error deleting category:', error);
+        throw new Error(errorMsg);
+      }
+
+      clearCache('categories_all');
+      return true;
+    } catch (e: any) {
+      const errorMessage = e?.message || 'خطأ غير متوقع عند حذف القسم';
+      console.error('❌ Exception deleting category:', errorMessage);
+      throw new Error(errorMessage);
     }
-
-    clearCache('categories_all');
-    return true;
   },
 };
 
@@ -657,86 +692,93 @@ export const citiesService = {
   },
 
   async create(city: Partial<City>): Promise<City | null> {
-    if (!isSupabaseConfigured()) {
-      const newCity = { ...city, id: `city-${Date.now()}`, isActive: city.isActive ?? true } as City;
-      mockCities.push(newCity);
-      return newCity;
+    try {
+      const fetchPromise = (supabase as any)
+        .from('cities')
+        .insert({
+          name: city.name || '',
+          shipping_cost: city.shippingCost || 0,
+          is_active: city.isActive ?? true,
+        })
+        .select()
+        .single();
+
+      const { data, error } = await withTimeout(fetchPromise, 8000);
+
+      if (error) {
+        const errorMsg = error.message || 'فشل إنشاء المدينة';
+        console.error('❌ Error creating city:', error);
+        throw new Error(errorMsg);
+      }
+
+      clearCache('cities_all');
+      clearCache('cities_active');
+      return transformCity(data);
+    } catch (e: any) {
+      const errorMessage = e?.message || 'خطأ غير متوقع عند إنشاء المدينة';
+      console.error('❌ Exception creating city:', errorMessage);
+      throw new Error(errorMessage);
     }
-
-    const { data, error } = await (supabase as any)
-      .from('cities')
-      .insert({
-        name: city.name || '',
-        shipping_cost: city.shippingCost || 0,
-        is_active: city.isActive ?? true,
-      })
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Error creating city:', error);
-      throw new Error(error.message);
-    }
-
-    clearCache('cities_all');
-    clearCache('cities_active');
-    return transformCity(data);
   },
 
   async update(id: string, updates: Partial<City>): Promise<City | null> {
-    if (!isSupabaseConfigured()) {
-      const index = mockCities.findIndex(c => c.id === id);
-      if (index > -1) {
-        mockCities[index] = { ...mockCities[index], ...updates };
-        return [][index];
+    try {
+      const fetchPromise = (supabase as any)
+        .from('cities')
+        .update({
+          name: updates.name,
+          shipping_cost: updates.shippingCost,
+          is_active: updates.isActive,
+        })
+        .eq('id', id)
+        .select()
+        .single();
+
+      const { data, error } = await withTimeout(fetchPromise, 8000);
+
+      if (error) {
+        const errorMsg = error.message || 'فشل تحديث المدينة';
+        console.error('❌ Error updating city:', error);
+        throw new Error(errorMsg);
       }
-      return null;
+
+      clearCache('cities_all');
+      clearCache('cities_active');
+      return transformCity(data);
+    } catch (e: any) {
+      const errorMessage = e?.message || 'خطأ غير متوقع عند تحديث المدينة';
+      console.error('❌ Exception updating city:', errorMessage);
+      throw new Error(errorMessage);
     }
-
-    const { data, error } = await (supabase as any)
-      .from('cities')
-      .update({
-        name: updates.name,
-        shipping_cost: updates.shippingCost,
-        is_active: updates.isActive,
-      })
-      .eq('id', id)
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Error updating city:', error);
-      throw new Error(error.message);
-    }
-
-    clearCache('cities_all');
-    clearCache('cities_active');
-    return transformCity(data);
   },
 
   async delete(id: string): Promise<boolean> {
     if (!isSupabaseConfigured()) {
-      const index = mockCities.findIndex(c => c.id === id);
-      if (index > -1) {
-        mockCities.splice(index, 1);
-        return true;
-      }
       return false;
     }
 
-    const { error } = await (supabase as any)
-      .from('cities')
-      .delete()
-      .eq('id', id);
+    try {
+      const fetchPromise = (supabase as any)
+        .from('cities')
+        .delete()
+        .eq('id', id);
 
-    if (error) {
-      console.error('Error deleting city:', error);
-      throw new Error(error.message);
+      const { error } = await withTimeout(fetchPromise, 8000);
+
+      if (error) {
+        const errorMsg = error.message || 'فشل حذف المدينة';
+        console.error('❌ Error deleting city:', error);
+        throw new Error(errorMsg);
+      }
+
+      clearCache('cities_all');
+      clearCache('cities_active');
+      return true;
+    } catch (e: any) {
+      const errorMessage = e?.message || 'خطأ غير متوقع عند حذف المدينة';
+      console.error('❌ Exception deleting city:', errorMessage);
+      throw new Error(errorMessage);
     }
-
-    clearCache('cities_all');
-    clearCache('cities_active');
-    return true;
   },
 };
 
@@ -804,31 +846,32 @@ export const currenciesService = {
       return newCurrency;
     }
 
-    const fetchPromise = (supabase as any)
-      .from('currencies')
-      .insert({
-        code: currency.code || '',
-        name: currency.name || '',
-        exchange_rate: currency.exchangeRate || 1,
-        symbol: currency.symbol || '',
-      })
-      .select()
-      .single();
-
-    const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Timeout')), 5000)
-    );
-
     try {
-      const { data, error } = await Promise.race([fetchPromise, timeoutPromise]) as any;
+      const fetchPromise = (supabase as any)
+        .from('currencies')
+        .insert({
+          code: currency.code || '',
+          name: currency.name || '',
+          exchange_rate: currency.exchangeRate || 1,
+          symbol: currency.symbol || '',
+        })
+        .select()
+        .single();
+
+      const { data, error } = await withTimeout(fetchPromise, 5000);
+
       if (error) {
-        console.error('Error creating currency:', error);
-        return null;
+        const errorMsg = error.message || 'فشل إنشاء العملة';
+        console.error('❌ Error creating currency:', error);
+        throw new Error(errorMsg);
       }
+
       clearCache('currencies_all');
       return transformCurrency(data);
-    } catch (e) {
-      return null;
+    } catch (e: any) {
+      const errorMessage = e?.message || 'خطأ غير متوقع عند إنشاء العملة';
+      console.error('❌ Exception creating currency:', errorMessage);
+      throw new Error(errorMessage);
     }
   },
 
@@ -842,32 +885,33 @@ export const currenciesService = {
       return null;
     }
 
-    const fetchPromise = (supabase as any)
-      .from('currencies')
-      .update({
-        code: updates.code,
-        name: updates.name,
-        exchange_rate: updates.exchangeRate,
-        symbol: updates.symbol,
-      })
-      .eq('id', id)
-      .select()
-      .single();
-
-    const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Timeout')), 5000)
-    );
-
     try {
-      const { data, error } = await Promise.race([fetchPromise, timeoutPromise]) as any;
+      const fetchPromise = (supabase as any)
+        .from('currencies')
+        .update({
+          code: updates.code,
+          name: updates.name,
+          exchange_rate: updates.exchangeRate,
+          symbol: updates.symbol,
+        })
+        .eq('id', id)
+        .select()
+        .single();
+
+      const { data, error } = await withTimeout(fetchPromise, 5000);
+
       if (error) {
-        console.error('Error updating currency:', error);
-        return null;
+        const errorMsg = error.message || 'فشل تحديث العملة';
+        console.error('❌ Error updating currency:', error);
+        throw new Error(errorMsg);
       }
+
       clearCache('currencies_all');
       return transformCurrency(data);
-    } catch (e) {
-      return null;
+    } catch (e: any) {
+      const errorMessage = e?.message || 'خطأ غير متوقع عند تحديث العملة';
+      console.error('❌ Exception updating currency:', errorMessage);
+      throw new Error(errorMessage);
     }
   },
 
@@ -881,19 +925,26 @@ export const currenciesService = {
       return false;
     }
 
-    const fetchPromise = (supabase as any).from('currencies').delete().eq('id', id);
-    const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 5000));
-
     try {
-      const { error } = await Promise.race([fetchPromise, timeoutPromise]) as any;
+      const fetchPromise = (supabase as any)
+        .from('currencies')
+        .delete()
+        .eq('id', id);
+
+      const { error } = await withTimeout(fetchPromise, 5000);
+
       if (error) {
-        console.error('Error deleting currency:', error);
-        return false;
+        const errorMsg = error.message || 'فشل حذف العملة';
+        console.error('❌ Error deleting currency:', error);
+        throw new Error(errorMsg);
       }
+
       clearCache('currencies_all');
       return true;
-    } catch (e) {
-      return false;
+    } catch (e: any) {
+      const errorMessage = e?.message || 'خطأ غير متوقع عند حذف العملة';
+      console.error('❌ Exception deleting currency:', errorMessage);
+      throw new Error(errorMessage);
     }
   },
 };
@@ -1543,21 +1594,19 @@ export const storeSettingsService = {
       updated_at: new Date().toISOString()
     };
 
-    const fetchPromise = (supabase as any)
-      .from('store_settings')
-      .upsert(updates)
-      .select()
-      .single();
-
-    const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Timeout')), 10000)
-    );
-
     try {
-      const { data, error } = await Promise.race([fetchPromise, timeoutPromise]) as any;
+      const fetchPromise = (supabase as any)
+        .from('store_settings')
+        .upsert(updates)
+        .select()
+        .single();
+
+      const { data, error } = await withTimeout(fetchPromise, 8000);
+      
       if (error || !data) {
-        console.error('Error updating store settings:', error);
-        throw error;
+        const errorMsg = error?.message || 'فشل تحديث إعدادات المتجر';
+        console.error('❌ Error updating store settings:', error);
+        throw new Error(errorMsg);
       }
       
       const transformed: StoreSettings = {
@@ -1572,9 +1621,10 @@ export const storeSettingsService = {
       clearCache('settings_main');
       setToCache('settings_main', transformed);
       return transformed;
-    } catch (e) {
-      console.error('Exception updating settings:', e);
-      throw e;
+    } catch (e: any) {
+      const errorMessage = e?.message || 'خطأ غير متوقع عند تحديث الإعدادات - تحقق من الاتصال';
+      console.error('❌ Exception updating settings:', errorMessage);
+      throw new Error(errorMessage);
     }
   },
 };

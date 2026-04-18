@@ -71,6 +71,7 @@ const CurrenciesPage: React.FC = () => {
     e.preventDefault();
 
     try {
+      setLoading(true);
       if (editingCurrency) {
         const updated = await currenciesService.update(editingCurrency.id, {
           code: formData.code,
@@ -80,6 +81,9 @@ const CurrenciesPage: React.FC = () => {
         });
         if (updated) {
           setCurrencies(prev => prev.map(c => c.id === editingCurrency.id ? updated : c));
+          showSuccess('✅ ' + (t.currencyUpdated || 'تم تحديث العملة بنجاح'));
+        } else {
+          showError('❌ فشل تحديث العملة - حاول مرة أخرى');
         }
       } else {
         const created = await currenciesService.create({
@@ -90,28 +94,42 @@ const CurrenciesPage: React.FC = () => {
         });
         if (created) {
           setCurrencies(prev => [...prev, created]);
+          showSuccess('✅ ' + (t.currencyAdded || 'تم إضافة العملة بنجاح'));
+        } else {
+          showError('❌ فشل إنشاء العملة - حاول مرة أخرى');
         }
       }
       handleCloseModal();
-      showSuccess(editingCurrency ? t.currencyUpdated : t.currencyAdded);
-    } catch (error) {
-      console.error('Failed to save currency:', error);
-      showError(t.currencySaveError);
+    } catch (error: any) {
+      console.error('❌ Failed to save currency:', error);
+      const errorMsg = error?.message || t.currencySaveError || 'حدث خطأ أثناء الحفظ - تحقق من الاتصال';
+      showError('❌ ' + errorMsg);
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleDelete = async (id: string) => {
     if (id === 'cur-1' || id === '1') { // Protect base currency
-      showError(t.cannotDeleteBaseCurrency);
+      showError('❌ ' + (t.cannotDeleteBaseCurrency || 'لا يمكن حذف العملة الأساسية'));
       return;
     }
     if (window.confirm(t.confirmDeleteCurrency)) {
-      const success = await currenciesService.delete(id);
-      if (success) {
-        setCurrencies(prev => prev.filter(c => c.id !== id));
-        showSuccess(t.currencyDeleted);
-      } else {
-        showError(t.currencyDeleteError);
+      try {
+        setLoading(true);
+        const success = await currenciesService.delete(id);
+        if (success) {
+          setCurrencies(prev => prev.filter(c => c.id !== id));
+          showSuccess('✅ ' + (t.currencyDeleted || 'تم حذف العملة بنجاح'));
+        } else {
+          showError('❌ فشل حذف العملة - حاول مرة أخرى');
+        }
+      } catch (error: any) {
+        console.error('❌ Failed to delete currency:', error);
+        const errorMsg = error?.message || t.currencyDeleteError || 'حدث خطأ أثناء الحذف - تحقق من الاتصال';
+        showError('❌ ' + errorMsg);
+      } finally {
+        setLoading(false);
       }
     }
   };

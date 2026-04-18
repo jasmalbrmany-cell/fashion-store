@@ -76,10 +76,12 @@ const AdminProductsPage: React.FC = () => {
     try {
       await Promise.all(selectedIds.map(id => productsService.update(id, { isVisible: visible })));
       setProducts(prev => prev.map(p => selectedIds.includes(p.id) ? { ...p, isVisible: visible } : p));
-      showSuccess(isRTL ? `✅ تم تحديث ${selectedIds.length} منتج` : `✅ Updated ${selectedIds.length} products`);
+      showSuccess('✅ ' + (isRTL ? `تم تحديث ${selectedIds.length} منتج` : `Updated ${selectedIds.length} products`));
       setSelectedIds([]);
-    } catch (err) {
-      showError(isRTL ? '❌ فشل التحديث' : '❌ Update Failed');
+    } catch (err: any) {
+      console.error('❌ Bulk visibility error:', err);
+      const errorMsg = err?.message || (isRTL ? 'فشل التحديث - تحقق من الاتصال' : 'Update Failed - Check your connection');
+      showError('❌ ' + errorMsg);
     } finally {
       setIsBulkLoading(false);
     }
@@ -92,10 +94,12 @@ const AdminProductsPage: React.FC = () => {
       try {
         await Promise.all(selectedIds.map(id => productsService.delete(id)));
         setProducts(prev => prev.filter(p => !selectedIds.includes(p.id)));
-        showSuccess(isRTL ? `✅ تم حذف ${selectedIds.length} منتج` : `✅ Deleted ${selectedIds.length} products`);
+        showSuccess('✅ ' + (isRTL ? `تم حذف ${selectedIds.length} منتج` : `Deleted ${selectedIds.length} products`));
         setSelectedIds([]);
-      } catch (err) {
-        showError(isRTL ? '❌ فشل الحذف' : '❌ Delete Failed');
+      } catch (err: any) {
+        console.error('❌ Bulk delete error:', err);
+        const errorMsg = err?.message || (isRTL ? 'فشل الحذف - تحقق من الاتصال' : 'Delete Failed - Check your connection');
+        showError('❌ ' + errorMsg);
       } finally {
         setIsBulkLoading(false);
       }
@@ -138,12 +142,13 @@ const AdminProductsPage: React.FC = () => {
          return p;
       }));
       
-      showSuccess(isRTL ? `✅ تم تحديث أسعار ${selectedIds.length} منتج` : `✅ Updated prices for ${selectedIds.length} products`);
+      showSuccess('✅ ' + (isRTL ? `تم تحديث أسعار ${selectedIds.length} منتج` : `Updated prices for ${selectedIds.length} products`));
       setSelectedIds([]);
       setPricingPercentage('');
-    } catch (err) {
-      console.error(err);
-      showError(isRTL ? 'خطأ في تحديث الأسعار' : 'Error updating prices');
+    } catch (err: any) {
+      console.error('❌ Pricing error:', err);
+      const errorMsg = err?.message || (isRTL ? 'خطأ في تحديث الأسعار - تحقق من الاتصال' : 'Error updating prices - Check your connection');
+      showError('❌ ' + errorMsg);
     } finally {
       setIsBulkLoading(false);
     }
@@ -151,28 +156,40 @@ const AdminProductsPage: React.FC = () => {
 
   const toggleVisibility = async (product: Product) => {
     try {
+        setIsBulkLoading(true);
         const updated = await productsService.toggleVisibility(product.id);
         if (updated) {
             setProducts(prev => prev.map(p => p.id === product.id ? updated : p));
-            showSuccess(updated.isVisible ? isRTL ? '✅ المنتج مرئي الآن' : '✅ Product is now visible' : isRTL ? '✅ المنتج مخفي الآن' : '✅ Product is now hidden');
+            showSuccess('✅ ' + (updated.isVisible ? (isRTL ? 'المنتج مرئي الآن' : 'Product is now visible') : (isRTL ? 'المنتج مخفي الآن' : 'Product is now hidden')));
+        } else {
+            showError('❌ ' + (isRTL ? 'فشل تحديث المنتج - حاول مرة أخرى' : 'Failed to update product'));
         }
-    } catch (err) {
-        showError(isRTL ? '❌ فشل التحديث' : '❌ Update Failed');
-        console.error('Failed to toggle visibility', err);
+    } catch (err: any) {
+        console.error('❌ Failed to toggle visibility:', err);
+        const errorMsg = err?.message || (isRTL ? 'فشل التحديث - تحقق من الاتصال' : 'Update Failed - Check your connection');
+        showError('❌ ' + errorMsg);
+    } finally {
+        setIsBulkLoading(false);
     }
   };
 
   const deleteProduct = async (productId: string) => {
     if (window.confirm(t.confirmDeleteProduct)) {
       try {
+        setIsBulkLoading(true);
         const success = await productsService.delete(productId);
         if (success) {
             setProducts(prev => prev.filter(p => p.id !== productId));
-            showSuccess(isRTL ? '✅ تم حذف المنتج' : '✅ Product Deleted');
+            showSuccess('✅ ' + (isRTL ? 'تم حذف المنتج' : 'Product Deleted'));
+        } else {
+            showError('❌ ' + (isRTL ? 'فشل حذف المنتج - حاول مرة أخرى' : 'Failed to delete product'));
         }
-      } catch (err) {
-        showError(isRTL ? '❌ فشل الحذف' : '❌ Delete Failed');
-        console.error('Failed to delete product', err);
+      } catch (err: any) {
+        console.error('❌ Failed to delete product:', err);
+        const errorMsg = err?.message || (isRTL ? 'فشل الحذف - تحقق من الاتصال' : 'Delete Failed - Check your connection');
+        showError('❌ ' + errorMsg);
+      } finally {
+        setIsBulkLoading(false);
       }
     }
   };
@@ -188,15 +205,19 @@ const AdminProductsPage: React.FC = () => {
     try {
       const p = parseFloat(editPrice);
       const s = parseInt(editStock, 10);
-      if (isNaN(p) || isNaN(s)) throw new Error('Invalid values');
+      if (isNaN(p) || isNaN(s)) throw new Error(isRTL ? 'قيم غير صالحة' : 'Invalid values');
 
       const updated = await productsService.update(productId, { price: p, stock: s });
       if (updated) {
         setProducts(prev => prev.map(prod => prod.id === productId ? { ...prod, price: p, stock: s } : prod));
-        showSuccess(isRTL ? '✅ تم الحفظ بنجاح' : '✅ Saved Successfully');
+        showSuccess('✅ ' + (isRTL ? 'تم الحفظ بنجاح' : 'Saved Successfully'));
+      } else {
+        showError('❌ ' + (isRTL ? 'فشل الحفظ - حاول مرة أخرى' : 'Save Failed'));
       }
-    } catch (err) {
-      showError(isRTL ? '❌ قيم غير صالحة' : '❌ Invalid values');
+    } catch (err: any) {
+      console.error('❌ Inline edit error:', err);
+      const errorMsg = err?.message || (isRTL ? 'قيم غير صالحة - تحقق من الاتصال' : 'Invalid values - Check your connection');
+      showError('❌ ' + errorMsg);
     } finally {
       setIsSavingInline(false);
       setEditingRow(null);

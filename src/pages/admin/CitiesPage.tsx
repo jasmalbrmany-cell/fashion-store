@@ -74,11 +74,12 @@ const CitiesPage: React.FC = () => {
     );
 
     if (duplicate) {
-      showToast('error', t.cityDuplicate);
+      showToast('error', '❌ ' + (t.cityDuplicate || 'هذه المدينة موجودة بالفعل'));
       return;
     }
 
     try {
+      setLoading(true);
       if (editingCity) {
         const updated = await citiesService.update(editingCity.id, {
           name: formData.name,
@@ -87,6 +88,9 @@ const CitiesPage: React.FC = () => {
         });
         if (updated) {
           setCities(prev => prev.map(c => c.id === editingCity.id ? updated : c));
+          showToast('success', '✅ ' + (t.cityUpdated || 'تم تحديث المدينة بنجاح'));
+        } else {
+          showToast('error', '❌ فشل تحديث المدينة - حاول مرة أخرى');
         }
       } else {
         const created = await citiesService.create({
@@ -96,35 +100,58 @@ const CitiesPage: React.FC = () => {
         });
         if (created) {
           setCities(prev => [...prev, created]);
+          showToast('success', '✅ ' + (t.cityAdded || 'تم إضافة المدينة بنجاح'));
+        } else {
+          showToast('error', '❌ فشل إنشاء المدينة - حاول مرة أخرى');
         }
       }
       handleCloseModal();
-      showToast('success', editingCity ? t.cityUpdated : t.cityAdded);
     } catch (error: any) {
-      console.error('Failed to save city:', error);
-      showToast('error', error?.message || t.citySaveError);
+      console.error('❌ Failed to save city:', error);
+      const errorMsg = error?.message || t.citySaveError || 'حدث خطأ أثناء الحفظ - تحقق من الاتصال';
+      showToast('error', '❌ ' + errorMsg);
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleDelete = async (id: string) => {
     if (window.confirm(t.confirmDeleteCity)) {
       try {
+        setLoading(true);
         const success = await citiesService.delete(id);
         if (success) {
            setCities(prev => prev.filter(c => c.id !== id));
-           showToast('success', t.deletedSuccessfully);
+           showToast('success', '✅ ' + (t.deletedSuccessfully || 'تم الحذف بنجاح'));
+        } else {
+          showToast('error', '❌ فشل حذف المدينة - حاول مرة أخرى');
         }
       } catch (error: any) {
-        console.error('Failed to delete city:', error);
-        showToast('error', error?.message || t.cityDeleteError);
+        console.error('❌ Failed to delete city:', error);
+        const errorMsg = error?.message || t.cityDeleteError || 'حدث خطأ أثناء الحذف - تحقق من الاتصال';
+        showToast('error', '❌ ' + errorMsg);
+      } finally {
+        setLoading(false);
       }
     }
   };
 
   const toggleActive = async (city: City) => {
-    const updated = await citiesService.update(city.id, { isActive: !city.isActive });
-    if (updated) {
-      setCities(prev => prev.map(c => c.id === city.id ? updated : c));
+    try {
+      setLoading(true);
+      const updated = await citiesService.update(city.id, { isActive: !city.isActive });
+      if (updated) {
+        setCities(prev => prev.map(c => c.id === city.id ? updated : c));
+        showToast('success', '✅ ' + (city.isActive ? 'تم إلغاء تفعيل المدينة' : 'تم تفعيل المدينة'));
+      } else {
+        showToast('error', '❌ فشل تحديث حالة المدينة - حاول مرة أخرى');
+      }
+    } catch (error: any) {
+      console.error('❌ Failed to toggle city status:', error);
+      const errorMsg = error?.message || 'حدث خطأ أثناء تحديث الحالة - تحقق من الاتصال';
+      showToast('error', '❌ ' + errorMsg);
+    } finally {
+      setLoading(false);
     }
   };
 

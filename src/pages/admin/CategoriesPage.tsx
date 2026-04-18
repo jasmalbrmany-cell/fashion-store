@@ -349,23 +349,28 @@ const CategoriesPage: React.FC = () => {
       if (editCategory) {
         const result = await categoriesService.update(editCategory.id, payload);
         if (result) {
-          showSuccess(isRTL ? '✅ تم تحديث القسم بنجاح' : '✅ Category Updated Successfully');
+          showSuccess('✅ ' + (isRTL ? 'تم تحديث القسم بنجاح' : 'Category Updated Successfully'));
           setShowModal(false);
           setEditCategory(null);
           await loadCategories();
+        } else {
+          showError('❌ ' + (isRTL ? 'فشل تحديث القسم - حاول مرة أخرى' : 'Failed to update category'));
         }
       } else {
         const result = await categoriesService.create(payload);
         if (result) {
-          showSuccess(isRTL ? '✅ تمت إضافة القسم بنجاح' : '✅ Category Added Successfully');
+          showSuccess('✅ ' + (isRTL ? 'تمت إضافة القسم بنجاح' : 'Category Added Successfully'));
           setShowModal(false);
           setEditCategory(null);
           await loadCategories();
+        } else {
+          showError('❌ ' + (isRTL ? 'فشل إنشاء القسم - حاول مرة أخرى' : 'Failed to create category'));
         }
       }
-    } catch (e) {
-      console.error('Save error:', e);
-      showError(isRTL ? '❌ فشل الحفظ - حاول مرة أخرى' : '❌ Save Failed - Please Try Again');
+    } catch (e: any) {
+      console.error('❌ Save error:', e);
+      const errorMsg = e?.message || (isRTL ? 'فشل الحفظ - تحقق من الاتصال' : 'Save Failed - Check your connection');
+      showError('❌ ' + errorMsg);
     } finally {
       setIsSaving(false);
     }
@@ -375,18 +380,22 @@ const CategoriesPage: React.FC = () => {
     if (!deleteTarget) return;
     const children = getChildren(deleteTarget.id);
     if (children.length > 0) {
-      showError(isRTL ? '❌ يجب حذف الأقسام الفرعية أولاً' : '❌ Please delete sub-categories first');
+      showError('❌ ' + (isRTL ? 'يجب حذف الأقسام الفرعية أولاً' : 'Please delete sub-categories first'));
       setDeleteTarget(null);
       return;
     }
     try {
+      setIsSaving(true);
       await categoriesService.delete(deleteTarget.id);
-      showSuccess(isRTL ? '🗑️ تم حذف القسم بنجاح' : '🗑️ Category Deleted Successfully');
+      showSuccess('✅ ' + (isRTL ? 'تم حذف القسم بنجاح' : 'Category Deleted Successfully'));
       setDeleteTarget(null);
       await loadCategories();
-    } catch (e) {
-      console.error('Delete error:', e);
-      showError(isRTL ? '❌ فشل الحذف - حاول مرة أخرى' : '❌ Delete Failed - Please Try Again');
+    } catch (e: any) {
+      console.error('❌ Delete error:', e);
+      const errorMsg = e?.message || (isRTL ? 'فشل الحذف - تحقق من الاتصال' : 'Delete Failed - Check your connection');
+      showError('❌ ' + errorMsg);
+    } finally {
+      setIsSaving(false);
     }
   };
 

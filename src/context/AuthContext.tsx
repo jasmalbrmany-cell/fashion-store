@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, Rea
 import { User, UserRole } from '@/types';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import type { Database } from '@/types/database';
+import { withTimeout } from '@/services/api';
 
 type ProfileRow = Database['public']['Tables']['profiles']['Row'];
 
@@ -117,6 +118,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // Load user profile from database using session
   const loadProfileFromSession = useCallback(async (sessionUserId: string): Promise<User | null> => {
     try {
+      // Force refresh session with 10 second timeout to ensure permissions are up-to-date
+      if (isSupabaseConfigured()) {
+        try {
+          await withTimeout(Promise.resolve(supabase.auth.refreshSession()), 10000);
+        } catch (refreshError) {
+          console.warn('⚠️ Session refresh timeout or error:', refreshError);
+          // Continue anyway - session might still be valid
+        }
+      }
+
       const { data: profile } = await supabase
         .from('profiles')
         .select('*')
@@ -131,7 +142,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         return userData;
       }
     } catch (e) {
-      console.error('Error loading profile:', e);
+      console.error('❌ Error loading profile:', e);
     }
     return null;
   }, [fetchPermissions]);
@@ -211,10 +222,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await withTimeout(supabase.auth.signInWithPassword({
         email: email.trim().toLowerCase(),
         password,
-      });
+      }), 10000);
 
       if (error) {
         setIsLoading(false);
@@ -223,18 +234,28 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
 
       if (data.user) {
-        let { data: profile } = await supabase.from('profiles').select('*').eq('id', data.user.id).single();
+        let { data: profile, error: profileError } = await withTimeout(
+          Promise.resolve(supabase.from('profiles').select('*').eq('id', data.user.id).single()),
+          5000
+        );
 
-        if (!profile) {
+        if (profileError || !profile) {
           // Auto-create profile if missing
           const metaRole = data.user.app_metadata?.role || data.user.user_metadata?.role || 'customer';
-          const { data: newProfile } = await (supabase as any).from('profiles').upsert({
-            id: data.user.id,
-            email,
-            name: data.user.user_metadata?.name || email.split('@')[0],
-            role: metaRole,
-          }).select().single();
-          profile = newProfile;
+          try {
+            const { data: newProfile } = await withTimeout(
+              (supabase as any).from('profiles').upsert({
+                id: data.user.id,
+                email,
+                name: data.user.user_metadata?.name || email.split('@')[0],
+                role: metaRole,
+              }).select().single(),
+              5000
+            );
+            profile = newProfile;
+          } catch (e) {
+            console.error('Profile creation timeout/error', e);
+          }
         }
 
         if (profile) {
