@@ -4,6 +4,7 @@ import { CartProvider } from '@/context/CartContext';
 import { AuthProvider } from '@/context/AuthContext';
 import { LanguageProvider } from '@/context/LanguageContext';
 import { ThemeProvider } from '@/context/ThemeContext';
+import { NotificationProvider } from '@/context/NotificationContext';
 import { Layout } from '@/components/Layout';
 import CartDrawer from '@/components/Cart/CartDrawer';
 import ToastProvider, { ToastContainer } from '@/components/Common/Toast';
@@ -53,8 +54,9 @@ function App() {
           <ThemeProvider>
             <AuthProvider>
               <CartProvider>
-                <ToastContainer />
-                <Suspense fallback={<PageLoader />}>
+                <NotificationProvider>
+                  <ToastContainer />
+                  <Suspense fallback={<PageLoader />}>
                   <Routes>
                     {/* صفحات المتجر العام */}
                     <Route path="/" element={<Layout />}>
@@ -94,8 +96,9 @@ function App() {
 
                     <Route path="*" element={<Navigate to="/" replace />} />
                   </Routes>
-                </Suspense>
-                <CartDrawer />
+                  </Suspense>
+                  <CartDrawer />
+                </NotificationProvider>
               </CartProvider>
             </AuthProvider>
           </ThemeProvider>
