@@ -1,22 +1,30 @@
 {
   "name": "Fashion Hub - فاشن هاب",
-  "short_name": "FashionHub",
-  "description": "تجربة تسوق فريدة للأزياء العصرية",
+  "short_name": "Fashion Hub",
+  "description": "تجربة تسوق فريدة للأزياء العصرية - أحدث الصيحات بأسعار منافسة",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#000000",
+  "background_color": "#0f0f0f",
+  "theme_color": "#c9a96e",
   "orientation": "portrait-primary",
+  "lang": "ar",
+  "dir": "rtl",
+  "categories": ["shopping", "fashion"],
   "icons": [
     {
-      "src": "https://ui-avatars.com/api/?name=F+H&background=000&color=fff&size=192",
+      "src": "/logo.jpg",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/jpeg",
+      "purpose": "any maskable"
     },
     {
-      "src": "https://ui-avatars.com/api/?name=F+H&background=000&color=fff&size=512",
+      "src": "/logo.jpg",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/jpeg",
+      "purpose": "any maskable"
     }
-  ]
+  ],
+  "screenshots": [],
+  "prefer_related_applications": false
 }
