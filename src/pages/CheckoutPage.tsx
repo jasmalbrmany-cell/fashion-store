@@ -3,13 +3,15 @@ import { useNavigate, Link } from 'react-router-dom';
 import { MapPin, Phone, User, MessageCircle, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useLanguage } from '@/context/LanguageContext';
-import { citiesService, storeSettingsService } from '@/services/api';
+import { useAuth } from '@/context/AuthContext';
+import { citiesService, storeSettingsService, ordersService } from '@/services/api';
 import { City, StoreSettings } from '@/types';
 
 const CheckoutPage: React.FC = () => {
   const navigate = useNavigate();
   const { items, getSubtotal, clearCart } = useCart();
   const { t, language, isRTL } = useLanguage();
+  const { user } = useAuth();
 
   const [loading, setLoading] = useState(true);
   const [cities, setCities] = useState<City[]>([]);
@@ -77,6 +79,36 @@ const CheckoutPage: React.FC = () => {
     setIsSubmitting(true);
 
     const orderNumber = `ORD-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`;
+
+    // ── حفظ الطلب في قاعدة البيانات ──
+    try {
+      await ordersService.create({
+        orderNumber,
+        customerName: formData.name,
+        customerPhone: formData.phone,
+        customerId: user?.id,
+        city: selectedCity?.name || formData.city,
+        address: formData.address,
+        items: items.map(item => ({
+          id: item.id,
+          productId: item.productId,
+          productName: item.product.name,
+          productImage: item.product.images[0]?.url || '',
+          size: item.size?.name,
+          color: item.color?.name,
+          quantity: item.quantity,
+          price: item.price,
+          sourceUrl: item.product.sourceUrl,
+        })),
+        subtotal,
+        shippingCost,
+        total,
+        notes: formData.notes,
+      });
+    } catch (err) {
+      console.error('Failed to save order to database:', err);
+      // Continue anyway — WhatsApp order is the primary confirmation
+    }
 
     const message = `🛍️ *${isRTL ? 'طلب جديد من المتجر' : 'New Order from Store'}*
 ---------------------------

@@ -66,10 +66,20 @@ const RegisterPage: React.FC = () => {
         ? 'صيغة البريد الإلكتروني غير صحيحة (مثال: name@gmail.com)'
         : 'Invalid email format (example: name@gmail.com)';
     }
-    if (formData.password.length < 6) {
+    if (formData.password.length < 8) {
       return isAr
-        ? 'كلمة المرور يجب أن تكون 6 أحرف على الأقل'
-        : 'Password must be at least 6 characters';
+        ? 'كلمة المرور يجب أن تكون 8 أحرف على الأقل'
+        : 'Password must be at least 8 characters';
+    }
+    if (!/[A-Z]/.test(formData.password)) {
+      return isAr
+        ? 'كلمة المرور يجب أن تحتوي على حرف كبير واحد على الأقل'
+        : 'Password must contain at least one uppercase letter';
+    }
+    if (!/[0-9]/.test(formData.password)) {
+      return isAr
+        ? 'كلمة المرور يجب أن تحتوي على رقم واحد على الأقل'
+        : 'Password must contain at least one number';
     }
     if (formData.password !== formData.confirmPassword) {
       return isAr ? 'كلمتا المرور غير متطابقتين' : 'Passwords do not match';
@@ -119,12 +129,14 @@ const RegisterPage: React.FC = () => {
       }
 
       if (data.user) {
-        if (formData.phone) {
-          await (supabase as any).from('profiles').update({
-            phone: formData.phone,
-            name: formData.name.trim(),
-          }).eq('id', data.user.id);
-        }
+        // Upsert profile to ensure it exists (in case the DB trigger didn't fire)
+        await (supabase as any).from('profiles').upsert({
+          id: data.user.id,
+          email: formData.email.trim().toLowerCase(),
+          name: formData.name.trim(),
+          phone: formData.phone || null,
+          role: 'customer',
+        }, { onConflict: 'id' });
 
         setSuccess(true);
         setTimeout(async () => {
@@ -268,10 +280,10 @@ const RegisterPage: React.FC = () => {
                   type={showPassword ? 'text' : 'password'}
                   value={formData.password}
                   onChange={(e) => handleChange('password', e.target.value)}
-                  placeholder={isAr ? '6 أحرف على الأقل' : 'At least 6 characters'}
+                  placeholder={isAr ? '8 أحرف على الأقل مع حرف كبير ورقم' : 'Min 8 chars with uppercase & number'}
                   className={`w-full ${isAr ? 'pr-10 pl-10' : 'pl-10 pr-10'} py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-gray-900 focus:border-transparent transition`}
                   required
-                  minLength={6}
+                  minLength={8}
                   dir="ltr"
                 />
                 <button

@@ -34,20 +34,31 @@ const LoginPage: React.FC = () => {
     const result = await login(email, password);
 
     if (result.success) {
-      const loggedInUser = JSON.parse(localStorage.getItem('fashionHubUser') || '{}');
-      const role = (loggedInUser.role || '').toLowerCase();
-      if (role === 'admin' || role === 'editor' || role === 'viewer') {
-        navigate('/admin', { replace: true });
-      } else {
-        navigate('/my-orders', { replace: true });
-      }
+      // Read role from localStorage (freshly written by login())
+      // with a small delay to ensure state is settled
+      setTimeout(() => {
+        try {
+          const loggedInUser = JSON.parse(localStorage.getItem('fashionHubUser') || '{}');
+          const role = (loggedInUser.role || '').toLowerCase();
+          if (role === 'admin' || role === 'editor' || role === 'viewer') {
+            navigate('/admin', { replace: true });
+          } else {
+            const redirectTo = (from && from !== '/login') ? from : '/my-orders';
+            navigate(redirectTo, { replace: true });
+          }
+        } catch {
+          navigate('/', { replace: true });
+        }
+      }, 100);
     } else {
       if (result.error === 'email_not_confirmed') {
         setError(
           language === 'ar'
-            ? 'البريد الإلكتروني غير مؤكد. يرجى مراجعة بريدك وتأكيد الحساب أولاً'
-            : 'Email not confirmed. Please check your inbox and confirm your account first'
+            ? 'البريد الإلكتروني غير مؤكد. يرجى مراجعة بريدك وتأكيد الحساب أولاً، أو تواصل مع الدعم'
+            : 'Email not confirmed. Please check your inbox or contact support'
         );
+      } else if (result.error === 'قاعدة البيانات غير متصلة') {
+        setError(language === 'ar' ? 'قاعدة البيانات غير متصلة' : 'Database not connected');
       } else {
         setError(t.invalidCredentials);
       }

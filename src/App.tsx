@@ -8,6 +8,7 @@ import { NotificationProvider } from '@/context/NotificationContext';
 import { Layout } from '@/components/Layout';
 import CartDrawer from '@/components/Cart/CartDrawer';
 import ToastProvider, { ToastContainer } from '@/components/Common/Toast';
+import ProtectedRoute from '@/components/Common/ProtectedRoute';
 
 // Lazy load pages for performance
 const HomePage = lazy(() => import('@/pages/HomePage'));
@@ -65,11 +66,11 @@ function App() {
                       <Route path="categories" element={<CategoriesExplorerPage />} />
                       <Route path="product/:id" element={<ProductDetailPage />} />
                       <Route path="cart" element={<CartPage />} />
-                      <Route path="checkout" element={<CheckoutPage />} />
+                      <Route path="checkout" element={<ProtectedRoute><CheckoutPage /></ProtectedRoute>} />
                       <Route path="order-success" element={<OrderSuccessPage />} />
                       <Route path="track-order" element={<TrackOrderPage />} />
-                      <Route path="my-orders" element={<MyOrdersPage />} />
-                      <Route path="profile" element={<ProfilePage />} />
+                      <Route path="my-orders" element={<ProtectedRoute><MyOrdersPage /></ProtectedRoute>} />
+                      <Route path="profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
                       <Route path="login" element={<LoginPage />} />
                       <Route path="register" element={<RegisterPage />} />
                     </Route>

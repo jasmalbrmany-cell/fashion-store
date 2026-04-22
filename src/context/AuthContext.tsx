@@ -64,44 +64,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [isLoading, setIsLoading] = useState(true);
 
   // Fetch permissions from database (not localStorage)
-  const fetchPermissions = async (userId: string) => {
+  const fetchPermissions = useCallback(async (userId: string, userRole: string) => {
     if (!isSupabaseConfigured()) return;
-    try {
-      const { data, error } = await supabase
-        .from('user_permissions')
-        .select('*')
-        .eq('user_id', userId)
-        .single();
-      
-      if (error || !data) {
-        // If admin, give full permissions
-        setPermissions({
-          can_manage_products: true,
-          can_manage_orders: true,
-          can_manage_users: true,
-          can_manage_ads: true,
-          can_manage_cities: true,
-          can_manage_currencies: true,
-          can_view_reports: true,
-          can_export_data: true,
-        });
-        return;
-      }
-      
-      const d = data as any;
-      setPermissions({
-        can_manage_products: d.can_manage_products ?? true,
-        can_manage_orders: d.can_manage_orders ?? true,
-        can_manage_users: d.can_manage_users ?? true,
-        can_manage_ads: d.can_manage_ads ?? true,
-        can_manage_cities: d.can_manage_cities ?? true,
-        can_manage_currencies: d.can_manage_currencies ?? true,
-        can_view_reports: d.can_view_reports ?? true,
-        can_export_data: d.can_export_data ?? true,
-      });
-    } catch (e) {
-      console.error('Error fetching permissions:', e);
-      // If admin, give full permissions even if error
+
+    // Admins always get full permissions — no need to check the DB
+    if (userRole === 'admin') {
       setPermissions({
         can_manage_products: true,
         can_manage_orders: true,
@@ -112,33 +79,79 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         can_view_reports: true,
         can_export_data: true,
       });
+      return;
     }
-  };
+
+    try {
+      const { data, error } = await supabase
+        .from('user_permissions')
+        .select('*')
+        .eq('user_id', userId)
+        .single();
+
+      if (error || !data) {
+        // No permissions row found — use restrictive defaults for non-admins
+        setPermissions(defaultPermissions);
+        return;
+      }
+
+      const d = data as any;
+      setPermissions({
+        can_manage_products: d.can_manage_products ?? false,
+        can_manage_orders: d.can_manage_orders ?? false,
+        can_manage_users: d.can_manage_users ?? false,
+        can_manage_ads: d.can_manage_ads ?? false,
+        can_manage_cities: d.can_manage_cities ?? false,
+        can_manage_currencies: d.can_manage_currencies ?? false,
+        can_view_reports: d.can_view_reports ?? false,
+        can_export_data: d.can_export_data ?? false,
+      });
+    } catch (e) {
+      console.error('Error fetching permissions:', e);
+      // On error keep default restrictive permissions for safety
+      setPermissions(defaultPermissions);
+    }
+  }, []);
 
   // Load user profile from database using session
   const loadProfileFromSession = useCallback(async (sessionUserId: string): Promise<User | null> => {
     try {
-      // Force refresh session with 10 second timeout to ensure permissions are up-to-date
-      if (isSupabaseConfigured()) {
-        try {
-          await withTimeout(Promise.resolve(supabase.auth.refreshSession()), 10000);
-        } catch (refreshError) {
-          console.warn('⚠️ Session refresh timeout or error:', refreshError);
-          // Continue anyway - session might still be valid
-        }
-      }
-
-      const { data: profile } = await supabase
+      const { data: profile, error: profileFetchError } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', sessionUserId)
         .single();
 
+      if (profileFetchError && !profile) {
+        // Profile missing — try to auto-create it from auth metadata
+        const { data: { user: authUser } } = await supabase.auth.getUser();
+        if (authUser) {
+          const { data: newProfile } = await (supabase as any)
+            .from('profiles')
+            .upsert({
+              id: authUser.id,
+              email: authUser.email || '',
+              name: authUser.user_metadata?.name || (authUser.email || '').split('@')[0],
+              phone: authUser.user_metadata?.phone || null,
+              role: authUser.app_metadata?.role || authUser.user_metadata?.role || 'customer',
+            }, { onConflict: 'id' })
+            .select()
+            .single();
+
+          if (newProfile) {
+            const userData = profileToUser(newProfile);
+            localStorage.setItem('fashionHubUser', JSON.stringify(userData));
+            await fetchPermissions(userData.id, userData.role);
+            return userData;
+          }
+        }
+        return null;
+      }
+
       if (profile) {
         const userData = profileToUser(profile);
-        // Store in localStorage as cache only (will always be verified against DB)
         localStorage.setItem('fashionHubUser', JSON.stringify(userData));
-        if (userData.role !== 'customer') await fetchPermissions(userData.id);
+        await fetchPermissions(userData.id, userData.role);
         return userData;
       }
     } catch (e) {
@@ -234,27 +247,28 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
 
       if (data.user) {
-        let { data: profile, error: profileError } = await withTimeout(
+        // Try fetching profile
+        let { data: profile } = await withTimeout(
           Promise.resolve(supabase.from('profiles').select('*').eq('id', data.user.id).single()),
           5000
         );
 
-        if (profileError || !profile) {
-          // Auto-create profile if missing
+        if (!profile) {
+          // Profile missing — upsert it now
           const metaRole = data.user.app_metadata?.role || data.user.user_metadata?.role || 'customer';
           try {
             const { data: newProfile } = await withTimeout(
               (supabase as any).from('profiles').upsert({
                 id: data.user.id,
-                email,
+                email: email.trim().toLowerCase(),
                 name: data.user.user_metadata?.name || email.split('@')[0],
                 role: metaRole,
-              }).select().single(),
+              }, { onConflict: 'id' }).select().single(),
               5000
             );
             profile = newProfile;
           } catch (e) {
-            console.error('Profile creation timeout/error', e);
+            console.error('Profile upsert timeout/error', e);
           }
         }
 
@@ -262,10 +276,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           const userData = profileToUser(profile);
           setUser(userData);
           localStorage.setItem('fashionHubUser', JSON.stringify(userData));
-          // Fetch permissions for admin users
-          if (userData.role === 'admin' || userData.role === 'editor') {
-            await fetchPermissions(userData.id);
-          }
+          await fetchPermissions(userData.id, userData.role);
           setIsLoading(false);
           return { success: true };
         }

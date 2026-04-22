@@ -5,6 +5,15 @@ import sourceIdentifierPlugin from 'vite-plugin-source-identifier'
 
 const isProd = process.env.BUILD_MODE === 'prod'
 export default defineConfig({
+  server: {
+    proxy: {
+      '/api/supabase': {
+        target: 'https://jkxfcyngiuefvaxswjxg.supabase.co',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/supabase/, ''),
+      }
+    }
+  },
   plugins: [
     react(),
     sourceIdentifierPlugin({

@@ -59,8 +59,8 @@ const mockActivityLogs: ActivityLog[] = [];
 const mockStoreSettings = initialStoreSettings;
 const mockUsers: User[] = [];
 
-// Cache disabled (0 minutes) to ensure data is always fresh and never reverts to old state
-const CACHE_TTL = 0;
+// Cache TTL: 3 minutes to reduce Supabase load while keeping data reasonably fresh
+const CACHE_TTL = 3 * 60 * 1000;
 // Simple session + local storage hybrid cache
 const memoryCache: Record<string, { data: any; timestamp: number }> = {};
 
@@ -1437,16 +1437,32 @@ export const usersService = {
 
   async create(user: Partial<User>): Promise<User | null> {
     if (!isSupabaseConfigured()) {
-      const newUser = {
-        ...user,
-        id: `user-${Date.now()}`,
-        created_at: new Date().toISOString(),
-      } as User;
-      mockUsers.unshift(newUser);
-      return newUser;
+      return null; // Cannot create users without Supabase
     }
-    // Supabase creation via Admin API is complex, usually handled via auth.signUp
-    return null;
+    // Create user via Supabase profile directly (admin creates profile for existing auth users)
+    // For full user creation, use signUp from the register page
+    if (!user.email) return null;
+    try {
+      const { data, error } = await withTimeout(
+        (supabase as any).from('profiles').insert({
+          id: user.id || undefined,
+          email: user.email,
+          name: user.name || user.email.split('@')[0],
+          phone: user.phone || null,
+          role: user.role || 'customer',
+        }).select().single(),
+        5000
+      );
+      if (error) {
+        console.error('❌ Error creating user profile:', error);
+        return null;
+      }
+      clearCache('users_all');
+      return transformProfile(data);
+    } catch (e: any) {
+      console.error('❌ Exception creating user:', e);
+      return null;
+    }
   },
 
   async delete(id: string): Promise<boolean> {
@@ -1639,85 +1655,47 @@ export const statisticsService = {
     if (cached) return cached;
 
     if (!isSupabaseConfigured()) {
-      const products = mockProducts;
-      const orders = mockOrders;
-      const users = mockUsers;
-
       return {
-        totalProducts: products.length,
-        totalOrders: orders.length,
-        todayOrders: orders.filter(o => new Date(o.createdAt).toDateString() === new Date().toDateString()).length,
-        weekOrders: orders.filter(o => {
-          const date = new Date(o.createdAt);
-          const weekAgo = new Date();
-          weekAgo.setDate(weekAgo.getDate() - 7);
-          return date >= weekAgo;
-        }).length,
-        monthOrders: orders.filter(o => {
-          const date = new Date(o.createdAt);
-          const monthAgo = new Date();
-          monthAgo.setMonth(monthAgo.getMonth() - 1);
-          return date >= monthAgo;
-        }).length,
-        totalCustomers: users.filter(u => u.role === 'customer').length,
-        totalRevenue: orders.filter(o => o.status === 'completed').reduce((sum, o) => sum + o.total, 0),
+        totalProducts: 0,
+        totalOrders: 0,
+        todayOrders: 0,
+        weekOrders: 0,
+        monthOrders: 0,
+        totalCustomers: 0,
+        totalRevenue: 0,
         topProducts: [],
-        recentActivities: mockActivityLogs.slice(0, 5),
+        recentActivities: [],
       };
     }
 
-    const fetchPromise = (supabase as any)
-      .from('statistics')
-      .select('*')
-      .limit(1)
-      .single();
-
-    const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Timeout')), 10000)
-    );
-
     try {
-      const { data, error } = await Promise.race([fetchPromise, timeoutPromise]) as any;
+      // Calculate statistics directly from real tables
+      const today = new Date().toISOString().split('T')[0];
+      const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+      const monthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
-      if (error) {
-        console.error('Error fetching statistics:', error);
-        return {
-          totalProducts: 0,
-          totalOrders: 0,
-          todayOrders: 0,
-          weekOrders: 0,
-          monthOrders: 0,
-          totalCustomers: 0,
-          totalRevenue: 0,
-          topProducts: [],
-          recentActivities: [],
-        };
-      }
+      const [productsRes, ordersRes, customersRes, todayOrdersRes, weekOrdersRes, monthOrdersRes, revenueRes, recentActivities] =
+        await Promise.all([
+          (supabase as any).from('products').select('id', { count: 'exact', head: true }).eq('is_visible', true),
+          (supabase as any).from('orders').select('id', { count: 'exact', head: true }),
+          (supabase as any).from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'customer'),
+          (supabase as any).from('orders').select('id', { count: 'exact', head: true }).gte('created_at', today),
+          (supabase as any).from('orders').select('id', { count: 'exact', head: true }).gte('created_at', weekAgo),
+          (supabase as any).from('orders').select('id', { count: 'exact', head: true }).gte('created_at', monthAgo),
+          (supabase as any).from('orders').select('total').eq('status', 'completed'),
+          activityLogsService.getRecent(5),
+        ]);
 
-      const recentActivities = await activityLogsService.getRecent(5);
-
-      if (!data) {
-        return {
-          totalProducts: 0,
-          totalOrders: 0,
-          todayOrders: 0,
-          weekOrders: 0,
-          monthOrders: 0,
-          totalCustomers: 0,
-          totalRevenue: 0,
-          topProducts: [],
-          recentActivities,
-        };
-      }
+      const totalRevenue = (revenueRes.data || []).reduce((sum: number, o: any) => sum + (o.total || 0), 0);
 
       const transformed = {
-        totalProducts: data.total_products || 0,
-        totalOrders: data.total_orders || 0,
-        todayOrders: data.today_orders || 0,
-        weekOrders: data.week_orders || 0,
-        monthOrders: data.month_orders || 0,
-        totalCustomers: data.total_customers || 0,
-        totalRevenue: data.total_revenue || 0,
+        totalProducts: productsRes.count || 0,
+        totalOrders: ordersRes.count || 0,
+        todayOrders: todayOrdersRes.count || 0,
+        weekOrders: weekOrdersRes.count || 0,
+        monthOrders: monthOrdersRes.count || 0,
+        totalCustomers: customersRes.count || 0,
+        totalRevenue,
         topProducts: [],
         recentActivities,
       };
@@ -1725,6 +1703,7 @@ export const statisticsService = {
       setToCache('statistics_main', transformed);
       return transformed;
     } catch (e) {
+      console.error('❌ Error fetching statistics:', e);
       return {
         totalProducts: 0,
         totalOrders: 0,
