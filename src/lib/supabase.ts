@@ -5,16 +5,12 @@ import type { Database } from '@/types/database';
 const originalSupabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
-// Proxy only needed for LOCAL development to bypass ISP blocking.
-// On production (Vercel), connect DIRECTLY to Supabase — Vercel's servers
-// have no ISP blocking issues, and the proxy breaks Auth headers.
+// Bypass ISP blocking by routing through Vercel/Vite local proxy
+// This applies to BOTH local and production, allowing users to access
+// the site without a VPN.
 let clientSupabaseUrl = originalSupabaseUrl;
 if (typeof window !== 'undefined' && originalSupabaseUrl && !originalSupabaseUrl.includes('placeholder')) {
-  const isLocalDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-  if (isLocalDev) {
-    clientSupabaseUrl = `${window.location.origin}/api/supabase`;
-  }
-  // On production: use originalSupabaseUrl directly (no proxy needed)
+  clientSupabaseUrl = `${window.location.origin}/api/supabase`;
 }
 
 // ⚠️ SECURITY CHECK: Warn if service_role key is being used (should only use ANON_KEY)
