@@ -59,6 +59,14 @@ const LoginPage: React.FC = () => {
         );
       } else if (result.error === 'قاعدة البيانات غير متصلة') {
         setError(language === 'ar' ? 'قاعدة البيانات غير متصلة' : 'Database not connected');
+      } else if (result.error === 'timeout') {
+        setError(language === 'ar' ? 'انتهى وقت الاتصال (Timeout). الخادم لا يستجيب.' : 'Connection timeout. Server not responding.');
+      } else if (result.error?.startsWith('auth_error:')) {
+        const msg = result.error.split(':')[1];
+        setError(`رسالة من قاعدة البيانات: ${msg}`);
+      } else if (result.error?.startsWith('unknown:')) {
+        const msg = result.error.split(':')[1];
+        setError(`خطأ غير معروف: ${msg}`);
       } else {
         setError(t.invalidCredentials);
       }

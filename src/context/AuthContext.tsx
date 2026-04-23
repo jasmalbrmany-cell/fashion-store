@@ -243,7 +243,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (error) {
         setIsLoading(false);
         if (error.message.includes('confirmed')) return { success: false, error: 'email_not_confirmed' };
-        return { success: false, error: 'invalid_credentials' };
+        return { success: false, error: `auth_error:${error.message}` };
       }
 
       if (data.user) {
@@ -281,10 +281,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           return { success: true };
         }
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error('Login error:', e);
       setIsLoading(false);
-      return { success: false, error: 'unknown' };
+      return { success: false, error: e?.message?.includes('Timeout') ? 'timeout' : `unknown:${e?.message}` };
     }
 
     setIsLoading(false);
