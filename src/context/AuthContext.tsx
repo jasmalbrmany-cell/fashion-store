@@ -238,7 +238,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const { data, error } = await withTimeout(supabase.auth.signInWithPassword({
         email: email.trim().toLowerCase(),
         password,
-      }), 10000);
+      }), 30000);
 
       if (error) {
         setIsLoading(false);
@@ -250,7 +250,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         // Try fetching profile
         let { data: profile } = await withTimeout(
           Promise.resolve(supabase.from('profiles').select('*').eq('id', data.user.id).single()),
-          5000
+          15000
         );
 
         if (!profile) {
@@ -264,7 +264,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 name: data.user.user_metadata?.name || email.split('@')[0],
                 role: metaRole,
               }, { onConflict: 'id' }).select().single(),
-              5000
+              15000
             );
             profile = newProfile;
           } catch (e) {
