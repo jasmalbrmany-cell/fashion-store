@@ -9,14 +9,23 @@ const Footer: React.FC = () => {
   const currentYear = new Date().getFullYear();
   const { t, language } = useLanguage();
   const [settings, setSettings] = useState<StoreSettings | null>(null);
+  const [categories, setCategories] = useState<any[]>([]);
 
   useEffect(() => {
-    storeSettingsService.get().then(data => {
-      if (data) setSettings(data);
+    import('@/services/api').then(({ storeSettingsService, categoriesService }) => {
+      storeSettingsService.get().then(data => {
+        if (data) setSettings(data);
+      });
+      categoriesService.getAll().then(data => {
+        if (data) setCategories(data);
+      });
     });
   }, []);
 
   if (!settings) return null;
+
+  const topCategories = categories.slice(0, 4);
+  const quickCategories = categories.slice(4, 6);
 
   return (
     <footer className="bg-gray-900 text-white" dir={language === 'ar' ? 'rtl' : 'ltr'}>
@@ -31,19 +40,19 @@ const Footer: React.FC = () => {
             </div>
             <p className="text-gray-400 mb-4">{t.footerAbout}</p>
             <div className="flex gap-3">
-              {settings.socialLinks.facebook && (
+              {settings.socialLinks?.facebook && (
                 <a href={settings.socialLinks.facebook} target="_blank" rel="noopener noreferrer"
                   className="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center hover:bg-primary-600 transition">
                   <Facebook className="w-5 h-5" />
                 </a>
               )}
-              {settings.socialLinks.instagram && (
+              {settings.socialLinks?.instagram && (
                 <a href={settings.socialLinks.instagram} target="_blank" rel="noopener noreferrer"
                   className="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center hover:bg-primary-600 transition">
                   <Instagram className="w-5 h-5" />
                 </a>
               )}
-              {settings.socialLinks.tiktok && (
+              {settings.socialLinks?.tiktok && (
                 <a href={settings.socialLinks.tiktok} target="_blank" rel="noopener noreferrer"
                   className="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center hover:bg-black transition">
                   <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
@@ -51,10 +60,12 @@ const Footer: React.FC = () => {
                   </svg>
                 </a>
               )}
-              <a href={`https://wa.me/${settings.socialLinks.whatsapp}`} target="_blank" rel="noopener noreferrer"
-                className="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center hover:bg-green-600 transition">
-                <MessageCircle className="w-5 h-5" />
-              </a>
+              {settings.socialLinks?.whatsapp && (
+                <a href={`https://wa.me/${settings.socialLinks.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer"
+                  className="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center hover:bg-green-600 transition">
+                  <MessageCircle className="w-5 h-5" />
+                </a>
+              )}
             </div>
           </div>
 
@@ -63,12 +74,13 @@ const Footer: React.FC = () => {
             <h3 className="text-lg font-bold mb-4">{t.quickLinks}</h3>
             <ul className="space-y-2">
               <li><Link to="/products" className="text-gray-400 hover:text-white transition">{t.allProducts}</Link></li>
-              <li><Link to="/products?category=cat-1" className="text-gray-400 hover:text-white transition">
-                {categoryNames['cat-1'][language]}
-              </Link></li>
-              <li><Link to="/products?category=cat-2" className="text-gray-400 hover:text-white transition">
-                {categoryNames['cat-2'][language]}
-              </Link></li>
+              {quickCategories.map(cat => (
+                <li key={cat.id}>
+                  <Link to={`/products?category=${cat.id}`} className="text-gray-400 hover:text-white transition">
+                    {cat.name}
+                  </Link>
+                </li>
+              ))}
               <li><Link to="/track-order" className="text-gray-400 hover:text-white transition">{t.trackMyOrder}</Link></li>
               <li><Link to="/my-orders" className="text-gray-400 hover:text-white transition">{t.myOrders}</Link></li>
             </ul>
@@ -78,18 +90,15 @@ const Footer: React.FC = () => {
           <div>
             <h3 className="text-lg font-bold mb-4">{t.footerCategories}</h3>
             <ul className="space-y-2">
-              <li><Link to="/products?category=cat-3" className="text-gray-400 hover:text-white transition">
-                {categoryNames['cat-3'][language]}
-              </Link></li>
-              <li><Link to="/products?category=cat-4" className="text-gray-400 hover:text-white transition">
-                {categoryNames['cat-4'][language]}
-              </Link></li>
-              <li><Link to="/products?category=cat-5" className="text-gray-400 hover:text-white transition">
-                {categoryNames['cat-5'][language]}
-              </Link></li>
-              <li><Link to="/products?category=cat-6" className="text-gray-400 hover:text-white transition">
-                {categoryNames['cat-6'][language]}
-              </Link></li>
+              {topCategories.length > 0 ? topCategories.map(cat => (
+                <li key={cat.id}>
+                  <Link to={`/products?category=${cat.id}`} className="text-gray-400 hover:text-white transition">
+                    {cat.name}
+                  </Link>
+                </li>
+              )) : (
+                <li><span className="text-gray-500">{t.noCategories || 'لا توجد أقسام'}</span></li>
+              )}
             </ul>
           </div>
 
@@ -97,17 +106,21 @@ const Footer: React.FC = () => {
           <div>
             <h3 className="text-lg font-bold mb-4">{t.contactInfo}</h3>
             <ul className="space-y-3">
-              <li className="flex items-center gap-3 text-gray-400">
-                <MessageCircle className="w-5 h-5 text-primary-400" />
-                <a href={`https://wa.me/${settings.socialLinks.whatsapp}`} target="_blank" rel="noopener noreferrer"
-                  className="hover:text-white transition" dir="ltr">
-                  {settings.socialLinks.whatsapp}
-                </a>
-              </li>
-              <li className="flex items-center gap-3 text-gray-400">
-                <Phone className="w-5 h-5 text-primary-400" />
-                <span dir="ltr">{settings.socialLinks.whatsapp}</span>
-              </li>
+              {settings.socialLinks?.whatsapp && (
+                <>
+                  <li className="flex items-center gap-3 text-gray-400">
+                    <MessageCircle className="w-5 h-5 text-primary-400" />
+                    <a href={`https://wa.me/${settings.socialLinks.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer"
+                      className="hover:text-white transition" dir="ltr">
+                      {settings.socialLinks.whatsapp}
+                    </a>
+                  </li>
+                  <li className="flex items-center gap-3 text-gray-400">
+                    <Phone className="w-5 h-5 text-primary-400" />
+                    <span dir="ltr">{settings.socialLinks.whatsapp}</span>
+                  </li>
+                </>
+              )}
             </ul>
           </div>
         </div>
