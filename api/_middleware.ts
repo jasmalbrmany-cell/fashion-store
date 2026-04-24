@@ -59,23 +59,10 @@ export function rateLimitByUser(req: any, userId?: string): { allowed: boolean; 
 }
 
 export function corsHeaders(res: any, origin?: string) {
-  // Whitelist allowed origins
-  const allowedOrigins = [
-    'http://localhost:3000',
-    'http://localhost:5173',
-    'https://fashionhub.vercel.app',
-    // Add your production domain here
-  ];
-  
-  const requestOrigin = origin || '';
-  const isAllowed = allowedOrigins.includes(requestOrigin) || process.env.NODE_ENV === 'development';
-  
-  if (isAllowed) {
-    res.setHeader('Access-Control-Allow-Origin', requestOrigin || '*');
-  }
-  
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  // Allow all origins for API routes — vercel.json CORS headers handle security at the edge
+  res.setHeader('Access-Control-Allow-Origin', origin || '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, apikey, x-client-info');
   res.setHeader('Access-Control-Max-Age', '86400');
 }
 

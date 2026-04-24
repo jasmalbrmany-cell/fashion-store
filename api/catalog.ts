@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { rateLimit, corsHeaders, handleOptions } from './_middleware';
 import { scrapeSheinCategory, scrapeSheinProduct } from './_lib/shein';
+import { supabase } from './_lib/supabase';
 
 // ─── User Agents ──────────────────────────────────────────────────────────────
 const USER_AGENTS = [
