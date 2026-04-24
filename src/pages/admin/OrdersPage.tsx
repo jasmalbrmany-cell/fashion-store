@@ -56,6 +56,7 @@ const AdminOrdersPage: React.FC = () => {
       }
     };
     fetchData();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const filteredOrders = orders.filter(order => {

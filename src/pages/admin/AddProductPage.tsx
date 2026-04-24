@@ -71,6 +71,7 @@ const AddProductPage: React.FC = () => {
       }
     };
     initData();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, isEditMode, isRTL]);
 
   const handleFileUpload = async (files: FileList) => {

@@ -20,10 +20,10 @@ export const useNotification = () => {
 
     setNotifications(prev => [...prev, notification]);
 
-    // Auto-remove notification after duration
+    // Auto-remove notification after duration (using setState functional form to avoid stale closure)
     if (duration > 0) {
       setTimeout(() => {
-        removeNotification(id);
+        setNotifications(prev => prev.filter(n => n.id !== id));
       }, duration);
     }
 

@@ -187,7 +187,9 @@ function parseHtml(html: string, url: string, rule: any = null): ImportResult['d
           description = description || product.description || '';
           price = price || parseFloat(product.offers?.price || product.offers?.lowPrice || '0') || 0;
         }
-      } catch {}
+      } catch (_e) {
+        // ignore malformed JSON-LD blocks
+      }
     }
   }
 
@@ -228,7 +230,7 @@ function parseHtml(html: string, url: string, rule: any = null): ImportResult['d
 function extractFromMd(md: string, type: string): any {
   if (type === 'title') return (md.match(/^#\s+(.+)/m)?.[1] || md.match(/^##\s+(.+)/m)?.[1] || '').trim();
   if (type === 'desc') return md.split('\n\n').filter(p => !p.startsWith('#') && p.length > 40).slice(0, 3).join('\n\n').trim();
-  if (type === 'price') { const m = md.match(/(\d[\d,\.]+)\s*(?:ريال|YER|SAR|USD|\$|﷼)/i); return m ? parseFloat(m[1].replace(/,/g, '')) : 0; }
+  if (type === 'price') { const m = md.match(/(\d[\d,.]+)\s*(?:ريال|YER|SAR|USD|\$|﷼)/i); return m ? parseFloat(m[1].replace(/,/g, '')) : 0; }
   if (type === 'images') return [...md.matchAll(/!\[.*?\]\((https?:\/\/[^)]+\.(?:jpg|jpeg|png|webp)[^)]*)\)/gi)].map(m => m[1]);
   return '';
 }

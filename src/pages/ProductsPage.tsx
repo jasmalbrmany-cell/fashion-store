@@ -115,6 +115,7 @@ const ProductsPage: React.FC = () => {
     }
 
     return result;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCategory, searchQuery, sortBy, priceRange, selectedSizes, selectedColors, products, loading]);
 
   const handleCategoryChange = (categoryId: string) => {
