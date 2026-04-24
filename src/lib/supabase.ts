@@ -5,35 +5,27 @@ import type { Database } from '@/types/database';
 const originalSupabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
-// Bypass ISP blocking by routing through Vercel/Vite local proxy
-// This applies to BOTH local and production, allowing users to access
-// the site without a VPN.
+// Use Vercel proxy ONLY in production to bypass ISP blocking.
+// In dev mode, connect directly to Supabase — the proxy doesn't run in vite dev server.
 let clientSupabaseUrl = originalSupabaseUrl;
-if (typeof window !== 'undefined' && originalSupabaseUrl && !originalSupabaseUrl.includes('placeholder')) {
+if (
+  typeof window !== 'undefined' &&
+  originalSupabaseUrl &&
+  !originalSupabaseUrl.includes('placeholder') &&
+  import.meta.env.PROD   // ← production only
+) {
   clientSupabaseUrl = `${window.location.origin}/api/supabase`;
-}
-
-// ⚠️ SECURITY CHECK: Warn if service_role key is being used (should only use ANON_KEY)
-if (import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY) {
-  console.warn(
-    '⚠️ SECURITY WARNING: VITE_SUPABASE_SERVICE_ROLE_KEY detected in environment. ' +
-    'This should NEVER be exposed in client-side code. ' +
-    'Only use VITE_SUPABASE_ANON_KEY for client applications.'
-  );
 }
 
 // Check if Supabase is properly configured
 export const isSupabaseConfigured = (): boolean => {
-  const isConfigured = Boolean(originalSupabaseUrl && supabaseAnonKey &&
+  return Boolean(
+    originalSupabaseUrl &&
+    supabaseAnonKey &&
     originalSupabaseUrl !== '' &&
     supabaseAnonKey !== '' &&
-    !originalSupabaseUrl.includes('placeholder'));
-  
-  if (isConfigured && supabaseAnonKey.includes('service_role')) {
-    console.warn('⚠️ SECURITY WARNING: service_role key detected in frontend environment variables. This key should be kept secret and only used in Edge Functions or backend services.');
-  }
-
-  return isConfigured;
+    !originalSupabaseUrl.includes('placeholder')
+  );
 };
 
 // Create Supabase client with database types
