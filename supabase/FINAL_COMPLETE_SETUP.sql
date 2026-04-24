@@ -199,6 +199,10 @@ CREATE TRIGGER on_auth_user_created
 -- ============================================================
 
 -- إعدادات المتجر الافتراضية
+-- تأكد من وجود الأعمدة المطلوبة (للإصدارات القديمة من السكيمة)
+ALTER TABLE public.store_settings ADD COLUMN IF NOT EXISTS social_links JSONB DEFAULT '{"whatsapp":"","email":"","instagram":"","facebook":"","tiktok":"","whatsappCategory":{}}'::jsonb;
+ALTER TABLE public.store_settings ADD COLUMN IF NOT EXISTS is_maintenance_mode BOOLEAN DEFAULT false;
+
 INSERT INTO public.store_settings (id, name, logo, currency, social_links, is_maintenance_mode)
 VALUES (
   '00000000-0000-0000-0000-000000000000',
