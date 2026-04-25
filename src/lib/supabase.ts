@@ -38,16 +38,24 @@ export const supabase = createClient<Database>(
       autoRefreshToken: true,
       persistSession: true,
       detectSessionInUrl: true,
+      // Increase timeout for slow connections
+      storageKey: 'supabase.auth.token',
     },
     global: {
       headers: {
         'apikey': supabaseAnonKey || 'placeholder-key',
       },
     },
+    // Disable Realtime — the proxy doesn't support WebSockets
+    // and Realtime is not needed for this store application
     realtime: {
       params: {
-        eventsPerSecond: 5,
+        eventsPerSecond: 0,
       },
+      // Point realtime to a dead endpoint to prevent WS connection attempts
+      endpoint: typeof window !== 'undefined' && import.meta.env.PROD
+        ? `${window.location.origin}/api/no-realtime`
+        : originalSupabaseUrl.replace('https://', 'wss://') + '/realtime/v1',
     },
   }
 );

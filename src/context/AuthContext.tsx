@@ -279,6 +279,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           await fetchPermissions(userData.id, userData.role);
           setIsLoading(false);
           return { success: true };
+        } else {
+          // Profile fetch failed but auth succeeded — use basic info
+          const fallbackUser: User = {
+            id: data.user.id,
+            email: email.trim().toLowerCase(),
+            name: email.split('@')[0],
+            role: (data.user.app_metadata?.role || data.user.user_metadata?.role || 'customer') as any,
+          };
+          setUser(fallbackUser);
+          localStorage.setItem('fashionHubUser', JSON.stringify(fallbackUser));
+          setIsLoading(false);
+          return { success: true };
         }
       }
     } catch (e: any) {
