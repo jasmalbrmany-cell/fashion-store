@@ -5,16 +5,17 @@ import type { Database } from '@/types/database';
 const originalSupabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
-// Use Vercel proxy ONLY in production to bypass ISP blocking.
-// In dev mode, connect directly to Supabase — the proxy doesn't run in vite dev server.
+// In production, route through our own Vercel API proxy (/api/sb)
+// to avoid ISP-level blocking of Supabase domains.
+// In dev, connect directly (the API proxy doesn't run in vite dev server).
 let clientSupabaseUrl = originalSupabaseUrl;
 if (
   typeof window !== 'undefined' &&
   originalSupabaseUrl &&
   !originalSupabaseUrl.includes('placeholder') &&
-  import.meta.env.PROD   // ← production only
+  import.meta.env.PROD
 ) {
-  clientSupabaseUrl = `${window.location.origin}/api/supabase`;
+  clientSupabaseUrl = `${window.location.origin}/api/sb`;
 }
 
 // Check if Supabase is properly configured
@@ -28,7 +29,7 @@ export const isSupabaseConfigured = (): boolean => {
   );
 };
 
-// Create Supabase client with database types
+// Create Supabase client
 export const supabase = createClient<Database>(
   clientSupabaseUrl || 'https://placeholder.supabase.co',
   supabaseAnonKey || 'placeholder-key',
@@ -38,9 +39,14 @@ export const supabase = createClient<Database>(
       persistSession: true,
       detectSessionInUrl: true,
     },
+    global: {
+      headers: {
+        'apikey': supabaseAnonKey || 'placeholder-key',
+      },
+    },
     realtime: {
       params: {
-        eventsPerSecond: 10,
+        eventsPerSecond: 5,
       },
     },
   }
