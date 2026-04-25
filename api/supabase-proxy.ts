@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import https from 'https';
 
-const SB_URL = process.env.VITE_SUPABASE_URL || '';
-const SB_KEY = process.env.VITE_SUPABASE_ANON_KEY || '';
+const SB_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '';
+const SB_KEY = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*');
