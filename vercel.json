@@ -6,14 +6,6 @@
   },
   "rewrites": [
     {
-      "source": "/api/sb/:match*",
-      "destination": "/api/auth-proxy"
-    },
-    {
-      "source": "/api/:path*",
-      "destination": "/api/:path*"
-    },
-    {
       "source": "/((?!api|assets|favicon|logo|manifest|_next).*)",
       "destination": "/index.html"
     }
@@ -24,7 +16,7 @@
       "headers": [
         { "key": "Access-Control-Allow-Origin", "value": "*" },
         { "key": "Access-Control-Allow-Methods", "value": "GET, POST, PUT, PATCH, DELETE, OPTIONS" },
-        { "key": "Access-Control-Allow-Headers", "value": "Content-Type, Authorization, apikey, x-client-info, x-supabase-api-version, prefer" }
+        { "key": "Access-Control-Allow-Headers", "value": "Content-Type, Authorization, apikey, x-client-info, x-supabase-api-version, prefer, range" }
       ]
     },
     {
