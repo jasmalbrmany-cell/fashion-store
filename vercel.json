@@ -1,10 +1,12 @@
 {
   "functions": {
-    "api/**/*.ts": {
-      "maxDuration": 30
-    }
+    "api/**/*.ts": { "maxDuration": 30 }
   },
   "rewrites": [
+    {
+      "source": "/api/sb/:path*",
+      "destination": "/api/supabase-proxy?proxypath=:path*"
+    },
     {
       "source": "/((?!api|assets|favicon|logo|manifest|_next).*)",
       "destination": "/index.html"
@@ -16,15 +18,14 @@
       "headers": [
         { "key": "Access-Control-Allow-Origin", "value": "*" },
         { "key": "Access-Control-Allow-Methods", "value": "GET, POST, PUT, PATCH, DELETE, OPTIONS" },
-        { "key": "Access-Control-Allow-Headers", "value": "Content-Type, Authorization, apikey, x-client-info, x-supabase-api-version, prefer, range" }
+        { "key": "Access-Control-Allow-Headers", "value": "Content-Type, Authorization, apikey, x-client-info, prefer, range" }
       ]
     },
     {
       "source": "/(.*)",
       "headers": [
         { "key": "X-Content-Type-Options", "value": "nosniff" },
-        { "key": "X-Frame-Options", "value": "SAMEORIGIN" },
-        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }
+        { "key": "X-Frame-Options", "value": "SAMEORIGIN" }
       ]
     }
   ]
