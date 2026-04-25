@@ -29,7 +29,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.headers[h]) fwd[h] = req.headers[h] as string;
   });
   const body = req.body ? JSON.stringify(req.body) : undefined;
-  if (body) fwd['content-length'] = Buffer.byteLength(body).toString();
+  // Note: Do NOT set content-length manually — let Node.js use chunked encoding
 
   return new Promise<void>(resolve => {
     const pr = https.request({ hostname: host, port: 443, path: fullPath, method: req.method, headers: fwd }, upstream => {
