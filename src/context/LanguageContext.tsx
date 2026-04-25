@@ -1420,15 +1420,25 @@ const LanguageContext = createContext<LanguageContextType | undefined>(undefined
 
 export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [language, setLanguageState] = useState<Language>(() => {
-    return (localStorage.getItem('fashionHubLang') as Language) || 'ar';
+    try {
+      return (localStorage.getItem('fashionHubLang') as Language) || 'ar';
+    } catch (e) {
+      return 'ar';
+    }
   });
 
   const setLanguage = (lang: Language) => {
     setLanguageState(lang);
-    localStorage.setItem('fashionHubLang', lang);
+    try {
+      localStorage.setItem('fashionHubLang', lang);
+    } catch (e) {
+      console.warn('Failed to save language to localStorage', e);
+    }
     // تغيير اتجاه الصفحة
-    document.documentElement.setAttribute('dir', lang === 'ar' ? 'rtl' : 'ltr');
-    document.documentElement.setAttribute('lang', lang);
+    if (typeof document !== 'undefined') {
+      document.documentElement.setAttribute('dir', lang === 'ar' ? 'rtl' : 'ltr');
+      document.documentElement.setAttribute('lang', lang);
+    }
   };
 
   const toggleLanguage = () => {
