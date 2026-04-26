@@ -29,15 +29,19 @@ export const supabase = createClient<Database>(
       autoRefreshToken: true,
       persistSession: true,
       detectSessionInUrl: true,
-      // Increase timeout for slow connections
       storageKey: 'supabase.auth.token',
+      // Fix auth lock contention that causes 30s timeouts
+      lock: async (name, acquireTimeout, fn) => {
+        // Use a simple non-blocking lock implementation
+        return await fn();
+      },
     },
     global: {
       headers: {
         'apikey': supabaseAnonKey || 'placeholder-key',
       },
     },
-    // Disable Realtime — the proxy doesn't support WebSockets
+    // Disable Realtime — not needed and wastes connections
     realtime: {
       params: {
         eventsPerSecond: 0,
