@@ -22,65 +22,57 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Build target path from proxypath
   const rawPath = (req.query.proxypath as string) || '';
   const targetPath = '/' + rawPath;
-
-  // Forward query string params, EXCLUDING the ones injected by Vercel's rewrite
+  const url = new URL(targetPath, SUPABASE_URL);
+  
+  // Forward query string params
   const qs = new URLSearchParams();
   Object.entries(req.query).forEach(([key, val]) => {
-    // CRITICAL FIX: Ignore 'proxypath' and 'path' which are injected by vercel.json rewrites
-    // This prevents "failed to parse filter (rest/v1/categories)" errors in Supabase
     if (key === 'proxypath' || key === 'path') return;
-    
     if (Array.isArray(val)) val.forEach(v => qs.append(key, v));
     else if (val != null) qs.append(key, val);
   });
-  const fullPath = targetPath + (qs.toString() ? `?${qs.toString()}` : '');
+  url.search = qs.toString();
 
-  // Headers to forward
-  const fwd: Record<string, string> = {
-    apikey: SUPABASE_ANON_KEY,
-    'content-type': (req.headers['content-type'] as string) || 'application/json',
-  };
-  const passThrough = ['authorization', 'x-client-info', 'prefer', 'x-supabase-api-version', 'range'];
-  passThrough.forEach(h => { if (req.headers[h]) fwd[h] = req.headers[h] as string; });
-
-  // Serialize body
-  let bodyStr: string | undefined;
-  if (req.body) {
-    bodyStr = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
-    fwd['content-length'] = Buffer.byteLength(bodyStr).toString();
-  }
-
-  const supabaseHost = new URL(SUPABASE_URL).hostname;
-
-  // Proxy request
-  return new Promise<void>(resolve => {
-    const proxyReq = https.request(
-      { hostname: supabaseHost, port: 443, path: fullPath, method: req.method, headers: fwd },
-      proxyRes => {
-        res.status(proxyRes.statusCode ?? 200);
-
-        Object.entries(proxyRes.headers).forEach(([k, v]) => {
-          if (v !== undefined && k !== 'transfer-encoding' && k !== 'connection') {
-            res.setHeader(k, v);
-          }
-        });
-        res.setHeader('Access-Control-Allow-Origin', '*');
-
-        const chunks: Buffer[] = [];
-        proxyRes.on('data', chunk => chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)));
-        proxyRes.on('end', () => { res.end(Buffer.concat(chunks)); resolve(); });
-        proxyRes.on('error', () => { res.end(); resolve(); });
-      }
-    );
-
-    proxyReq.setTimeout(25000, () => proxyReq.destroy(new Error('Upstream timeout')));
-    proxyReq.on('error', err => {
-      console.error('[sb-proxy] error:', err.message);
-      if (!res.headersSent) res.status(502).json({ error: 'proxy_error', message: err.message });
-      resolve();
+  try {
+    const fetchHeaders: Record<string, string> = {
+      'apikey': SUPABASE_ANON_KEY,
+      'Content-Type': (req.headers['content-type'] as string) || 'application/json',
+    };
+    
+    // Pass along necessary auth and client headers
+    const passThrough = ['authorization', 'x-client-info', 'prefer', 'x-supabase-api-version', 'range'];
+    passThrough.forEach(h => { 
+      if (req.headers[h]) fetchHeaders[h] = req.headers[h] as string; 
     });
 
-    if (bodyStr) proxyReq.write(bodyStr);
-    proxyReq.end();
-  });
+    const fetchOptions: RequestInit = {
+      method: req.method,
+      headers: fetchHeaders,
+    };
+
+    if (req.method !== 'GET' && req.method !== 'HEAD' && req.body) {
+      fetchOptions.body = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
+    }
+
+    const response = await fetch(url.toString(), fetchOptions);
+    
+    // Set status code
+    res.status(response.status);
+
+    // Forward response headers
+    response.headers.forEach((val, key) => {
+      if (key !== 'content-encoding' && key !== 'transfer-encoding') {
+        res.setHeader(key, val);
+      }
+    });
+
+    // Forward the response body
+    // Using arrayBuffer is safer for any binary data/images, though Supabase API is mostly JSON
+    const data = await response.arrayBuffer();
+    res.send(Buffer.from(data));
+
+  } catch (err: any) {
+    console.error('[sb-proxy] error:', err.message);
+    res.status(502).json({ error: 'proxy_error', message: err.message });
+  }
 }
