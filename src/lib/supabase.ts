@@ -5,18 +5,9 @@ import type { Database } from '@/types/database';
 const originalSupabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
-// In production, route through our own Vercel API proxy (/api/sb)
-// to avoid ISP-level blocking of Supabase domains.
-// In dev, connect directly (the API proxy doesn't run in vite dev server).
-let clientSupabaseUrl = originalSupabaseUrl;
-if (
-  typeof window !== 'undefined' &&
-  originalSupabaseUrl &&
-  !originalSupabaseUrl.includes('placeholder') &&
-  import.meta.env.PROD
-) {
-  clientSupabaseUrl = `${window.location.origin}/api/sb`;
-}
+// Always connect directly to Supabase - it supports CORS natively.
+// The serverless proxy was causing timeouts and is no longer needed.
+const clientSupabaseUrl = originalSupabaseUrl;
 
 // Check if Supabase is properly configured
 export const isSupabaseConfigured = (): boolean => {
