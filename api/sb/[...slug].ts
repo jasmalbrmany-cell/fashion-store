@@ -43,8 +43,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   passThrough.forEach(h => { if (req.headers[h]) fwd[h] = req.headers[h] as string; });
 
   // Serialize body
-  const body: string | undefined = req.body ? JSON.stringify(req.body) : undefined;
-  if (body) fwd['content-length'] = Buffer.byteLength(body).toString();
+  let bodyStr: string | undefined;
+  if (req.body) {
+    bodyStr = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
+    fwd['content-length'] = Buffer.byteLength(bodyStr).toString();
+  }
 
   const supabaseHost = new URL(SUPABASE_URL).hostname;
 
@@ -78,7 +81,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       resolve();
     });
 
-    if (body) proxyReq.write(body);
+    if (bodyStr) proxyReq.write(bodyStr);
     proxyReq.end();
   });
 }

@@ -28,8 +28,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   ['authorization', 'x-client-info', 'prefer', 'range', 'x-supabase-api-version'].forEach(h => {
     if (req.headers[h]) fwd[h] = req.headers[h] as string;
   });
-  const body = req.body ? JSON.stringify(req.body) : undefined;
-  // Note: Do NOT set content-length manually — let Node.js use chunked encoding
+  const bodyStr = req.body ? (typeof req.body === 'string' ? req.body : JSON.stringify(req.body)) : undefined;
+  if (bodyStr) fwd['content-length'] = Buffer.byteLength(bodyStr).toString();
+  // Note: Set content-length manually because we are forwarding the exact body
 
   return new Promise<void>(resolve => {
     const pr = https.request({ hostname: host, port: 443, path: fullPath, method: req.method, headers: fwd }, upstream => {
@@ -44,7 +45,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
     pr.setTimeout(25000, () => pr.destroy(new Error('timeout')));
     pr.on('error', err => { if (!res.headersSent) res.status(502).json({ error: err.message }); resolve(); });
-    if (body) pr.write(body);
+    if (bodyStr) pr.write(bodyStr);
     pr.end();
   });
 }
