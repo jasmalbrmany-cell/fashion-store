@@ -37,14 +37,17 @@ const MyOrdersPage: React.FC = () => {
       }
 
       try {
-        const { data, error } = await supabase
-          .from('orders')
-          .select('*')
-          .eq('customer_id', user.id)
-          .order('created_at', { ascending: false });
+        const { data, error } = await (supabase as any)
+        .from('orders')
+        .select(`
+          *,
+          items:order_items(*)
+        `)
+        .eq('customer_id', user.id)
+        .order('created_at', { ascending: false });
 
-        if (error) throw error;
-        setOrders(data || []);
+      if (error) throw error;
+      setOrders(data as Order[]);
       } catch (error) {
         console.error('Error fetching orders:', error);
       } finally {

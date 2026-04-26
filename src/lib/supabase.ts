@@ -47,15 +47,10 @@ export const supabase = createClient<Database>(
       },
     },
     // Disable Realtime — the proxy doesn't support WebSockets
-    // and Realtime is not needed for this store application
     realtime: {
       params: {
         eventsPerSecond: 0,
       },
-      // Point realtime to a dead endpoint to prevent WS connection attempts
-      endpoint: typeof window !== 'undefined' && import.meta.env.PROD
-        ? `${window.location.origin}/api/no-realtime`
-        : originalSupabaseUrl.replace('https://', 'wss://') + '/realtime/v1',
     },
   }
 );

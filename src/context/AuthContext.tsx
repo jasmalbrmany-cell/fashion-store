@@ -86,7 +86,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const { data, error } = await supabase
         .from('user_permissions')
         .select('*')
-        .eq('user_id', userId)
+        .eq('user_id' as any, userId)
         .single();
 
       if (error || !data) {
@@ -119,7 +119,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const { data: profile, error: profileFetchError } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', sessionUserId)
+        .eq('id' as any, sessionUserId)
         .single();
 
       if (profileFetchError && !profile) {
@@ -249,7 +249,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (data.user) {
         // Try fetching profile
         let { data: profile } = await withTimeout(
-          Promise.resolve(supabase.from('profiles').select('*').eq('id', data.user.id).single()),
+          Promise.resolve((supabase as any).from('profiles').select('*').eq('id', data.user.id).single()),
           15000
         );
 
@@ -257,7 +257,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           // Profile missing — upsert it now
           const metaRole = data.user.app_metadata?.role || data.user.user_metadata?.role || 'customer';
           try {
-            const { data: newProfile } = await withTimeout(
+            const { data: profileData } = await withTimeout(
               (supabase as any).from('profiles').upsert({
                 id: data.user.id,
                 email: email.trim().toLowerCase(),
@@ -266,7 +266,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               }, { onConflict: 'id' }).select().single(),
               15000
             );
-            profile = newProfile;
+            profile = profileData as any;
           } catch (e) {
             console.error('Profile upsert timeout/error', e);
           }
@@ -286,6 +286,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             email: email.trim().toLowerCase(),
             name: email.split('@')[0],
             role: (data.user.app_metadata?.role || data.user.user_metadata?.role || 'customer') as any,
+            created_at: new Date().toISOString()
           };
           setUser(fallbackUser);
           localStorage.setItem('fashionHubUser', JSON.stringify(fallbackUser));
