@@ -59,22 +59,30 @@ const mockActivityLogs: ActivityLog[] = [];
 const mockStoreSettings = initialStoreSettings;
 const mockUsers: User[] = [];
 
-// Cache TTL: 3 minutes to reduce Supabase load while keeping data reasonably fresh
-const CACHE_TTL = 3 * 60 * 1000;
+// Cache TTL configuration:
+// - Short TTL (3 min): Products, orders, statistics — data that changes often
+// - Long TTL (10 min): Categories, cities, currencies, settings — data that rarely changes
+const CACHE_TTL_SHORT = 3 * 60 * 1000;
+const CACHE_TTL_LONG = 10 * 60 * 1000;
+
+const LONG_TTL_KEYS = ['categories_all', 'cities_all', 'cities_active', 'currencies_all', 'settings_main'];
+
+const getCacheTTL = (key: string) => LONG_TTL_KEYS.includes(key) ? CACHE_TTL_LONG : CACHE_TTL_SHORT;
 // Simple session + local storage hybrid cache
 const memoryCache: Record<string, { data: any; timestamp: number }> = {};
 
 const getFromCache = (key: string) => {
+  const ttl = getCacheTTL(key);
   // 1. Check memory first
   if (memoryCache[key]) {
-    const isStale = Date.now() - memoryCache[key].timestamp > CACHE_TTL;
+    const isStale = Date.now() - memoryCache[key].timestamp > ttl;
     if (!isStale) return memoryCache[key].data;
   }
 
   // 2. Check local storage
   const stored = getStorageItem<{ data: any; timestamp: number } | null>(`cache_${key}`, null);
   if (stored) {
-    const isStale = Date.now() - stored.timestamp > CACHE_TTL;
+    const isStale = Date.now() - stored.timestamp > ttl;
     if (!isStale) {
       memoryCache[key] = stored; // populate memory
       return stored.data;
@@ -98,13 +106,14 @@ export const clearCache = (key: string) => {
 };
 
 export const hasValidCache = (key: string): boolean => {
+  const ttl = getCacheTTL(key);
   if (memoryCache[key]) {
-    const isStale = Date.now() - memoryCache[key].timestamp > CACHE_TTL;
+    const isStale = Date.now() - memoryCache[key].timestamp > ttl;
     return !isStale;
   }
   const stored = getStorageItem<{ data: any; timestamp: number } | null>(`cache_${key}`, null);
   if (stored) {
-    const isStale = Date.now() - stored.timestamp > CACHE_TTL;
+    const isStale = Date.now() - stored.timestamp > ttl;
     return !isStale;
   }
   return false;

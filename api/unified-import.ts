@@ -269,40 +269,47 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
   }
 
-  // 1. Direct fetch (server-side - no CORS!)
+  // 1 & 3. Try Direct and Jina in parallel for maximum speed
   if (!data) {
-    result.attempts.direct = true;
-    const rule = await getScrapingRule(url);
-    const html = await tryDirectFetch(url);
-    if (html) {
-      const parsed = parseHtml(html, url, rule);
+    console.log(`[UnifiedImport] Trying parallel strategies for ${url}`);
+    const [rule, directHtml, jinaMd] = await Promise.all([
+      getScrapingRule(url),
+      tryDirectFetch(url),
+      tryJina(url)
+    ]);
+
+    // Check Direct/Mapped Rules first
+    if (directHtml) {
+      result.attempts.direct = true;
+      const parsed = parseHtml(directHtml, url, rule);
       if (parsed.title || parsed.images.length > 0) {
         data = parsed;
         result.strategy = (parsed as any).usedRule ? 'mapped_rules' : 'direct';
       }
     }
+
+    // Fallback to Jina if Direct failed
+    if (!data && jinaMd) {
+      result.attempts.jina = true;
+      data = {
+        title: extractFromMd(jinaMd, 'title'), 
+        description: extractFromMd(jinaMd, 'desc'),
+        price: extractFromMd(jinaMd, 'price'), 
+        currency: 'YER',
+        images: extractFromMd(jinaMd, 'images').slice(0, 12), 
+        sizes: ['S', 'M', 'L', 'XL'],
+        colors: [{ name: 'متعدد الألوان', hex: '#888888' }], 
+        sourceUrl: url,
+      };
+      result.strategy = 'jina';
+    }
   }
 
-  // 2. Firecrawl (for JS-heavy sites)
+  // 2. Firecrawl (for JS-heavy sites) - ONLY if others failed
   if (!data) {
     result.attempts.firecrawl = true;
     data = await tryFirecrawl(url);
     if (data) result.strategy = 'firecrawl';
-  }
-
-  // 3. Jina.ai
-  if (!data) {
-    result.attempts.jina = true;
-    const md = await tryJina(url);
-    if (md) {
-      data = {
-        title: extractFromMd(md, 'title'), description: extractFromMd(md, 'desc'),
-        price: extractFromMd(md, 'price'), currency: 'YER',
-        images: extractFromMd(md, 'images').slice(0, 12), sizes: ['S', 'M', 'L', 'XL'],
-        colors: [{ name: 'متعدد الألوان', hex: '#888888' }], sourceUrl: url,
-      };
-      result.strategy = 'jina';
-    }
   }
 
   if (!data) {

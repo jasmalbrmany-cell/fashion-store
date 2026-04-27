@@ -89,15 +89,15 @@ const AddProductPage: React.FC = () => {
         if (isSupabaseConfigured()) {
           try {
             const fileExt = file.name.split('.').pop();
-            const fileName = `products/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+            const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
 
             const { data, error: uploadError } = await supabase.storage
-              .from('product-images')
+              .from('products')
               .upload(fileName, file, { cacheControl: '3600', upsert: false });
 
             if (!uploadError && data) {
               const { data: publicData } = supabase.storage
-                .from('product-images')
+                .from('products')
                 .getPublicUrl(data.path);
 
               uploadedResult = {
@@ -149,20 +149,47 @@ const AddProductPage: React.FC = () => {
     }
   };
 
-  const addImageByUrl = () => {
+  const addImageByUrl = async () => {
     const url = prompt(isRTL ? 'أدخل رابط الصورة:' : 'Enter image URL:');
-    if (url && url.trim()) {
-      setFormData(prev => ({
-        ...prev,
-        images: [
-          ...prev.images,
-          {
-            id: `img-${Date.now()}`,
-            url: url.trim(),
-            isPrimary: prev.images.length === 0,
-          },
-        ],
-      }));
+    if (!url || !url.trim()) return;
+
+    const targetUrl = url.trim();
+    const tempId = `img-${Date.now()}`;
+    
+    // Add placeholder first
+    setFormData(prev => ({
+      ...prev,
+      images: [
+        ...prev.images,
+        { id: tempId, url: targetUrl, isPrimary: prev.images.length === 0 }
+      ]
+    }));
+
+    // Try to persist it to Supabase Storage via our API
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+
+      const res = await fetch('/api/upload-external-image', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({ url: targetUrl })
+      });
+      
+      const data = await res.json();
+      if (data.success && data.supabaseUrl) {
+        setFormData(prev => ({
+          ...prev,
+          images: prev.images.map(img => 
+            img.id === tempId ? { ...img, url: data.supabaseUrl } : img
+          )
+        }));
+      }
+    } catch (err) {
+      console.warn('Failed to persist external image, keeping original URL', err);
     }
   };
 

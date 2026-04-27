@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 import { productsService, categoriesService } from '@/services/api';
+import { supabase } from '@/lib/supabase';
 import { mockCategories } from '@/data/mockData';
 import { Category } from '@/types';
 
@@ -212,18 +213,47 @@ const StoreImportPage: React.FC = () => {
     for (const prod of selectedProds) {
       setProducts(prev => prev.map(p => p.id === prod.id ? { ...p, status: 'saving' } : p));
       try {
+        // Get auth token for RLS
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData?.session?.access_token;
+
+        // Upload images to Supabase Storage permanently IN PARALLEL
+        const rawImages = prod.images.slice(0, 6); // Limit to 6 images for speed
+        const uploadPromises = rawImages.map(async (imgUrl, i) => {
+          try {
+            const res = await fetch('/api/upload-external-image', {
+              method: 'POST',
+              headers: { 
+                'Content-Type': 'application/json',
+                ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+              },
+              body: JSON.stringify({ url: imgUrl })
+            });
+            const data = await res.json();
+            if (data.success && data.supabaseUrl) {
+              return { id: `img-${Date.now()}-${i}`, url: data.supabaseUrl, isPrimary: i === 0 };
+            }
+          } catch (imgErr) {
+            console.error('Failed to upload image to Supabase', imgErr);
+          }
+          // Fallback to original URL if upload fails
+          return { id: `img-${Date.now()}-${i}`, url: imgUrl, isPrimary: i === 0 };
+        });
+
+        const processedImages = await Promise.all(uploadPromises);
+
         const ok = await productsService.create({
           name: prod.name,
           description: prod.description || (isRTL ? 'منتج مستورد' : 'Imported product'),
           price: prod.price || 0,
           categoryId: selectedCategory,
-          images: prod.images.slice(0, 5).map((url, i) => ({
-            id: `img-${Date.now()}-${i}`,
-            url,
-            isPrimary: i === 0
-          })),
-          sizes: prod.sizes.map((s, i) => ({ id: `s${i}`, name: s, stock: 10, priceModifier: 0 })),
-          colors: prod.colors.map((c, i) => ({ id: `c${i}`, name: c.name, hex: c.hex, stock: 10 })),
+          images: processedImages,
+          sizes: prod.sizes.length > 0 
+            ? prod.sizes.map((s, i) => ({ id: `s${i}`, name: s, stock: 10, priceModifier: 0 }))
+            : [{ id: 's0', name: 'حسب الطلب', stock: 10, priceModifier: 0 }],
+          colors: prod.colors.length > 0
+            ? prod.colors.map((c, i) => ({ id: `c${i}`, name: c.name, hex: c.hex, stock: 10 }))
+            : [{ id: 'c0', name: 'متعدد الألوان', hex: '#888888', stock: 10 }],
           isVisible: false,
           sourceUrl: prod.sourceUrl,
           stock: 10,
@@ -236,10 +266,10 @@ const StoreImportPage: React.FC = () => {
         } else {
           throw new Error('save failed');
         }
-      } catch {
+      } catch (err) {
+        console.error('Error saving imported product:', err);
         setProducts(prev => prev.map(p => p.id === prod.id ? { ...p, status: 'error' } : p));
       }
-      await new Promise(r => setTimeout(r, 300));
     }
 
     setIsSaving(false);

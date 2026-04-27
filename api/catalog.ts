@@ -38,7 +38,9 @@ async function fetchJSON(url: string, timeout = 8000, extraHeaders: Record<strin
 async function fetchHTML(url: string, timeout = 12000): Promise<string> {
   const controller = new AbortController();
   const t = setTimeout(() => controller.abort(), timeout);
+  
   try {
+    console.log(`[Catalog] Fetching HTML from ${url}...`);
     const res = await fetch(url, {
       signal: controller.signal,
       headers: {
@@ -51,14 +53,24 @@ async function fetchHTML(url: string, timeout = 12000): Promise<string> {
       redirect: 'follow',
     });
     clearTimeout(t);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const text = await res.text();
-    if (text && text.length > 500) return text;
-    throw new Error('Response too short');
-  } catch (err) {
+    
+    if (res.ok) {
+      const text = await res.text();
+      if (text && text.length > 500) {
+        console.log(`[Catalog] ✓ Successfully fetched HTML (${text.length} bytes)`);
+        return text;
+      }
+      console.warn(`[Catalog] ! Response from ${url} was too short (${text?.length || 0} bytes)`);
+    } else {
+      console.warn(`[Catalog] ! HTTP ${res.status} from ${url}`);
+    }
+  } catch (err: any) {
     clearTimeout(t);
-    return fetchHTMLViaProxy(url, timeout);
+    console.warn(`[Catalog] ! Fetch failed for ${url}:`, err.message);
   }
+
+  console.log(`[Catalog] Attempting proxy fallback for ${url}...`);
+  return fetchHTMLViaProxy(url, timeout);
 }
 
 // Proxy fallback for sites that block direct server requests
@@ -99,7 +111,8 @@ async function getStoreCredentials(url: string) {
       new Promise<{data: null}>((resolve) => setTimeout(() => resolve({data: null}), 3000))
     ]);
     return (result as any)?.data || null;
-  } catch {
+  } catch (err: any) {
+    console.error(`[Catalog] Error getting credentials for ${url}:`, err.message);
     return null;
   }
 }
@@ -130,7 +143,8 @@ async function tryWooCommerceAPI(baseUrl: string, page = 1, perPage = 24): Promi
     const data = await res.json();
     if (!Array.isArray(data)) return [];
     return data;
-  } catch {
+  } catch (err: any) {
+    console.warn(`[Catalog] WooCommerce Store API failed for ${baseUrl}:`, err.message);
     return [];
   }
 }
@@ -152,7 +166,8 @@ async function tryWooCommerceV3(baseUrl: string, page = 1): Promise<any[]> {
     const data = await fetchJSON(apiUrl);
     if (!Array.isArray(data)) return [];
     return data;
-  } catch {
+  } catch (err: any) {
+    console.warn(`[Catalog] WooCommerce V3 API failed for ${baseUrl}:`, err.message);
     return [];
   }
 }
@@ -167,7 +182,8 @@ async function tryShopifyAPI(baseUrl: string, page = 1): Promise<any[]> {
     const data = await fetchJSON(apiUrl);
     if (data?.products && Array.isArray(data.products)) return data.products;
     return [];
-  } catch {
+  } catch (err: any) {
+    console.warn(`[Catalog] Shopify API failed for ${baseUrl}:`, err.message);
     return [];
   }
 }
@@ -279,7 +295,8 @@ async function scrapeProductLinks(listingUrl: string): Promise<{ href: string; n
     }
 
     return results;
-  } catch {
+  } catch (err: any) {
+    console.warn(`[Catalog] HTML scrape failed for ${listingUrl}:`, err.message);
     return [];
   }
 }
