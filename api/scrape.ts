@@ -34,7 +34,7 @@ function randomUA(): string {
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-async function fetchWithTimeout(url: string, options: RequestInit = {}, timeout = 15000): Promise<Response> {
+async function fetchWithTimeout(url: string, options: RequestInit = {}, timeout = 4000): Promise<Response> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeout);
   try {
@@ -82,7 +82,7 @@ async function scrapeWithFirecrawl(url: string): Promise<any | null> {
           waitFor: 2000,
         }),
       },
-      25000
+      6000
     );
 
     if (!res.ok) {
@@ -139,7 +139,7 @@ async function scrapeDirectFetch(url: string): Promise<string | null> {
         'Sec-Fetch-Site': 'none',
       },
       redirect: 'follow',
-    }, 15000);
+    }, 4000);
 
     if (!res.ok) {
       console.warn(`[Direct] HTTP ${res.status}`);
@@ -167,7 +167,7 @@ async function scrapeWithJina(url: string): Promise<string | null> {
         'Accept': 'text/plain',
         'X-Return-Format': 'markdown',
       },
-    }, 18000);
+    }, 5000);
     if (!res.ok) return null;
     const text = await res.text();
     return text.length > 300 ? text : null;
@@ -187,7 +187,7 @@ async function scrapeWithProxy(url: string): Promise<string | null> {
     try {
       const res = await fetchWithTimeout(makeUrl(url), {
         headers: { 'User-Agent': randomUA() },
-      }, 12000);
+      }, 4000);
       if (!res.ok) continue;
       const text = await res.text();
       if (text.length > 500) return text;
