@@ -372,7 +372,7 @@ function extractPriceFromMarkdown(md: string): number {
 
 function extractImagesFromMarkdown(md: string): string[] {
   const matches = [...md.matchAll(/!\[.*?\]\((https?:\/\/[^)]+\.(?:jpg|jpeg|png|webp)[^)]*)\)/gi)];
-  return [...new Set(matches.map(m => m[1]))];
+  return [...new Set(matches.map(m => m[1]))].filter(url => !url.startsWith('blob:'));
 }
 
 function extractSizesFromMarkdown(md: string): string[] {
@@ -441,7 +441,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const html = await scrapeDirectFetch(url);
     if (html) {
       result = parseHtml(html, url, siteConfig.currency);
-      if (result.title || (result.images && result.images.length > 0)) {
+      const hasMeaningfulData = result.price > 0 || (result.images && result.images.length > 0);
+      if (hasMeaningfulData) {
         usedStrategy = 'direct-fetch';
       } else {
         result = null;
