@@ -30,11 +30,6 @@ export const supabase = createClient<Database>(
       persistSession: true,
       detectSessionInUrl: true,
       storageKey: 'supabase.auth.token',
-      // Fix auth lock contention that causes 30s timeouts
-      lock: async (name, acquireTimeout, fn) => {
-        // Use a simple non-blocking lock implementation
-        return await fn();
-      },
     },
     global: {
       headers: {
