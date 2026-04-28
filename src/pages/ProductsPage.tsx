@@ -2,14 +2,14 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Filter, Grid, List, Search, X, Loader2 } from 'lucide-react';
 import { ProductCard } from '@/components/Product';
-import { productsService, categoriesService, storeSettingsService } from '@/services/api';
+import { categoriesService, productsService, storeSettingsService } from '@/services/api';
 import { Product, Category, StoreSettings } from '@/types';
 import { useLanguage, categoryNames, translateCategory } from '@/context/LanguageContext';
 import { ProductGridSkeleton } from '@/components/Common/Skeleton';
 
 const ProductsPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const { t, language } = useLanguage();
+  const { t, language, isRTL } = useLanguage();
   const [loading, setLoading] = useState(true);
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);

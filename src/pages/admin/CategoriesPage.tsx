@@ -3,7 +3,7 @@ import {
   Plus, Pencil, Trash2, Loader2, FolderOpen, FolderTree,
   ChevronDown, ChevronRight, Tag, X, Save, AlertCircle
 } from 'lucide-react';
-import { categoriesService, clearCache } from '@/services/api';
+import { categoriesService, productsService, clearCache } from '@/services/api';
 import { Category } from '@/types';
 import { useLanguage } from '@/context/LanguageContext';
 import { useNotificationContext } from '@/context/NotificationContext';

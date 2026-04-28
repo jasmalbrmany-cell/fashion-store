@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { RefreshCw, X, Info } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 
-const CURRENT_VERSION = '1.0.0'; // Change this manually when you want to trigger update
+const CURRENT_VERSION = '1.1.1'; // Change this manually when you want to trigger update
 
 export const VersionChecker: React.FC = () => {
   const { isRTL } = useLanguage();
@@ -13,15 +13,16 @@ export const VersionChecker: React.FC = () => {
   useEffect(() => {
     const checkVersion = async () => {
       try {
+        const dismissedVersion = localStorage.getItem('dismissed_version');
         const res = await fetch(`/version.json?v=${Date.now()}`);
         if (!res.ok) return;
         const data = await res.json();
         
-        if (data.version !== CURRENT_VERSION) {
+        if (data.version !== CURRENT_VERSION && data.version !== dismissedVersion) {
           setUpdateInfo(data);
           setHasUpdate(true);
           // Show with delay
-          setTimeout(() => setIsVisible(true), 2000);
+          setTimeout(() => setIsVisible(true), 1500);
         }
       } catch (err) {
         console.warn('Failed to check version');
@@ -37,7 +38,17 @@ export const VersionChecker: React.FC = () => {
   if (!hasUpdate || !isVisible) return null;
 
   const handleUpdate = () => {
+    if (updateInfo?.version) {
+      localStorage.setItem('dismissed_version', updateInfo.version);
+    }
     window.location.reload();
+  };
+
+  const handleDismiss = () => {
+    if (updateInfo?.version) {
+      localStorage.setItem('dismissed_version', updateInfo.version);
+    }
+    setIsVisible(false);
   };
 
   return (
@@ -63,7 +74,7 @@ export const VersionChecker: React.FC = () => {
                 {isRTL ? 'تحديث الآن' : 'Update Now'}
               </button>
               <button
-                onClick={() => setIsVisible(false)}
+                onClick={handleDismiss}
                 className="p-3 bg-white/5 hover:bg-white/10 rounded-xl transition-all"
               >
                 <X className="w-4 h-4" />
