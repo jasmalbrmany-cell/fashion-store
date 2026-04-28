@@ -4,6 +4,10 @@
   },
   "rewrites": [
     {
+      "source": "/api/sb/realtime/:path*",
+      "destination": "/api/block-realtime"
+    },
+    {
       "source": "/api/sb/:path*",
       "destination": "/api/supabase-proxy?proxypath=:path*"
     },

@@ -237,10 +237,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // ── Step 1: Authenticate with Supabase ──────────────────────────────
     let authData: any;
     try {
+      console.log('Attempting login via proxy...');
       const { data, error } = await withTimeout(supabase.auth.signInWithPassword({
         email: email.trim().toLowerCase(),
         password,
-      }), 30000);
+      }), 60000); // Increased to 60s for slow connections
 
       if (error) {
         setIsLoading(false);
