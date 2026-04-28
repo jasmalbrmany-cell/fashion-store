@@ -247,11 +247,34 @@ const StoreImportPage: React.FC = () => {
 
           const processedImages = await Promise.all(uploadPromises);
 
+          // 📁 AUTO-CATEGORY LOGIC:
+          let targetCategoryId = selectedCategory;
+          if (prod.category && prod.category.trim()) {
+            const existing = categories.find(c => c.name.toLowerCase() === prod.category.toLowerCase());
+            if (existing) {
+              targetCategoryId = existing.id;
+            } else {
+              try {
+                const newCat = await categoriesService.create({ 
+                  name: prod.category,
+                  icon: 'Package',
+                  order: categories.length
+                });
+                if (newCat) {
+                  targetCategoryId = newCat.id;
+                  setCategories(prev => [...prev, newCat]);
+                }
+              } catch (catErr) {
+                console.warn('Failed to auto-create category:', catErr);
+              }
+            }
+          }
+
           const ok = await productsService.create({
             name: prod.name,
             description: prod.description || (isRTL ? 'منتج مستورد' : 'Imported product'),
             price: prod.price || 0,
-            categoryId: selectedCategory,
+            categoryId: targetCategoryId,
             images: processedImages,
             sizes: prod.sizes.length > 0 
               ? prod.sizes.map((s, i) => ({ id: `s${i}`, name: s, stock: 10, priceModifier: 0 }))

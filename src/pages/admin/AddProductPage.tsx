@@ -377,7 +377,6 @@ const AddProductPage: React.FC = () => {
                 />
               </div>
             </div>
-
             <div className="space-y-3">
               <label className="block text-xs font-black uppercase tracking-widest text-gray-500">{t.productCategory}</label>
               <select
@@ -399,12 +398,17 @@ const AddProductPage: React.FC = () => {
                     ))}
                   </React.Fragment>
                 ))}
-                {/* Fallback for categories without parents if any logic error occurred */}
-                {categories.filter(c => !c.parentId && !categories.some(p => p.id === c.parentId)).length === 0 && 
-                 categories.filter(c => c.parentId && !categories.some(p => p.id === c.parentId)).map(orphan => (
-                  <option key={orphan.id} value={orphan.id}>❓ {orphan.name}</option>
-                ))}
               </select>
+              {categories.length === 0 && (
+                <div className="mt-2 p-3 bg-orange-50 border border-orange-100 rounded-xl flex items-center justify-between">
+                  <p className="text-[10px] font-black text-orange-700 uppercase">
+                    {isRTL ? '⚠️ لا توجد أقسام! يجب إنشاء قسم أولاً' : '⚠️ No categories! Create one first'}
+                  </p>
+                  <Link to="/admin/categories" className="text-[10px] font-black underline text-orange-800">
+                    {isRTL ? 'إنشاء الآن' : 'Create Now'}
+                  </Link>
+                </div>
+              )}
             </div>
           </div>
         </div>
