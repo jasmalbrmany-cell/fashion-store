@@ -162,7 +162,24 @@ const LoginPage: React.FC = () => {
                 {language === 'ar' ? 'إنشاء حساب جديد' : 'Create Account'}
               </Link>
             </p>
-            <Link to="/" className="text-gray-500 hover:text-black font-medium transition">
+            
+            {/* Help/Debug Section for login issues */}
+            <div className="mt-4 pt-4 border-t border-gray-100">
+              <button 
+                type="button"
+                onClick={() => {
+                  const msg = language === 'ar' 
+                    ? "إذا كنت متأكداً من كلمة المرور ولا يمكنك الدخول:\n1. تأكد من أن حسابك لديه صلاحية 'admin' في قاعدة البيانات.\n2. تأكد من جودة الاتصال بالإنترنت.\n3. حاول تسجيل الدخول من متصفح خفي (Incognito)."
+                    : "If you are sure about your password but cannot enter:\n1. Ensure your account has 'admin' role in the database.\n2. Check your internet connection.\n3. Try logging in from an Incognito window.";
+                  alert(msg);
+                }}
+                className="text-gray-400 hover:text-gray-600 underline text-xs"
+              >
+                {language === 'ar' ? 'هل تواجه مشكلة في الدخول؟' : 'Having trouble logging in?'}
+              </button>
+            </div>
+
+            <Link to="/" className="text-gray-500 hover:text-black font-medium transition mt-2">
               {t.backToStore}
             </Link>
           </div>

@@ -150,6 +150,34 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       if (profile) {
         const userData = profileToUser(profile);
+        
+        // ── AUTO-PROMOTION LOGIC ──────────────────────────────────────
+        // If the user is a customer but there are NO admins in the system,
+        // promote this user to admin automatically. This helps owners regain access.
+        if (userData.role === 'customer') {
+          const { count } = await supabase
+            .from('profiles')
+            .select('*', { count: 'exact', head: true })
+            .eq('role', 'admin');
+          
+          if (count === 0) {
+            console.log('🛡️ No admins found. Promoting first user to admin...');
+            const { data: updatedProfile } = await (supabase as any)
+              .from('profiles')
+              .update({ role: 'admin' })
+              .eq('id', userData.id)
+              .select()
+              .single();
+            
+            if (updatedProfile) {
+              const promotedUser = profileToUser(updatedProfile);
+              localStorage.setItem('fashionHubUser', JSON.stringify(promotedUser));
+              await fetchPermissions(promotedUser.id, promotedUser.role);
+              return promotedUser;
+            }
+          }
+        }
+
         localStorage.setItem('fashionHubUser', JSON.stringify(userData));
         await fetchPermissions(userData.id, userData.role);
         return userData;
@@ -305,6 +333,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     // ── Step 3: Set user state and return success ──────────────────────
     const userData = profile ? profileToUser(profile) : buildFallbackUser();
+    
+    // Safety check: If metadata says admin but profile says customer, try to fix it
+    if (userData.role === 'customer' && (authData.user.app_metadata?.role === 'admin' || authData.user.user_metadata?.role === 'admin')) {
+        userData.role = 'admin';
+        // Background update for the DB
+        (supabase as any).from('profiles').update({ role: 'admin' }).eq('id', userData.id).then();
+    }
+
     setUser(userData);
     localStorage.setItem('fashionHubUser', JSON.stringify(userData));
 
