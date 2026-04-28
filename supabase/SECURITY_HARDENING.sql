@@ -9,15 +9,17 @@
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "profiles_select_all" ON public.profiles;
+DROP POLICY IF EXISTS "profiles_select_restricted" ON public.profiles;
 DROP POLICY IF EXISTS "profiles_insert_own" ON public.profiles;
 
 -- Only allow users to see their own profile, OR admins/editors to see everyone
+-- Restricted 'viewer' from seeing everyone for maximum privacy.
 CREATE POLICY "profiles_select_restricted" ON public.profiles
 FOR SELECT USING (
     auth.uid() = id 
     OR EXISTS (
         SELECT 1 FROM public.profiles 
-        WHERE id = auth.uid() AND role IN ('admin', 'editor', 'viewer')
+        WHERE id = auth.uid() AND role IN ('admin', 'editor')
     )
 );
 
@@ -30,7 +32,8 @@ FOR INSERT WITH CHECK (
 
 -- ─── 2. PROTECT EXTERNAL STORES (Vulnerability: Plaintext Passwords) ───
 -- It is highly recommended NOT to store plaintext passwords. 
--- For now, we restrict access to ONLY admins.
+-- For now, we restrict access to ONLY admins and editors.
+DROP POLICY IF EXISTS "external_stores_admin_only" ON public.external_stores;
 DROP POLICY IF EXISTS "external_stores_admin" ON public.external_stores;
 DROP POLICY IF EXISTS "Admins can manage external stores" ON public.external_stores;
 DROP POLICY IF EXISTS "Viewers can view external stores" ON public.external_stores;
@@ -39,12 +42,9 @@ CREATE POLICY "external_stores_admin_only" ON public.external_stores
 FOR ALL USING (
     EXISTS (
         SELECT 1 FROM public.profiles 
-        WHERE id = auth.uid() AND role = 'admin'
+        WHERE id = auth.uid() AND role IN ('admin', 'editor')
     )
 );
-
--- Recommendation: Rename password to api_key and encrypt it or use environment variables.
--- ALTER TABLE public.external_stores RENAME COLUMN password TO encrypted_api_key;
 
 
 -- ─── 3. HARDEN SECURITY DEFINER FUNCTIONS (Vulnerability: Search Path) ───
@@ -53,24 +53,17 @@ ALTER FUNCTION public.handle_new_user() SET search_path = public;
 
 
 -- ─── 4. REMOVE AUTOMATIC EMAIL CONFIRMATION (Vulnerability: Impersonation) ───
--- This logic in the original setup is dangerous as it grants 'confirmed' status without actual verification.
--- We will comment this out or remove the automatic logic from future runs.
-/*
-UPDATE auth.users
-SET email_confirmed_at = COALESCE(email_confirmed_at, NOW())
-WHERE id IN (SELECT id FROM public.profiles WHERE role = 'admin')
-  AND email_confirmed_at IS NULL;
-*/
+-- This logic is dangerous and has been removed from execution.
 
 
--- ─── 5. ORDERS RLS HARDENING (Vulnerability: Weak Insert) ───
+-- ─── 5. ORDERS RLS HARDENING (Vulnerability: Anonymous Order Insertion) ───
 DROP POLICY IF EXISTS "orders_insert_anyone" ON public.orders;
+DROP POLICY IF EXISTS "orders_insert_secure" ON public.orders;
 
--- Only authenticated users can create orders (or restrict to certain roles if needed)
--- If it's a public store, we might keep it 'true' but it's safer to log the user if available.
+-- STRICT: Only authenticated users can create orders.
 CREATE POLICY "orders_insert_secure" ON public.orders
 FOR INSERT WITH CHECK (
-    auth.role() = 'authenticated' OR auth.uid() IS NULL
+    auth.uid() IS NOT NULL
 );
 
 
