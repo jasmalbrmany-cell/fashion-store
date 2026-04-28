@@ -4,6 +4,10 @@
   },
   "rewrites": [
     {
+      "source": "/api/sb/:path*",
+      "destination": "/api/supabase-proxy?proxypath=:path*"
+    },
+    {
       "source": "/((?!api|assets|favicon|logo|manifest|_next).*)",
       "destination": "/index.html"
     }
