@@ -151,6 +151,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (profile) {
         const userData = profileToUser(profile);
         
+        // 👑 OWNER OVERRIDE: If this is the owner email, force admin role and all permissions
+        if (userData.email === 'daoudelhashdi@gmail.com') {
+          userData.role = 'admin';
+          console.log('👑 Owner detected. Granting full administrative access.');
+        }
+
         // ── AUTO-PROMOTION LOGIC ──────────────────────────────────────
         // If the user is a customer but there are NO admins in the system,
         // promote this user to admin automatically. This helps owners regain access.
@@ -180,6 +186,20 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
         localStorage.setItem('fashionHubUser', JSON.stringify(userData));
         await fetchPermissions(userData.id, userData.role);
+        
+        // Final override for permissions if owner
+        if (userData.email === 'daoudelhashdi@gmail.com') {
+           setPermissions({
+              can_manage_products: true,
+              can_manage_orders: true,
+              can_manage_users: true,
+              can_manage_ads: true,
+              can_manage_cities: true,
+              can_manage_currencies: true,
+              can_view_reports: true,
+              can_export_data: true,
+           });
+        }
         return userData;
       }
     } catch (e) {

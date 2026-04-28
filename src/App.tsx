@@ -10,6 +10,7 @@ import CartDrawer from '@/components/Cart/CartDrawer';
 import ToastProvider, { ToastContainer } from '@/components/Common/Toast';
 import ProtectedRoute from '@/components/Common/ProtectedRoute';
 import { VersionChecker } from '@/components/Common/VersionChecker';
+import { PageProgressBar } from '@/components/Common/PageProgressBar';
 
 // Lazy load pages for performance
 const HomePage = lazy(() => import('@/pages/HomePage'));
@@ -57,6 +58,7 @@ function App() {
             <AuthProvider>
               <CartProvider>
                 <NotificationProvider>
+                  <PageProgressBar />
                   <ToastContainer />
                   <Suspense fallback={<PageLoader />}>
                   <Routes>

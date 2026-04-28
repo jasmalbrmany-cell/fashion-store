@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, ChevronLeft, ChevronRight, Loader2, Shirt, Watch, ShoppingBag, Sparkles, Footprints, Crown, Star, Diamond, Glasses } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { ProductCard } from '@/components/Product';
 import { productsService, categoriesService, adsService, storeSettingsService } from '@/services/api';
 import { useLanguage, categoryNames, translateCategory } from '@/context/LanguageContext';
@@ -212,36 +213,41 @@ const HomePage: React.FC = () => {
             <div className="h-px bg-gray-200 flex-1 max-w-[100px]"></div>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
-            {categories.map((category, index) => (
-              <Link
-                key={category.id}
-                to={`/products?category=${category.id}`}
-                className={`group flex flex-col items-center justify-center p-6 bg-transparent hover:bg-gray-50/50 rounded-[2.5rem] transition-all duration-500 relative overflow-hidden animate-stagger delay-${(index + 1) * 100 <= 500 ? (index + 1) * 100 : 500}`}
-              >
-                
-                <div className={`relative w-28 h-28 mb-5 rounded-full flex items-center justify-center transform group-hover:scale-110 group-hover:-translate-y-2 transition-all duration-700 shadow-2xl
-                  ${[
-                    'bg-gradient-to-tr from-violet-600 to-fuchsia-500 shadow-violet-500/30', 
-                    'bg-gradient-to-tr from-cyan-500 to-blue-600 shadow-blue-500/30', 
-                    'bg-gradient-to-tr from-emerald-400 to-teal-500 shadow-teal-500/30', 
-                    'bg-gradient-to-tr from-orange-400 to-rose-500 shadow-orange-500/30', 
-                    'bg-gradient-to-tr from-amber-400 to-orange-500 shadow-amber-500/30', 
-                    'bg-gradient-to-tr from-pink-500 to-rose-500 shadow-pink-500/30'
-                  ][index % 6]}
-                `}>
-                  {/* Glassmorphism Inner Ring */}
-                  <div className="absolute inset-0 bg-white/20 backdrop-blur-md border border-white/40 rounded-full scale-[0.80] group-hover:scale-90 transition-transform duration-700"></div>
-                  
-                  {/* Icon */}
-                  <span className="relative z-10 text-white transform group-hover:rotate-12 transition-transform duration-500 drop-shadow-md">
-                    {getCategoryIcon(index)}
-                  </span>
-                </div>
-                <h3 className="font-extrabold text-lg text-gray-800 group-hover:text-black transition tracking-tight">
-                  {translateCategory(category.id, category.name, language)}
-                </h3>
-              </Link>
-            ))}
+            <AnimatePresence>
+              {categories.map((category, index) => (
+                <motion.div
+                  key={category.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: index * 0.1, duration: 0.5 }}
+                >
+                  <Link
+                    to={`/products?category=${category.id}`}
+                    className="group flex flex-col items-center justify-center p-6 bg-transparent hover:bg-gray-50/50 rounded-[2.5rem] transition-all duration-500 relative overflow-hidden"
+                  >
+                    <div className={`relative w-28 h-28 mb-5 rounded-full flex items-center justify-center transform group-hover:scale-110 group-hover:-translate-y-2 transition-all duration-700 shadow-2xl
+                      ${[
+                        'bg-gradient-to-tr from-violet-600 to-fuchsia-500 shadow-violet-500/30', 
+                        'bg-gradient-to-tr from-cyan-500 to-blue-600 shadow-blue-500/30', 
+                        'bg-gradient-to-tr from-emerald-400 to-teal-500 shadow-teal-500/30', 
+                        'bg-gradient-to-tr from-orange-400 to-rose-500 shadow-orange-500/30', 
+                        'bg-gradient-to-tr from-amber-400 to-orange-500 shadow-amber-500/30', 
+                        'bg-gradient-to-tr from-pink-500 to-rose-500 shadow-pink-500/30'
+                      ][index % 6]}
+                    `}>
+                      <div className="absolute inset-0 bg-white/20 backdrop-blur-md border border-white/40 rounded-full scale-[0.80] group-hover:scale-90 transition-transform duration-700"></div>
+                      <span className="relative z-10 text-white transform group-hover:rotate-12 transition-transform duration-500 drop-shadow-md">
+                        {getCategoryIcon(index)}
+                      </span>
+                    </div>
+                    <h3 className="font-extrabold text-lg text-gray-800 group-hover:text-black transition tracking-tight">
+                      {translateCategory(category.id, category.name, language)}
+                    </h3>
+                  </Link>
+                </motion.div>
+              ))}
+            </AnimatePresence>
           </div>
         </div>
       </section>
