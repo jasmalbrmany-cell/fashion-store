@@ -7,10 +7,10 @@ const isProd = process.env.NODE_ENV === 'production' || process.env.BUILD_MODE =
 export default defineConfig({
   server: {
     proxy: {
-      '/api/supabase': {
+      '/api/sb': {
         target: 'https://jkxfcyngiuefvaxswjxg.supabase.co',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/supabase/, ''),
+        rewrite: (path) => path.replace(/^\/api\/sb/, ''),
       }
     }
   },

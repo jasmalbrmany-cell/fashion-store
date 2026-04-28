@@ -5,9 +5,8 @@ import type { Database } from '@/types/database';
 const originalSupabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
-// Always connect directly to Supabase - it supports CORS natively.
-// The serverless proxy was causing timeouts and is no longer needed.
-const clientSupabaseUrl = originalSupabaseUrl;
+// Use proxy to bypass ISP blocking (e.g. in Yemen). createClient requires an absolute URL.
+const clientSupabaseUrl = typeof window !== 'undefined' ? `${window.location.origin}/api/sb` : '/api/sb';
 
 // Check if Supabase is properly configured
 export const isSupabaseConfigured = (): boolean => {

@@ -162,10 +162,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   useEffect(() => {
     const initAuth = async () => {
-      // Safety timeout to prevent infinite loading
+      // Safety timeout to prevent infinite loading (12s allows for proxy latency)
       const timeoutId = setTimeout(() => {
         setIsLoading(false);
-      }, 5000);
+      }, 12000);
 
       try {
         if (isSupabaseConfigured()) {
@@ -234,6 +234,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       return { success: false, error: 'قاعدة البيانات غير متصلة' };
     }
 
+    // ── Step 1: Authenticate with Supabase ──────────────────────────────
+    let authData: any;
     try {
       const { data, error } = await withTimeout(supabase.auth.signInWithPassword({
         email: email.trim().toLowerCase(),
@@ -246,62 +248,70 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         return { success: false, error: `auth_error:${error.message}` };
       }
 
-      if (data.user) {
-        // Try fetching profile
-        let { data: profile } = await withTimeout(
-          Promise.resolve((supabase as any).from('profiles').select('*').eq('id', data.user.id).single()),
-          15000
-        );
-
-        if (!profile) {
-          // Profile missing — upsert it now
-          const metaRole = data.user.app_metadata?.role || data.user.user_metadata?.role || 'customer';
-          try {
-            const { data: profileData } = await withTimeout(
-              (supabase as any).from('profiles').upsert({
-                id: data.user.id,
-                email: email.trim().toLowerCase(),
-                name: data.user.user_metadata?.name || email.split('@')[0],
-                role: metaRole,
-              }, { onConflict: 'id' }).select().single(),
-              15000
-            );
-            profile = profileData as any;
-          } catch (e) {
-            console.error('Profile upsert timeout/error', e);
-          }
-        }
-
-        if (profile) {
-          const userData = profileToUser(profile);
-          setUser(userData);
-          localStorage.setItem('fashionHubUser', JSON.stringify(userData));
-          await fetchPermissions(userData.id, userData.role);
-          setIsLoading(false);
-          return { success: true };
-        } else {
-          // Profile fetch failed but auth succeeded — use basic info
-          const fallbackUser: User = {
-            id: data.user.id,
-            email: email.trim().toLowerCase(),
-            name: email.split('@')[0],
-            role: (data.user.app_metadata?.role || data.user.user_metadata?.role || 'customer') as any,
-            created_at: new Date().toISOString()
-          };
-          setUser(fallbackUser);
-          localStorage.setItem('fashionHubUser', JSON.stringify(fallbackUser));
-          setIsLoading(false);
-          return { success: true };
-        }
+      if (!data?.user) {
+        setIsLoading(false);
+        return { success: false, error: 'unknown' };
       }
+
+      authData = data;
     } catch (e: any) {
-      console.error('Login error:', e);
+      console.error('Auth signIn error:', e);
       setIsLoading(false);
-      return { success: false, error: e?.message?.includes('Timeout') ? 'timeout' : `unknown:${e?.message}` };
+      const msg = e?.message || '';
+      if (msg.includes('Timeout') || msg.includes('timeout')) return { success: false, error: 'timeout' };
+      return { success: false, error: `unknown:${msg}` };
     }
 
+    // ── Step 2: Fetch or create profile (independently protected) ──────
+    // If this step fails, login STILL succeeds with fallback user data.
+    const buildFallbackUser = (): User => ({
+      id: authData.user.id,
+      email: email.trim().toLowerCase(),
+      name: authData.user.user_metadata?.name || email.split('@')[0],
+      role: (authData.user.app_metadata?.role || authData.user.user_metadata?.role || 'customer') as any,
+      created_at: new Date().toISOString(),
+    });
+
+    let profile: any = null;
+    try {
+      const result = await withTimeout(
+        Promise.resolve(supabase.from('profiles').select('*').eq('id' as any, authData.user.id).single()),
+        15000
+      );
+      profile = result?.data ?? null;
+    } catch (e) {
+      console.warn('Profile fetch failed (will use fallback):', e);
+    }
+
+    // If no profile found, try to create one
+    if (!profile) {
+      try {
+        const metaRole = authData.user.app_metadata?.role || authData.user.user_metadata?.role || 'customer';
+        const result = await withTimeout(
+          (supabase as any).from('profiles').upsert({
+            id: authData.user.id,
+            email: email.trim().toLowerCase(),
+            name: authData.user.user_metadata?.name || email.split('@')[0],
+            role: metaRole,
+          }, { onConflict: 'id' }).select().single(),
+          10000
+        );
+        profile = result?.data ?? null;
+      } catch (e) {
+        console.warn('Profile upsert failed (will use fallback):', e);
+      }
+    }
+
+    // ── Step 3: Set user state and return success ──────────────────────
+    const userData = profile ? profileToUser(profile) : buildFallbackUser();
+    setUser(userData);
+    localStorage.setItem('fashionHubUser', JSON.stringify(userData));
+
+    // Fetch permissions in background — don't block login
+    fetchPermissions(userData.id, userData.role).catch(() => {});
+
     setIsLoading(false);
-    return { success: false, error: 'unknown' };
+    return { success: true };
   };
 
   const logout = async () => {
