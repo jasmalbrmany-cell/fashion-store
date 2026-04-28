@@ -12,9 +12,9 @@ DROP POLICY IF EXISTS "profiles_select_all" ON public.profiles;
 DROP POLICY IF EXISTS "profiles_select_restricted" ON public.profiles;
 DROP POLICY IF EXISTS "profiles_insert_own" ON public.profiles;
 DROP POLICY IF EXISTS "profiles_insert_authenticated" ON public.profiles;
+DROP POLICY IF EXISTS "Public read profiles" ON public.profiles; -- 🛡️ Drop legacy insecure policy
 
 -- Only allow users to see their own profile, OR admins/editors to see everyone
--- Restricted 'viewer' from seeing everyone for maximum privacy.
 CREATE POLICY "profiles_select_restricted" ON public.profiles
 FOR SELECT USING (
     auth.uid() = id 
@@ -60,6 +60,7 @@ ALTER FUNCTION public.handle_new_user() SET search_path = public;
 -- ─── 5. ORDERS RLS HARDENING (Vulnerability: Anonymous Order Insertion) ───
 DROP POLICY IF EXISTS "orders_insert_anyone" ON public.orders;
 DROP POLICY IF EXISTS "orders_insert_secure" ON public.orders;
+DROP POLICY IF EXISTS "Anyone create orders" ON public.orders; -- 🛡️ Drop legacy insecure policy
 
 -- STRICT: Only authenticated users can create orders.
 CREATE POLICY "orders_insert_secure" ON public.orders
