@@ -127,16 +127,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (products.length < 5) {
         const cardSelectors = [
           '.s-product-card', '.product-card', '.product-item', 
-          '[class*="product-card"]', '.product', '.item'
+          '[class*="product-card"]', '.product', '.item',
+          '.product-block', '.product-thumb', '.product-grid-item',
+          '.s-block-product-item'
         ];
         
         for (const selector of cardSelectors) {
           $(selector).each((_, el) => {
             const $el = $(el);
-            const link = $el.find('a[href*="/p/"], a[href*="/product/"], a[href*="/products/"]').first();
-            const name = $el.find('h2, h3, h4, .title, .name, [class*="title"]').first().text().trim();
-            const img = $el.find('img').first().attr('src') || $el.find('img').first().attr('data-src');
-            const priceText = $el.find('.price, [class*="price"]').text();
+            // Look for any link that might be a product
+            const link = $el.find('a[href*="/p/"], a[href*="/product/"], a[href*="/products/"], a[href*="/item/"]').first();
+            const name = $el.find('h2, h3, h4, .title, .name, [class*="title"], [class*="name"]').first().text().trim();
+            const img = $el.find('img').first().attr('src') || $el.find('img').first().attr('data-src') || $el.find('img').first().attr('srcset');
+            const priceText = $el.find('.price, [class*="price"], [class*="amount"]').text();
             const priceMatch = priceText.match(/(\d[\d,.]+)/);
             const price = priceMatch ? parseFloat(priceMatch[1].replace(/,/g, '')) : 0;
 
@@ -152,25 +155,40 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               });
             }
           });
-          if (products.length >= 20) break;
+          if (products.length >= 10) break;
         }
       }
       strategy = seen.size > 0 ? 'scrape' : 'none';
     }
 
-    // Normalize for frontend
-    const normalized = products.map(p => ({
-      id: Math.random().toString(36).substr(2, 9),
-      name: p.name,
-      description: '',
-      price: p.price,
-      currency: urlL.includes('.ye') ? 'YER' : (urlL.includes('.sa') || urlL.includes('zahraah') ? 'SAR' : 'USD'),
-      images: p.image ? [p.image] : [],
-      sizes: ['حسب الطلب'],
-      colors: [{ name: 'متعدد', hex: '#888888' }],
-      sourceUrl: p.href,
-      category: '',
-    })).filter(p => p.name && p.price >= 0);
+    // Normalized for frontend
+    const normalized = products.map(p => {
+      // Fix relative image URLs
+      let finalImg = p.image || '';
+      if (finalImg.startsWith('//')) finalImg = 'https:' + finalImg;
+      else if (finalImg.startsWith('/')) finalImg = new URL(url).origin + finalImg;
+
+      return {
+        id: Math.random().toString(36).substr(2, 9),
+        name: p.name,
+        description: '',
+        price: p.price,
+        currency: (urlL.includes('.ye') || urlL.includes('yemen')) ? 'YER' : (urlL.includes('.sa') || urlL.includes('zahraah') ? 'SAR' : 'USD'),
+        images: finalImg ? [finalImg] : [],
+        sizes: ['حسب الطلب'],
+        colors: [{ name: 'متعدد', hex: '#888888' }],
+        sourceUrl: p.href,
+        category: '',
+      };
+    }).filter(p => p.name && p.price >= 0);
+
+    if (normalized.length === 0 && strategy === 'none') {
+       return res.status(200).json({
+         success: false,
+         error: 'لم يتم العثور على منتجات. حاول استخدام رابط مباشر لقسم معين في الموقع (مثلاً قسم الفساتين).',
+         strategy
+       });
+    }
 
     return res.status(200).json({
       success: normalized.length > 0,
