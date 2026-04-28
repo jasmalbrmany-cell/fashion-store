@@ -35,7 +35,7 @@ const AddProductPage: React.FC = () => {
     isVisible: false,
     sourceUrl: '',
     images: [] as { id: string; url: string; isPrimary: boolean }[],
-    sizes: [] as { id: string; name: string; stock: number; priceModifier: number }[],
+    sizes: [] as { id: string; name: string; stock: number; priceModifier: number; measurements?: string }[],
     colors: [] as { id: string; name: string; hex: string; stock: number }[],
   });
 
@@ -215,7 +215,7 @@ const AddProductPage: React.FC = () => {
       ...prev,
       sizes: [
         ...prev.sizes,
-        { id: `size-${Date.now()}`, name: '', stock: 0, priceModifier: 0 },
+        { id: `size-${Date.now()}`, name: '', stock: 10, priceModifier: 0, measurements: '' },
       ],
     }));
   };
@@ -501,6 +501,16 @@ const AddProductPage: React.FC = () => {
                             value={size.stock}
                             onChange={e => updateSize(index, 'stock', parseInt(e.target.value) || 0)}
                             placeholder={isRTL ? 'المخزون' : 'Stock'}
+                            className="w-full px-4 py-2 rounded-xl outline-none font-bold bg-white border border-gray-100"
+                        />
+                   </div>
+                   <div className="flex-[2] space-y-1">
+                        <label className="text-[10px] font-black uppercase text-gray-400 px-1">{isRTL ? 'تفاصيل القياسات (اختياري)' : 'Measurements (Optional)'}</label>
+                        <input
+                            type="text"
+                            value={size.measurements || ''}
+                            onChange={e => updateSize(index, 'measurements', e.target.value)}
+                            placeholder={isRTL ? 'مثال: كتف: 44.5 cm، الصدر: 104 cm' : 'e.g. Shoulder: 44.5cm, Bust: 104cm'}
                             className="w-full px-4 py-2 rounded-xl outline-none font-bold bg-white border border-gray-100"
                         />
                    </div>

@@ -59,7 +59,7 @@ export const categoriesService = {
         .select()
         .single();
 
-      const { data, error } = await withTimeout(fetchPromise, 8000);
+      const { data, error } = await withTimeout(fetchPromise);
 
       if (error) {
         const errorMsg = error.message || 'فشل إنشاء القسم';
@@ -90,7 +90,7 @@ export const categoriesService = {
         .select()
         .single();
 
-      const { data, error } = await withTimeout(fetchPromise, 8000);
+      const { data, error } = await withTimeout(fetchPromise);
 
       if (error) {
         const errorMsg = error.message || 'فشل تحديث القسم';
@@ -114,7 +114,7 @@ export const categoriesService = {
         .delete()
         .eq('id', id);
 
-      const { error } = await withTimeout(fetchPromise, 8000);
+      const { error } = await withTimeout(fetchPromise);
 
       if (error) {
         const errorMsg = error.message || 'فشل حذف القسم';

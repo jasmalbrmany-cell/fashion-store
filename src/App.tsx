@@ -9,6 +9,7 @@ import { Layout } from '@/components/Layout';
 import CartDrawer from '@/components/Cart/CartDrawer';
 import ToastProvider, { ToastContainer } from '@/components/Common/Toast';
 import ProtectedRoute from '@/components/Common/ProtectedRoute';
+import { VersionChecker } from '@/components/Common/VersionChecker';
 
 // Lazy load pages for performance
 const HomePage = lazy(() => import('@/pages/HomePage'));
@@ -99,6 +100,7 @@ function App() {
                   </Routes>
                   </Suspense>
                   <CartDrawer />
+                  <VersionChecker />
                 </NotificationProvider>
               </CartProvider>
             </AuthProvider>

@@ -246,16 +246,24 @@ const ProductDetailPage: React.FC = () => {
                 {/* Sizes Selection */}
                 {product.sizes.length > 0 && (
                   <div className="mb-8">
-                    <h3 className="text-sm font-bold text-gray-900 uppercase tracking-widest mb-4">
-                      {t.selectSize}: <span className="text-gray-500 font-medium">{selectedSize?.name || '--'}</span>
-                    </h3>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-sm font-bold text-gray-900 uppercase tracking-widest">
+                        {t.selectSize}: <span className="text-gray-500 font-medium">{selectedSize?.name || '--'}</span>
+                      </h3>
+                      {selectedSize?.measurements && (
+                         <div className="flex items-center gap-1 text-xs font-black text-black bg-gray-100 px-3 py-1.5 rounded-lg animate-pulse">
+                            <span className="shrink-0">📏</span>
+                            {isRTL ? 'دليل القياسات مفعل' : 'Size guide active'}
+                         </div>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap gap-2 mb-4">
                       {product.sizes.map((size) => (
                         <button
                           key={size.id}
                           onClick={() => setSelectedSize(size)}
                           disabled={size.stock === 0}
-                          className={`min-w-[60px] h-12 px-4 rounded-xl border-2 font-bold transition-all ${
+                          className={`min-w-[60px] h-12 px-4 rounded-xl border-2 font-bold transition-all relative ${
                             selectedSize?.id === size.id
                               ? 'border-black bg-black text-white shadow-xl translate-y-[-2px]'
                               : size.stock === 0
@@ -267,6 +275,26 @@ const ProductDetailPage: React.FC = () => {
                         </button>
                       ))}
                     </div>
+
+                    {/* Size Guide Tooltip Style */}
+                    {selectedSize?.measurements && (
+                      <div className="bg-gray-50 border border-gray-100 rounded-2xl p-4 animate-in fade-in slide-in-from-top-2 duration-300 relative overflow-hidden">
+                        <div className="absolute top-0 right-0 p-2 opacity-5">
+                          <Package className="w-12 h-12" />
+                        </div>
+                        <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-2">
+                           <span className="w-4 h-px bg-gray-300"></span>
+                           {isRTL ? 'قياسات المقاس' : 'Product Measurements'} {selectedSize.name}
+                        </p>
+                        <div className="text-sm font-bold text-gray-700 leading-relaxed">
+                          {selectedSize.measurements.split(/[،,]/).map((m, i) => (
+                            <span key={i} className="inline-block bg-white px-2 py-1 rounded-md border mr-2 mb-2 shadow-sm">
+                              {m.trim()}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 

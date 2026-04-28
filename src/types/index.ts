@@ -23,6 +23,7 @@ export interface ProductSize {
   name: string;
   stock: number;
   priceModifier: number;
+  measurements?: string; // e.g. "كتف: 44.5 cm, قياس الصدر: 104 cm"
 }
 
 export interface ProductColor {

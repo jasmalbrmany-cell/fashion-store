@@ -7,7 +7,7 @@ import type {
 } from './types';
 
 // Helper to prevent infinite hangs
-export const withTimeout = (promise: Promise<any>, timeoutMs = 10000): Promise<any> => {
+export const withTimeout = (promise: Promise<any>, timeoutMs = 30000): Promise<any> => {
   return Promise.race([
     promise,
     new Promise<any>((_, reject) => setTimeout(() => reject(new Error('Timeout after ' + timeoutMs + 'ms')), timeoutMs))
