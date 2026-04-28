@@ -11,6 +11,7 @@ ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "profiles_select_all" ON public.profiles;
 DROP POLICY IF EXISTS "profiles_select_restricted" ON public.profiles;
 DROP POLICY IF EXISTS "profiles_insert_own" ON public.profiles;
+DROP POLICY IF EXISTS "profiles_insert_authenticated" ON public.profiles;
 
 -- Only allow users to see their own profile, OR admins/editors to see everyone
 -- Restricted 'viewer' from seeing everyone for maximum privacy.
@@ -69,6 +70,7 @@ FOR INSERT WITH CHECK (
 
 -- ─── 6. ACTIVITY LOGS HARDENING ───
 DROP POLICY IF EXISTS "activity_logs_insert_any" ON public.activity_logs;
+DROP POLICY IF EXISTS "activity_logs_insert_auth" ON public.activity_logs;
 CREATE POLICY "activity_logs_insert_auth" ON public.activity_logs
 FOR INSERT WITH CHECK (
     auth.role() = 'authenticated'
