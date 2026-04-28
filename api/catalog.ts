@@ -35,7 +35,7 @@ async function fetchJSON(url: string, timeout = 8000, extraHeaders: Record<strin
 }
 
 // Direct fetch - we're on Vercel server-side, NO CORS needed!
-async function fetchHTML(url: string, timeout = 12000): Promise<string> {
+async function fetchHTML(url: string, timeout = 8000): Promise<string> {
   const controller = new AbortController();
   const t = setTimeout(() => controller.abort(), timeout);
   
@@ -47,26 +47,22 @@ async function fetchHTML(url: string, timeout = 12000): Promise<string> {
         'User-Agent': randomUA(),
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
         'Accept-Language': 'ar-SA,ar;q=0.9,en-US;q=0.8,en;q=0.7',
-        'Accept-Encoding': 'identity',
         'Cache-Control': 'no-cache',
       },
       redirect: 'follow',
     });
-    clearTimeout(t);
     
     if (res.ok) {
       const text = await res.text();
-      if (text && text.length > 500) {
+      if (text && text.length > 800) {
         console.log(`[Catalog] ✓ Successfully fetched HTML (${text.length} bytes)`);
         return text;
       }
-      console.warn(`[Catalog] ! Response from ${url} was too short (${text?.length || 0} bytes)`);
-    } else {
-      console.warn(`[Catalog] ! HTTP ${res.status} from ${url}`);
     }
   } catch (err: any) {
+    console.warn(`[Catalog] ! Direct fetch failed:`, err.message);
+  } finally {
     clearTimeout(t);
-    console.warn(`[Catalog] ! Fetch failed for ${url}:`, err.message);
   }
 
   console.log(`[Catalog] Attempting proxy fallback for ${url}...`);
@@ -441,6 +437,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   console.log(`[Catalog] Importing from: ${url} (page=${page}, currency=${currency})`);
 
+  // Detect specific platforms
+  const isSalla = urlL.includes('salla.sa') || urlL.includes('zahraah.com');
+  const isZid = urlL.includes('zid.store');
+
   try {
     // ── STRATEGY 0: Specialized Shein Scraper ──
     if (urlL.includes('shein.com') || urlL.includes('shein.')) {
@@ -467,6 +467,32 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
       } catch (e) {
         console.warn('[Shein] Error:', e);
+      }
+    }
+
+    // ── STRATEGY 0.5: Salla / Zahraah Specialized Scraper ──
+    if (isSalla || urlL.includes('zahraah')) {
+      console.log('[Catalog] Trying Salla/Zahraah scraper...');
+      try {
+        // Optimized for Salla: try to get products from the page
+        const scraped = await scrapeProductLinks(url);
+        if (scraped.length > 0) {
+           const products = scraped.map(p => ({
+             id: `salla-${Math.random().toString(36).substr(2, 5)}`,
+             name: p.name,
+             description: '',
+             price: p.price,
+             currency,
+             images: p.image ? [p.image] : [],
+             sizes: ['حسب الطلب'],
+             colors: [{ name: 'متعدد', hex: '#888888' }],
+             sourceUrl: p.href,
+             category: '',
+           }));
+           return res.status(200).json({ success: true, strategy: 'mapped_rules', products, hasMore: false, nextPage: 1 });
+        }
+      } catch (e) {
+        console.warn('[Salla] Error:', e);
       }
     }
 
