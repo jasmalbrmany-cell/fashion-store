@@ -371,16 +371,22 @@ const ExternalStoresPage: React.FC = () => {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-black uppercase tracking-widest text-gray-400 px-1">{isRTL ? 'كلمة المرور / API Secret' : 'Password / API Secret'}</label>
+                    <label className="text-xs font-black uppercase tracking-widest text-red-500 px-1">
+                      {isRTL ? 'كلمة المرور (نص واضح)' : 'Password (Plaintext)'}
+                    </label>
                     <div className="relative">
                       <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                       <input
                         type="password"
                         value={formData.password}
                         onChange={e => setFormData({ ...formData, password: e.target.value })}
-                        className={`w-full ${isRTL ? 'pr-5 pl-12' : 'pl-12 pr-5'} py-4 bg-gray-50 border border-transparent rounded-2xl focus:bg-white focus:border-black outline-none transition-all font-bold`}
+                        placeholder="••••••••"
+                        className={`w-full ${isRTL ? 'pr-5 pl-12' : 'pl-12 pr-5'} py-4 bg-gray-50 border border-red-100 rounded-2xl focus:bg-white focus:border-red-400 outline-none transition-all font-bold`}
                       />
                     </div>
+                    <p className="text-[10px] text-red-400 font-bold px-1 italic">
+                      {isRTL ? '⚠️ تحذير: يتم تخزين كلمة المرور كنص غير مشفر. استخدم API Keys فقط إن أمكن.' : '⚠️ Warning: Password stored in plaintext. Use API Keys instead if possible.'}
+                    </p>
                   </div>
                 </div>
 
