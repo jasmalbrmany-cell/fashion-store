@@ -147,11 +147,11 @@ const ProfilePage: React.FC = () => {
       <div className="container mx-auto px-4 max-w-3xl">
         <div className="flex items-center gap-4 mb-8">
           <div className="w-16 h-16 bg-black text-white rounded-2xl flex items-center justify-center font-bold text-2xl shadow-lg">
-            {name.charAt(0).toUpperCase()}
+            {(name || 'U').charAt(0).toUpperCase()}
           </div>
           <div>
             <h1 className="text-3xl font-black text-gray-900">{isRTL ? 'الملف الشخصي' : 'My Profile'}</h1>
-            <p className="text-gray-500 font-medium">#{user.role.toUpperCase()}</p>
+            <p className="text-gray-500 font-medium">#{(user?.role || 'customer').toUpperCase()}</p>
           </div>
         </div>
 
@@ -275,6 +275,8 @@ const ProfilePage: React.FC = () => {
                  <h3 className="font-bold text-gray-900">{isRTL ? 'تغيير كلمة المرور' : 'Change Password'}</h3>
                  <p className="text-sm text-gray-500">{isRTL ? 'اترك الحقل فارغاً إذا لم ترغب بتغييرها.' : 'Leave blank if you do not want to change it.'}</p>
                </div>
+
+
 
                <div className="grid md:grid-cols-2 gap-6">
                  {/* Current Password */}

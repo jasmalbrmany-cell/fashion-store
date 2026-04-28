@@ -176,7 +176,7 @@ const AdminLayout: React.FC = () => {
               <p className="font-bold text-gray-900 truncate">{user?.name}</p>
               <p className="text-xs text-gray-500 truncate">{user?.email}</p>
               <span className="inline-block mt-2 text-[10px] font-bold px-2 py-0.5 bg-black text-white rounded">
-                {(user?.role === 'admin' ? t.adminRole : user?.role === 'editor' ? t.editorRole : t.viewerRole).toUpperCase()}
+                {(user?.role === 'admin' ? t.adminRole : user?.role === 'editor' ? t.editorRole : (t.viewerRole || 'Viewer')).toUpperCase()}
               </span>
             </div>
 

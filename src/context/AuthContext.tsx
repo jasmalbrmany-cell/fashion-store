@@ -267,7 +267,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const buildFallbackUser = (): User => ({
       id: authData.user.id,
       email: email.trim().toLowerCase(),
-      name: authData.user.user_metadata?.name || email.split('@')[0],
+      name: String(authData.user.user_metadata?.name || email.split('@')[0] || 'User'),
       role: (authData.user.app_metadata?.role || authData.user.user_metadata?.role || 'customer') as any,
       created_at: new Date().toISOString(),
     });

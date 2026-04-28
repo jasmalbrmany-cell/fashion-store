@@ -35,11 +35,11 @@ export const supabase = createClient<Database>(
         'apikey': supabaseAnonKey || 'placeholder-key',
       },
     },
-    // Disable Realtime — not needed and wastes connections
+    // Disable Realtime — not supported by Vercel proxy and causes WebSocket errors
     realtime: {
       params: {
         eventsPerSecond: 0,
-      },
+      }
     },
   }
 );
