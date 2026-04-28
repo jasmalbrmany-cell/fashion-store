@@ -149,7 +149,7 @@ export const ordersService = {
       .single();
 
     try {
-      const { data, error } = await withTimeout(fetchPromise, 5000);
+      const { data, error } = await withTimeout(fetchPromise);
       if (error) {
         console.error('Error updating order status:', error);
         return null;

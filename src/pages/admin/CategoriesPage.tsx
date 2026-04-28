@@ -384,6 +384,14 @@ const CategoriesPage: React.FC = () => {
       setDeleteTarget(null);
       return;
     }
+    
+    // Check for products
+    const productsInCategory = await productsService.getByCategory(deleteTarget.id);
+    if (productsInCategory.length > 0) {
+      showError('❌ ' + (isRTL ? `هذا القسم يحتوي على ${productsInCategory.length} منتجات. يرجى نقلها لقسم آخر أولاً.` : `This category contains ${productsInCategory.length} products. Move them first.`));
+      setDeleteTarget(null);
+      return;
+    }
     try {
       setIsSaving(true);
       await categoriesService.delete(deleteTarget.id);

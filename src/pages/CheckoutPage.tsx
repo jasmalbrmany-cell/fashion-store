@@ -64,7 +64,7 @@ const CheckoutPage: React.FC = () => {
     if (!formData.name.trim()) newErrors.name = t.enterFullName;
     if (!formData.phone.trim()) {
       newErrors.phone = t.enterPhone;
-    } else if (!/^[0-9]{7,15}$/.test(formData.phone.replace(/\s/g, ''))) {
+    } else if (!/^[0-9+]{7,15}$/.test(formData.phone.replace(/\s/g, ''))) {
       newErrors.phone = t.phoneValidation;
     }
     if (!formData.city) newErrors.city = t.chooseCity;

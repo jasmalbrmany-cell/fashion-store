@@ -34,6 +34,10 @@ const ProductsPage: React.FC = () => {
   , [products]);
 
   useEffect(() => {
+    document.title = isRTL ? 'المتجر - فاشن هوب' : 'Shop - Fashion Hub';
+  }, [isRTL]);
+
+  useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);

@@ -100,6 +100,14 @@ const OrderSuccessPage: React.FC = () => {
                 <Home className="w-5 h-5" />
                 {t.home}
               </Link>
+              <Link
+                to="/track-order"
+                state={{ orderNumber }}
+                className="flex-1 py-4 bg-black text-white rounded-2xl font-black hover:bg-gray-800 transition flex items-center justify-center gap-2 shadow-xl uppercase tracking-wide text-sm"
+              >
+                <Package className="w-5 h-5" />
+                {t.trackOrder}
+              </Link>
               <a
                 href={`https://wa.me/${settings?.socialLinks.whatsapp || ''}`}
                 target="_blank"

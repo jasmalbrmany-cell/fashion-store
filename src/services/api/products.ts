@@ -20,7 +20,7 @@ export const productsService = {
       .order('created_at', { ascending: false });
 
     try {
-      const { data, error } = await withTimeout(fetchPromise, 10000);
+      const { data, error } = await withTimeout(fetchPromise);
 
       if (error) {
         console.error('Error fetching products:', error);
@@ -48,7 +48,7 @@ export const productsService = {
       .order('created_at', { ascending: false });
 
     try {
-      const { data, error } = await withTimeout(fetchPromise, 5000);
+      const { data, error } = await withTimeout(fetchPromise);
 
       if (error) {
         console.error('Error fetching products by category:', error);
@@ -85,11 +85,14 @@ export const productsService = {
       return [];
     }
 
+    // Normalize query for Arabic: replace all forms of Alef with plain Alef
+    const normalizedQuery = query.replace(/[أإآ]/g, 'ا');
+
     const { data, error } = await (supabase as any)
       .from('products')
       .select('*')
       .eq('is_visible', true)
-      .or(`name.ilike.%${query}%,description.ilike.%${query}%`)
+      .or(`name.ilike.%${query}%,description.ilike.%${query}%,name.ilike.%${normalizedQuery}%,description.ilike.%${normalizedQuery}%`)
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -115,7 +118,7 @@ export const productsService = {
       .limit(500);
 
     try {
-      const { data, error } = await withTimeout(fetchPromise, 10000);
+      const { data, error } = await withTimeout(fetchPromise);
 
       if (error) {
         console.error('Error fetching admin products:', error);
@@ -143,7 +146,7 @@ export const productsService = {
         .select()
         .single();
 
-      const { data, error } = await withTimeout(fetchPromise, 8000);
+      const { data, error } = await withTimeout(fetchPromise);
 
       if (error) {
         const errorMsg = error.message || 'فشل إنشاء المنتج';
@@ -171,7 +174,7 @@ export const productsService = {
         .select()
         .single();
 
-      const { data, error } = await withTimeout(fetchPromise, 8000);
+      const { data, error } = await withTimeout(fetchPromise);
 
       if (error) {
         const errorMsg = error.message || 'فشل تحديث المنتج';
@@ -200,7 +203,7 @@ export const productsService = {
         .delete()
         .eq('id', id);
 
-      const { error } = await withTimeout(fetchPromise, 8000);
+      const { error } = await withTimeout(fetchPromise);
 
       if (error) {
         const errorMsg = error.message || 'فشل حذف المنتج';

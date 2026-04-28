@@ -63,7 +63,7 @@ export const usersService = {
       .single();
 
     try {
-      const { data, error } = await withTimeout(fetchPromise, 5000);
+      const { data, error } = await withTimeout(fetchPromise);
       if (error) {
         console.error('Error updating user:', error);
         return null;

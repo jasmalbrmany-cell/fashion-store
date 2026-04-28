@@ -17,7 +17,7 @@ export const citiesService = {
       .order('name', { ascending: true });
 
     try {
-      const { data, error } = await withTimeout(fetchPromise, 10000);
+      const { data, error } = await withTimeout(fetchPromise);
 
       if (error) {
         console.error('Error fetching cities:', error);
@@ -58,7 +58,7 @@ export const citiesService = {
       .order('name', { ascending: true });
 
     try {
-      const { data, error } = await withTimeout(fetchPromise, 10000);
+      const { data, error } = await withTimeout(fetchPromise);
 
       if (error) {
         console.error('Error fetching active cities:', error);
@@ -115,7 +115,7 @@ export const citiesService = {
         .select()
         .single();
 
-      const { data, error } = await withTimeout(fetchPromise, 8000);
+      const { data, error } = await withTimeout(fetchPromise);
 
       if (error) {
         const errorMsg = error.message || 'فشل إنشاء المدينة';
@@ -146,7 +146,7 @@ export const citiesService = {
         .select()
         .single();
 
-      const { data, error } = await withTimeout(fetchPromise, 8000);
+      const { data, error } = await withTimeout(fetchPromise);
 
       if (error) {
         const errorMsg = error.message || 'فشل تحديث المدينة';
@@ -175,7 +175,7 @@ export const citiesService = {
         .delete()
         .eq('id', id);
 
-      const { error } = await withTimeout(fetchPromise, 8000);
+      const { error } = await withTimeout(fetchPromise);
 
       if (error) {
         const errorMsg = error.message || 'فشل حذف المدينة';

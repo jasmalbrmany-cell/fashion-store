@@ -25,6 +25,10 @@ const HomePage: React.FC = () => {
   };
 
   useEffect(() => {
+    document.title = isAr ? 'فاشن هوب | الرئيسية' : 'Fashion Hub | Home';
+  }, [isAr]);
+
+  useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);

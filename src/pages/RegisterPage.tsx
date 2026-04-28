@@ -22,8 +22,13 @@ const isValidEmail = (email: string): boolean => {
 
 const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, user } = useAuth();
   const { language } = useLanguage();
+
+  // Redirect if already logged in
+  React.useEffect(() => {
+    if (user) navigate('/');
+  }, [user, navigate]);
 
   const isAr = language === 'ar';
 

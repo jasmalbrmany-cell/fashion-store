@@ -18,7 +18,7 @@ export const adsService = {
       .order('order', { ascending: true });
 
     try {
-      const { data, error } = await withTimeout(fetchPromise, 10000);
+      const { data, error } = await withTimeout(fetchPromise);
 
       if (error) {
         console.error('Error fetching active ads:', error);
@@ -47,7 +47,7 @@ export const adsService = {
       .order('order', { ascending: true });
 
     try {
-      const { data, error } = await withTimeout(fetchPromise, 10000);
+      const { data, error } = await withTimeout(fetchPromise);
 
       if (error) {
         console.error('Error fetching ads:', error);

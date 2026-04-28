@@ -28,6 +28,12 @@ const ProductDetailPage: React.FC = () => {
   const [zoomPos, setZoomPos] = useState({ x: 50, y: 50 });
 
   useEffect(() => {
+    if (product) {
+        document.title = `${product.name} - Fashion Hub`;
+    }
+  }, [product]);
+
+  useEffect(() => {
     const fetchData = async () => {
       if (!id) return;
       try {
