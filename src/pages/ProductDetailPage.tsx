@@ -6,6 +6,7 @@ import { productsService, categoriesService } from '@/services/api';
 import { Product, ProductSize, ProductColor, Category } from '@/types';
 import { useLanguage, categoryNames } from '@/context/LanguageContext';
 import { ProductCard } from '@/components/Product';
+import { supabase } from '@/lib/supabase';
 
 const ProductDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -23,6 +24,7 @@ const ProductDetailPage: React.FC = () => {
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [activeTab, setActiveTab] = useState<'description' | 'details'>('description');
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
+  const [whatsappNumber, setWhatsappNumber] = useState('967777123456');
   
   // Custom zoom state
   const [zoomPos, setZoomPos] = useState({ x: 50, y: 50 });
@@ -59,6 +61,16 @@ const ProductDetailPage: React.FC = () => {
               .filter(p => p.categoryId === foundProduct.categoryId && p.id !== foundProduct.id && p.isVisible)
               .slice(0, 4);
             setRelatedProducts(related);
+          }
+
+          // Fetch store settings for WhatsApp
+          try {
+            const { data: settings } = await (supabase as any).from('store_settings').select('whatsapp_main').single();
+            if (settings?.whatsapp_main) {
+              setWhatsappNumber(settings.whatsapp_main);
+            }
+          } catch (e) {
+            console.warn('Could not fetch WhatsApp number, using default');
           }
         }
       } catch (error) {
@@ -143,6 +155,14 @@ const ProductDetailPage: React.FC = () => {
 
   const formatPrice = (price: number) => {
     return price.toLocaleString(language === 'ar' ? 'ar-SA' : 'en-US');
+  };
+
+  const handleWhatsAppOrder = () => {
+    const message = isRTL 
+      ? `مرحباً، أود الاستفسار عن هذا المنتج:\n*${product.name}*\n💰 السعر: ${formatPrice(finalPrice)} ر.ي\n📏 المقاس: ${selectedSize?.name || 'غير محدد'}\n🎨 اللون: ${selectedColor?.name || 'غير محدد'}\n🔗 الرابط: ${window.location.href}`
+      : `Hello, I'd like to inquire about this product:\n*${product.name}*\n💰 Price: ${formatPrice(finalPrice)} YER\n📏 Size: ${selectedSize?.name || 'Not specified'}\n🎨 Color: ${selectedColor?.name || 'Not specified'}\n🔗 Link: ${window.location.href}`;
+    
+    window.open(`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`, '_blank');
   };
 
   const BreadcrumbIcon = isRTL ? ChevronLeft : ChevronRight;
@@ -373,9 +393,18 @@ const ProductDetailPage: React.FC = () => {
                   {t.buyNow}
                 </button>
                 <button
+                  onClick={handleWhatsAppOrder}
+                  className="flex-[2] py-5 bg-green-600 text-white rounded-2xl font-black text-lg hover:bg-green-700 transition-all shadow-xl hover:shadow-green-500/20 flex items-center justify-center gap-2"
+                >
+                  <span className="text-xl">💬</span>
+                  {isRTL ? 'اطلب عبر واتساب' : 'Order via WhatsApp'}
+                </button>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-4 pt-4">
+                <button
                   onClick={handleAddToCart}
                   disabled={totalStock === 0 || isInCart}
-                  className={`flex-[2] py-5 rounded-2xl font-black text-lg flex items-center justify-center gap-3 transition-all ${
+                  className={`flex-1 py-4 rounded-2xl font-black text-base flex items-center justify-center gap-3 transition-all ${
                     isInCart
                       ? 'bg-green-100 text-green-700 border-2 border-green-200'
                       : totalStock === 0
@@ -384,14 +413,14 @@ const ProductDetailPage: React.FC = () => {
                   }`}
                 >
                   {isInCart ? (
-                    <><Check className="w-6 h-6" /> {t.inCart}</>
+                    <><Check className="w-5 h-5" /> {t.inCart}</>
                   ) : (
-                    <><ShoppingCart className="w-6 h-6" /> {t.addToCart}</>
+                    <><ShoppingCart className="w-5 h-5" /> {t.addToCart}</>
                   )}
                 </button>
                 <button
                   onClick={() => setIsWishlisted(!isWishlisted)}
-                  className={`flex-1 py-5 rounded-2xl border-2 flex items-center justify-center transition-all ${
+                  className={`w-14 h-14 rounded-2xl border-2 flex items-center justify-center transition-all ${
                     isWishlisted ? 'bg-red-50 border-red-100 text-red-500' : 'border-gray-100 text-gray-400 hover:border-red-200 hover:text-red-300'
                   }`}
                 >

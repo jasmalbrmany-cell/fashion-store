@@ -285,7 +285,7 @@ export interface Database {
           name: string;
           url: string;
           username: string | null;
-          password: string | null;
+          encrypted_api_key: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -294,7 +294,7 @@ export interface Database {
           name: string;
           url: string;
           username?: string | null;
-          password?: string | null;
+          encrypted_api_key?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -302,7 +302,7 @@ export interface Database {
           name?: string;
           url?: string;
           username?: string | null;
-          password?: string | null;
+          encrypted_api_key?: string | null;
           updated_at?: string;
         };
       };

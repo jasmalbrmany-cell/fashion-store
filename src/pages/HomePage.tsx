@@ -6,6 +6,8 @@ import { ProductCard } from '@/components/Product';
 import { productsService, categoriesService, adsService, storeSettingsService } from '@/services/api';
 import { useLanguage, categoryNames, translateCategory } from '@/context/LanguageContext';
 import { Skeleton } from '@/components/Common/Skeleton';
+import { LazyLoadImage } from 'react-lazy-load-image-component';
+import 'react-lazy-load-image-component/src/effects/blur.css';
 import type { Product, Category, Ad, StoreSettings } from '@/types';
 
 const HomePage: React.FC = () => {
@@ -168,14 +170,26 @@ const HomePage: React.FC = () => {
                       {activeBanners[currentBanner].type === 'video' ? (
                         <video src={activeBanners[currentBanner].imageUrl} className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700" autoPlay muted loop playsInline />
                       ) : (
-                        <img src={activeBanners[currentBanner].imageUrl} alt="Main Banner" className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700" />
+                        <LazyLoadImage 
+                          src={activeBanners[currentBanner].imageUrl} 
+                          alt="Main Banner" 
+                          effect="blur"
+                          className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700" 
+                          wrapperClassName="w-full h-full"
+                        />
                       )}
                       <div className="absolute inset-0 bg-gradient-to-t from-zinc-900/60 via-transparent to-transparent"></div>
                     </div>
                     
                     <div className="rounded-[2rem] overflow-hidden shadow-xl relative group bg-zinc-200 dark:bg-zinc-800">
                       {activeBanners.length > 1 ? (
-                        <img src={activeBanners[(currentBanner + 1) % activeBanners.length].imageUrl} alt="Secondary Banner" className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700 opacity-90" />
+                        <LazyLoadImage 
+                          src={activeBanners[(currentBanner + 1) % activeBanners.length].imageUrl} 
+                          alt="Secondary Banner" 
+                          effect="blur"
+                          className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700 opacity-90" 
+                          wrapperClassName="w-full h-full"
+                        />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-zinc-100 to-zinc-300 dark:from-zinc-800 dark:to-zinc-900">
                           <Shirt className="w-16 h-16 text-zinc-400 opacity-50" />
@@ -279,7 +293,13 @@ const HomePage: React.FC = () => {
                 inlineAds[0].type === 'video' ? (
                   <video src={inlineAds[0].imageUrl} className="w-full h-full object-cover" autoPlay muted loop playsInline />
                 ) : (
-                  <img src={inlineAds[0].imageUrl} alt={inlineAds[0].title} className="w-full h-full object-cover" />
+                  <LazyLoadImage 
+                    src={inlineAds[0].imageUrl} 
+                    alt={inlineAds[0].title} 
+                    effect="blur"
+                    className="w-full h-full object-cover" 
+                    wrapperClassName="w-full h-full"
+                  />
                 )
               ) : (
                 <div className="w-full h-full bg-gradient-to-r from-gray-900 to-black text-white p-10 text-center">

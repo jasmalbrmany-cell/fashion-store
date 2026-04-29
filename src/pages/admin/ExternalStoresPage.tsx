@@ -13,7 +13,7 @@ interface ExternalStore {
   name: string;
   url: string;
   username?: string;
-  password?: string;
+  encrypted_api_key?: string;
   created_at: string;
 }
 
@@ -32,7 +32,7 @@ const ExternalStoresPage: React.FC = () => {
     name: '',
     url: '',
     username: '',
-    password: ''
+    encrypted_api_key: ''
   });
 
   useEffect(() => {
@@ -80,11 +80,11 @@ const ExternalStoresPage: React.FC = () => {
         name: store.name,
         url: store.url,
         username: store.username || '',
-        password: store.password || ''
+        encrypted_api_key: store.encrypted_api_key || ''
       });
     } else {
       setEditingStore(null);
-      setFormData({ name: '', url: '', username: '', password: '' });
+      setFormData({ name: '', url: '', username: '', encrypted_api_key: '' });
     }
     setIsModalOpen(true);
   };
@@ -114,7 +114,7 @@ const ExternalStoresPage: React.FC = () => {
         name: formData.name,
         url: cleanUrl,
         username: formData.username,
-        password: formData.password,
+        encrypted_api_key: formData.encrypted_api_key,
         created_at: editingStore?.created_at || new Date().toISOString()
       };
       
@@ -144,7 +144,7 @@ const ExternalStoresPage: React.FC = () => {
         name: formData.name,
         url: cleanUrl,
         username: formData.username,
-        password: formData.password
+        encrypted_api_key: formData.encrypted_api_key
       };
       if (editingStore) {
         const { error } = await withTimeout(
@@ -182,7 +182,7 @@ const ExternalStoresPage: React.FC = () => {
       name: formData.name,
       url: cleanUrl,
       username: formData.username,
-      password: formData.password,
+      encrypted_api_key: formData.encrypted_api_key,
       created_at: editingStore?.created_at || new Date().toISOString()
     };
     
@@ -309,7 +309,7 @@ const ExternalStoresPage: React.FC = () => {
                   </div>
                   <div className="flex items-center gap-3 text-sm text-gray-600">
                     <Key className="w-4 h-4 text-gray-400" />
-                    <span className="font-mono">{store.password ? '••••••••' : '---'}</span>
+                    <span className="font-mono">{store.encrypted_api_key ? '••••••••' : '---'}</span>
                   </div>
                 </div>
               </div>
@@ -371,21 +371,21 @@ const ExternalStoresPage: React.FC = () => {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-black uppercase tracking-widest text-red-500 px-1">
-                      {isRTL ? 'كلمة المرور (نص واضح)' : 'Password (Plaintext)'}
+                    <label className="text-xs font-black uppercase tracking-widest text-emerald-500 px-1">
+                      {isRTL ? 'مفتاح الوصول (API Key)' : 'API Key / Secret'}
                     </label>
                     <div className="relative">
                       <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                       <input
                         type="password"
-                        value={formData.password}
-                        onChange={e => setFormData({ ...formData, password: e.target.value })}
+                        value={formData.encrypted_api_key}
+                        onChange={e => setFormData({ ...formData, encrypted_api_key: e.target.value })}
                         placeholder="••••••••"
-                        className={`w-full ${isRTL ? 'pr-5 pl-12' : 'pl-12 pr-5'} py-4 bg-gray-50 border border-red-100 rounded-2xl focus:bg-white focus:border-red-400 outline-none transition-all font-bold`}
+                        className={`w-full ${isRTL ? 'pr-5 pl-12' : 'pl-12 pr-5'} py-4 bg-gray-50 border border-emerald-100 rounded-2xl focus:bg-white focus:border-emerald-400 outline-none transition-all font-bold`}
                       />
                     </div>
-                    <p className="text-[10px] text-red-400 font-bold px-1 italic">
-                      {isRTL ? '⚠️ تحذير: يتم تخزين كلمة المرور كنص غير مشفر. استخدم API Keys فقط إن أمكن.' : '⚠️ Warning: Password stored in plaintext. Use API Keys instead if possible.'}
+                    <p className="text-[10px] text-emerald-500 font-bold px-1 italic">
+                      {isRTL ? '✅ سيتم تخزين هذا المفتاح بشكل آمن.' : '✅ This key will be stored securely.'}
                     </p>
                   </div>
                 </div>

@@ -76,6 +76,8 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
             wrapperClassName={`w-full h-full object-cover transition-all duration-700 ease-out z-0 ${isHovered && secondaryImage ? 'scale-110 opacity-0' : 'scale-100 opacity-100'} ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
             className="w-full h-full object-cover"
             afterLoad={() => setImageLoaded(true)}
+            placeholder={<div className="absolute inset-0 bg-zinc-200 dark:bg-zinc-800 animate-pulse" />}
+            useIntersectionObserver={true}
           />
           {secondaryImage && (
             <LazyLoadImage 
@@ -84,6 +86,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
                effect="blur"
                wrapperClassName={`absolute inset-0 w-full h-full object-cover transition-all duration-700 ease-out z-0 ${isHovered ? 'scale-105 opacity-100' : 'scale-100 opacity-0'}`}
                className="w-full h-full object-cover"
+               useIntersectionObserver={true}
             />
           )}
 
