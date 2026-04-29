@@ -286,47 +286,66 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // ── Step 1: Authenticate with Supabase ──────────────────────────────
     let authData: any;
     try {
-      console.log('Attempting login via proxy...');
       const normalizedEmail = email.trim().toLowerCase();
-      const { data, error } = await withTimeout(supabase.auth.signInWithPassword({
-        email: normalizedEmail,
-        password,
-      }), 45000);
+      const isNetworkishError = (msg: string) => /timeout|gateway timeout|failed to fetch|network|abort/i.test(msg || '');
 
-      if (error && /timeout|gateway timeout|failed to fetch|network/i.test(error.message || '')) {
-        // Fallback attempt: direct Supabase auth if proxy is slow/unavailable
+      const attemptSignIn = async (client: any) => {
+        return withTimeout(client.auth.signInWithPassword({
+          email: normalizedEmail,
+          password,
+        }), 30000);
+      };
+
+      let primaryResult = await attemptSignIn(supabase);
+
+      if (primaryResult?.error && isNetworkishError(primaryResult.error.message || '')) {
+        const attempts: any[] = [];
+
+        // Try direct client
         const directUrl = import.meta.env.VITE_SUPABASE_URL || '';
         const directAnon = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
         if (directUrl && directAnon) {
-          const directClient = createClient(directUrl, directAnon, {
+          attempts.push(createClient(directUrl, directAnon, {
             auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: true },
             global: { headers: { apikey: directAnon } },
-          });
-          const directResult = await withTimeout(directClient.auth.signInWithPassword({
-            email: normalizedEmail,
-            password,
-          }), 45000);
-          authData = directResult.data;
-        } else {
-          setIsLoading(false);
-          return { success: false, error: 'timeout' };
-        }
-      } else {
-        if (error) {
-          setIsLoading(false);
-          if (error.message.includes('confirmed')) return { success: false, error: 'email_not_confirmed' };
-          if (/timeout|gateway timeout|failed to fetch|network/i.test(error.message || '')) return { success: false, error: 'timeout' };
-          return { success: false, error: `auth_error:${error.message}` };
+          }));
         }
 
-        if (!data?.user) {
-          setIsLoading(false);
-          return { success: false, error: 'unknown' };
+        // Try proxy client
+        if (typeof window !== 'undefined' && directAnon) {
+          attempts.push(createClient(`${window.location.origin}/api/sb`, directAnon, {
+            auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: true },
+            global: { headers: { apikey: directAnon } },
+          }));
         }
 
-        authData = data;
+        for (const client of attempts) {
+          try {
+            const result = await attemptSignIn(client);
+            if (!result?.error && result?.data?.user) {
+              primaryResult = result;
+              break;
+            }
+          } catch (fallbackErr) {
+            // Continue to next fallback
+          }
+        }
       }
 
+      const { data, error } = primaryResult;
+      if (error) {
+        setIsLoading(false);
+        if (error.message.includes('confirmed')) return { success: false, error: 'email_not_confirmed' };
+        if (isNetworkishError(error.message || '')) return { success: false, error: 'timeout' };
+        return { success: false, error: `auth_error:${error.message}` };
+      }
+
+      if (!data?.user) {
+        setIsLoading(false);
+        return { success: false, error: 'unknown' };
+      }
+
+      authData = data;
       if (!authData?.user) {
         setIsLoading(false);
         return { success: false, error: 'unknown' };

@@ -20,11 +20,11 @@ const getInitialClientUrl = (): string => {
 
   if (typeof window !== 'undefined') {
     const cachedMode = localStorage.getItem(DIRECT_MODE_KEY);
-    if (cachedMode === 'true') return originalSupabaseUrl;
     if (cachedMode === 'false') return getProxyUrl();
   }
 
-  return getProxyUrl();
+  // Prefer direct by default; fallback logic in auth/service handles network failures.
+  return originalSupabaseUrl;
 };
 
 // Smart Gateway: Detection of direct connection availability
