@@ -4,9 +4,31 @@ import type { Database } from '@/types/database';
 // Supabase configuration
 const originalSupabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+const forceProxy = String(import.meta.env.VITE_SUPABASE_FORCE_PROXY || '').toLowerCase() === 'true';
+
+const PROXY_PATH = '/api/sb';
+const DIRECT_MODE_KEY = 'supabase_use_direct';
+
+const getProxyUrl = (): string => {
+  if (typeof window === 'undefined') return PROXY_PATH;
+  return `${window.location.origin}${PROXY_PATH}`;
+};
+
+const getInitialClientUrl = (): string => {
+  if (!originalSupabaseUrl) return getProxyUrl();
+  if (forceProxy) return getProxyUrl();
+
+  if (typeof window !== 'undefined') {
+    const cachedMode = localStorage.getItem(DIRECT_MODE_KEY);
+    if (cachedMode === 'true') return originalSupabaseUrl;
+    if (cachedMode === 'false') return getProxyUrl();
+  }
+
+  return getProxyUrl();
+};
 
 // Smart Gateway: Detection of direct connection availability
-let clientSupabaseUrl = typeof window !== 'undefined' ? `${window.location.origin}/api/sb` : '/api/sb';
+const clientSupabaseUrl = getInitialClientUrl();
 
 if (typeof window !== 'undefined' && originalSupabaseUrl) {
   // Try to see if we can reach Supabase directly (bypassing ISP blocks)
@@ -28,19 +50,16 @@ if (typeof window !== 'undefined' && originalSupabaseUrl) {
         // Update the client instance if possible or just use a flag
         // Since the client is already created, we might need a more dynamic approach
         // But for most requests, we'll use this detection
-        localStorage.setItem('supabase_use_direct', 'true');
+        localStorage.setItem(DIRECT_MODE_KEY, 'true');
       }
     } catch (e) {
       console.log('🔌 Direct connection blocked or slow. Using Vercel Proxy Gateway.');
-      localStorage.setItem('supabase_use_direct', 'false');
+      localStorage.setItem(DIRECT_MODE_KEY, 'false');
     }
   };
-  
-  checkDirectConnection();
-  
-  // If we already know from a previous session that direct works, use it immediately
-  if (localStorage.getItem('supabase_use_direct') === 'true') {
-    clientSupabaseUrl = originalSupabaseUrl;
+
+  if (!forceProxy) {
+    checkDirectConnection();
   }
 }
 

@@ -62,6 +62,7 @@ export interface Category {
   icon?: string;
   parentId?: string;
   order: number;
+  whatsappNumber?: string;
 }
 
 // Cart Types

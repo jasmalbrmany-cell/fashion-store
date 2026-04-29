@@ -23,6 +23,7 @@ export interface CategoryRow {
   icon: string | null;
   parent_id: string | null;
   order: number;
+  whatsapp_number: string | null;
   created_at: string;
   updated_at: string;
 }

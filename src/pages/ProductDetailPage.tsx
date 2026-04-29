@@ -2,11 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Heart, ShoppingCart, Minus, Plus, Star, Check, ChevronLeft, ChevronRight, Package, Loader2 } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
-import { productsService, categoriesService } from '@/services/api';
+import { productsService, categoriesService, storeSettingsService } from '@/services/api';
 import { Product, ProductSize, ProductColor, Category } from '@/types';
 import { useLanguage, categoryNames } from '@/context/LanguageContext';
 import { ProductCard } from '@/components/Product';
-import { supabase } from '@/lib/supabase';
 
 const ProductDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -65,9 +64,9 @@ const ProductDetailPage: React.FC = () => {
 
           // Fetch store settings for WhatsApp
           try {
-            const { data: settings } = await (supabase as any).from('store_settings').select('whatsapp_main').single();
-            if (settings?.whatsapp_main) {
-              setWhatsappNumber(settings.whatsapp_main);
+            const settings = await storeSettingsService.get();
+            if (settings?.socialLinks?.whatsapp) {
+              setWhatsappNumber(settings.socialLinks.whatsapp);
             }
           } catch (e) {
             console.warn('Could not fetch WhatsApp number, using default');
@@ -158,11 +157,12 @@ const ProductDetailPage: React.FC = () => {
   };
 
   const handleWhatsAppOrder = () => {
+    const finalWhatsAppNumber = category?.whatsappNumber || whatsappNumber;
     const message = isRTL 
       ? `مرحباً، أود الاستفسار عن هذا المنتج:\n*${product.name}*\n💰 السعر: ${formatPrice(finalPrice)} ر.ي\n📏 المقاس: ${selectedSize?.name || 'غير محدد'}\n🎨 اللون: ${selectedColor?.name || 'غير محدد'}\n🔗 الرابط: ${window.location.href}`
       : `Hello, I'd like to inquire about this product:\n*${product.name}*\n💰 Price: ${formatPrice(finalPrice)} YER\n📏 Size: ${selectedSize?.name || 'Not specified'}\n🎨 Color: ${selectedColor?.name || 'Not specified'}\n🔗 Link: ${window.location.href}`;
     
-    window.open(`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`, '_blank');
+    window.open(`https://wa.me/${finalWhatsAppNumber}?text=${encodeURIComponent(message)}`, '_blank');
   };
 
   const BreadcrumbIcon = isRTL ? ChevronLeft : ChevronRight;
@@ -313,7 +313,7 @@ const ProductDetailPage: React.FC = () => {
                            {isRTL ? 'قياسات المقاس' : 'Product Measurements'} {selectedSize.name}
                         </p>
                         <div className="text-sm font-bold text-gray-700 leading-relaxed">
-                          {selectedSize.measurements.split(/[،,]/).map((m, i) => (
+                          {selectedSize.measurements.split(/\n|،|,/).map((m, i) => (
                             <span key={i} className="inline-block bg-white px-2 py-1 rounded-md border mr-2 mb-2 shadow-sm">
                               {m.trim()}
                             </span>

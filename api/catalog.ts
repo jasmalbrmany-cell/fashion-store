@@ -1,10 +1,12 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { load } from 'cheerio';
 import { createClient } from '@supabase/supabase-js';
+import { scrapeWithFirecrawl } from './_lib/firecrawl';
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '';
 const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || '';
+const FIRECRAWL_API_KEY = process.env.FIRECRAWL_API_KEY || '';
 
 const USER_AGENTS = [
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
@@ -49,7 +51,7 @@ async function fetchHTML(url: string, timeout = 8000): Promise<string> {
     try {
       const res = await fetch(proxy, { signal: c.signal });
       if (res.ok) return await res.text();
-    } catch { /* next */ } finally { clearTimeout(timer); }
+    } catch (err) { console.warn(`[Catalog] Proxy fetch failed for ${proxy}:`, err); } finally { clearTimeout(timer); }
   }
   return '';
 }
@@ -75,6 +77,13 @@ function scrapeSheinCategory(html: string, url: string) {
   } catch { return []; }
 }
 
+function normalizeCurrency(url: string): string {
+  const urlL = url.toLowerCase();
+  if (urlL.includes('.ye') || urlL.includes('yemen')) return 'YER';
+  if (urlL.includes('.sa') || urlL.includes('zahraah')) return 'SAR';
+  return 'USD';
+}
+
 // ─── Main Handler ─────────────────────────────────────────────────────────────
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -84,7 +93,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   try {
-    const { url } = req.body || {};
+    const { url, page = 1 } = req.body || {};
     if (!url) return res.status(400).json({ success: false, error: 'URL is required' });
 
     const urlL = url.toLowerCase();
@@ -97,7 +106,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (urlL.includes('shein.com')) {
       products = scrapeSheinCategory(html, url);
       strategy = 'shein';
-    } else {
+    } else if (FIRECRAWL_API_KEY) {
+      const firecrawlProds = await scrapeWithFirecrawl(url, FIRECRAWL_API_KEY);
+      if (firecrawlProds.length > 0) {
+        products = firecrawlProds;
+        strategy = 'firecrawl';
+      }
+    }
+
+    if (products.length === 0 && !urlL.includes('shein.com')) {
       // Use Cheerio for all other sites (Zahraah, WooCommerce, Shopify, etc.)
       const $ = load(html);
       const base = new URL(url).origin;
@@ -120,7 +137,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               });
             }
           });
-        } catch {}
+        } catch (e) { console.debug('[Catalog] JSON-LD parse failed:', e); }
       });
 
       // 2. CSS Selectors (Zahraah/Salla/Woo)
@@ -158,7 +175,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           if (products.length >= 10) break;
         }
       }
-      strategy = seen.size > 0 ? 'scrape' : 'none';
+      strategy = products.length > 0 ? 'scrape' : 'none';
     }
 
     // Normalized for frontend
@@ -167,20 +184,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       let finalImg = p.image || '';
       if (finalImg.startsWith('//')) finalImg = 'https:' + finalImg;
       else if (finalImg.startsWith('/')) finalImg = new URL(url).origin + finalImg;
+      const finalHref = (p.href || '').startsWith('/')
+        ? new URL(url).origin + p.href
+        : (p.href || '');
 
       return {
         id: Math.random().toString(36).substr(2, 9),
-        name: p.name,
+        name: String(p.name || '').trim(),
         description: '',
-        price: p.price,
-        currency: (urlL.includes('.ye') || urlL.includes('yemen')) ? 'YER' : (urlL.includes('.sa') || urlL.includes('zahraah') ? 'SAR' : 'USD'),
+        price: Number.isFinite(Number(p.price)) ? Number(p.price) : 0,
+        currency: normalizeCurrency(url),
         images: finalImg ? [finalImg] : [],
         sizes: ['حسب الطلب'],
         colors: [{ name: 'متعدد', hex: '#888888' }],
-        sourceUrl: p.href,
+        sourceUrl: finalHref,
         category: '',
       };
-    }).filter(p => p.name && p.price >= 0);
+    }).filter(p => p.name.length > 0 && p.sourceUrl.length > 0);
+
+    const pageSize = 24;
+    const start = Math.max(0, (Number(page) - 1) * pageSize);
+    const pagedProducts = normalized.slice(start, start + pageSize);
+    const hasMore = start + pageSize < normalized.length;
 
     if (normalized.length === 0 && strategy === 'none') {
        return res.status(200).json({
@@ -193,8 +218,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).json({
       success: normalized.length > 0,
       strategy,
-      products: normalized,
-      hasMore: false
+      products: pagedProducts,
+      hasMore,
+      nextPage: hasMore ? Number(page) + 1 : null
     });
 
   } catch (err: any) {

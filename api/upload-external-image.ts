@@ -25,7 +25,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const { url } = req.body;
+    const { url, target = 'products' } = req.body;
     if (!url) {
       return res.status(400).json({ error: 'Image URL is required' });
     }
@@ -60,29 +60,39 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const arrayBuffer = await imageResponse.arrayBuffer();
     const originalBuffer = Buffer.from(arrayBuffer);
+    const incomingContentType = imageResponse.headers.get('content-type') || '';
+    const isVideo = incomingContentType.startsWith('video/');
 
     // Skip files that are too large
     if (originalBuffer.length > MAX_FILE_SIZE) {
       throw new Error('Image too large (max 5MB)');
     }
 
-    // Compress and resize using sharp
+    // Compress and resize using sharp for images only
     let compressedBuffer: Buffer;
     let finalContentType = 'image/jpeg';
+    let extension = 'jpg';
 
-    try {
-      compressedBuffer = await sharp(originalBuffer)
-        .resize(MAX_WIDTH, undefined, { 
-          withoutEnlargement: true,  // Don't upscale small images
-          fit: 'inside' 
-        })
-        .jpeg({ quality: JPEG_QUALITY, progressive: true })
-        .toBuffer();
-    } catch (sharpError) {
-      // If sharp fails (e.g. unsupported format), fall back to original
-      console.warn('Sharp compression failed, using original:', sharpError);
+    if (isVideo) {
       compressedBuffer = originalBuffer;
-      finalContentType = imageResponse.headers.get('content-type') || 'image/jpeg';
+      finalContentType = incomingContentType || 'video/mp4';
+      extension = finalContentType.includes('webm') ? 'webm' : 'mp4';
+    } else {
+      try {
+        compressedBuffer = await sharp(originalBuffer)
+          .resize(MAX_WIDTH, undefined, { 
+            withoutEnlargement: true,  // Don't upscale small images
+            fit: 'inside' 
+          })
+          .jpeg({ quality: JPEG_QUALITY, progressive: true })
+          .toBuffer();
+      } catch (sharpError) {
+        // If sharp fails (e.g. unsupported format), fall back to original
+        console.warn('Sharp compression failed, using original:', sharpError);
+        compressedBuffer = originalBuffer;
+        finalContentType = incomingContentType || 'image/jpeg';
+        extension = finalContentType.includes('png') ? 'png' : 'jpg';
+      }
     }
 
     const savedPercent = originalBuffer.length > 0 
@@ -90,11 +100,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       : 0;
 
     // Generate a unique filename
-    const filename = `${Date.now()}-${Math.random().toString(36).substring(7)}.jpg`;
+    const filename = `${Date.now()}-${Math.random().toString(36).substring(7)}.${extension}`;
+    const bucket = target === 'ads' ? 'products' : 'products';
     
     // Upload to Supabase Storage
     const { data, error } = await supabase.storage
-      .from('products')
+      .from(bucket)
       .upload(filename, compressedBuffer, {
         contentType: finalContentType,
         cacheControl: '31536000', // Cache for 1 year (immutable content)
@@ -108,7 +119,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Get the public URL
     const { data: publicUrlData } = supabase.storage
-      .from('products')
+      .from(bucket)
       .getPublicUrl(data.path);
 
     return res.status(200).json({ 
@@ -118,6 +129,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       originalSize: originalBuffer.length,
       compressedSize: compressedBuffer.length,
       savedPercent,
+      mediaType: isVideo ? 'video' : 'image',
     });
 
   } catch (error: any) {

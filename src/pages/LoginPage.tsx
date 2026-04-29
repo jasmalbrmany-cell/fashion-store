@@ -63,10 +63,18 @@ const LoginPage: React.FC = () => {
         setError(language === 'ar' ? 'انتهى وقت الاتصال (Timeout). الخادم لا يستجيب.' : 'Connection timeout. Server not responding.');
       } else if (result.error?.startsWith('auth_error:')) {
         const msg = result.error.split(':')[1];
-        setError(`رسالة من قاعدة البيانات: ${msg}`);
+        if (/timeout|gateway timeout|failed to fetch|network/i.test(msg || '')) {
+          setError(language === 'ar' ? 'انتهى وقت الاتصال (Timeout). حاول مرة أخرى خلال دقيقة.' : 'Connection timeout. Please try again in a minute.');
+        } else {
+          setError(`رسالة من قاعدة البيانات: ${msg}`);
+        }
       } else if (result.error?.startsWith('unknown:')) {
         const msg = result.error.split(':')[1];
-        setError(`خطأ غير معروف: ${msg}`);
+        if (/timeout|gateway timeout|failed to fetch|network/i.test(msg || '')) {
+          setError(language === 'ar' ? 'انتهى وقت الاتصال (Timeout). تحقق من الشبكة ثم أعد المحاولة.' : 'Connection timeout. Check network and retry.');
+        } else {
+          setError(`خطأ غير معروف: ${msg}`);
+        }
       } else {
         setError(t.invalidCredentials);
       }

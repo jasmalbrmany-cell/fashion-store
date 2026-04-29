@@ -3,6 +3,7 @@ import { User, UserRole } from '@/types';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import type { Database } from '@/types/database';
 import { withTimeout } from '@/services/api';
+import { createClient } from '@supabase/supabase-js';
 
 type ProfileRow = Database['public']['Tables']['profiles']['Row'];
 
@@ -286,28 +287,55 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     let authData: any;
     try {
       console.log('Attempting login via proxy...');
+      const normalizedEmail = email.trim().toLowerCase();
       const { data, error } = await withTimeout(supabase.auth.signInWithPassword({
-        email: email.trim().toLowerCase(),
+        email: normalizedEmail,
         password,
-      }), 60000); // Increased to 60s for slow connections
+      }), 45000);
 
-      if (error) {
-        setIsLoading(false);
-        if (error.message.includes('confirmed')) return { success: false, error: 'email_not_confirmed' };
-        return { success: false, error: `auth_error:${error.message}` };
+      if (error && /timeout|gateway timeout|failed to fetch|network/i.test(error.message || '')) {
+        // Fallback attempt: direct Supabase auth if proxy is slow/unavailable
+        const directUrl = import.meta.env.VITE_SUPABASE_URL || '';
+        const directAnon = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+        if (directUrl && directAnon) {
+          const directClient = createClient(directUrl, directAnon, {
+            auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: true },
+            global: { headers: { apikey: directAnon } },
+          });
+          const directResult = await withTimeout(directClient.auth.signInWithPassword({
+            email: normalizedEmail,
+            password,
+          }), 45000);
+          authData = directResult.data;
+        } else {
+          setIsLoading(false);
+          return { success: false, error: 'timeout' };
+        }
+      } else {
+        if (error) {
+          setIsLoading(false);
+          if (error.message.includes('confirmed')) return { success: false, error: 'email_not_confirmed' };
+          if (/timeout|gateway timeout|failed to fetch|network/i.test(error.message || '')) return { success: false, error: 'timeout' };
+          return { success: false, error: `auth_error:${error.message}` };
+        }
+
+        if (!data?.user) {
+          setIsLoading(false);
+          return { success: false, error: 'unknown' };
+        }
+
+        authData = data;
       }
 
-      if (!data?.user) {
+      if (!authData?.user) {
         setIsLoading(false);
         return { success: false, error: 'unknown' };
       }
-
-      authData = data;
     } catch (e: any) {
       console.error('Auth signIn error:', e);
       setIsLoading(false);
       const msg = e?.message || '';
-      if (msg.includes('Timeout') || msg.includes('timeout')) return { success: false, error: 'timeout' };
+      if (msg.includes('Timeout') || msg.includes('timeout') || msg.includes('Gateway')) return { success: false, error: 'timeout' };
       return { success: false, error: `unknown:${msg}` };
     }
 

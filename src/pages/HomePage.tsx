@@ -168,7 +168,7 @@ const HomePage: React.FC = () => {
                   <>
                     <div className="row-span-2 rounded-[2.5rem] overflow-hidden shadow-2xl relative group">
                       {activeBanners[currentBanner].type === 'video' ? (
-                        <video src={activeBanners[currentBanner].imageUrl} className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700" autoPlay muted loop playsInline />
+                        <video src={activeBanners[currentBanner].videoUrl || activeBanners[currentBanner].imageUrl} className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700" autoPlay muted loop playsInline />
                       ) : (
                         <LazyLoadImage 
                           src={activeBanners[currentBanner].imageUrl} 
@@ -291,7 +291,7 @@ const HomePage: React.FC = () => {
             <div className="rounded-3xl overflow-hidden shadow-xl border border-gray-100 flex justify-center items-center relative min-h-[150px] md:min-h-[250px]">
               {inlineAds[0].imageUrl ? (
                 inlineAds[0].type === 'video' ? (
-                  <video src={inlineAds[0].imageUrl} className="w-full h-full object-cover" autoPlay muted loop playsInline />
+                  <video src={inlineAds[0].videoUrl || inlineAds[0].imageUrl} className="w-full h-full object-cover" autoPlay muted loop playsInline />
                 ) : (
                   <LazyLoadImage 
                     src={inlineAds[0].imageUrl} 

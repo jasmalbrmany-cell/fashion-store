@@ -1,6 +1,6 @@
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import type { Ad } from '@/types';
-import { withTimeout, getFromCache, setToCache, transformAd } from './helpers';
+import { withTimeout, getFromCache, setToCache, transformAd, clearCache } from './helpers';
 
 export const adsService = {
   async getActive(): Promise<Ad[]> {
@@ -86,7 +86,7 @@ export const adsService = {
       return null;
     }
 
-    const { data, error } = await (supabase as any)
+    const fetchPromise = (supabase as any)
       .from('ads')
       .insert({
         title: ad.title || '',
@@ -102,11 +102,15 @@ export const adsService = {
       .select()
       .single();
 
+    const { data, error } = await withTimeout(fetchPromise, 15000);
+
     if (error) {
       console.error('Error creating ad:', error);
       throw new Error(error.message);
     }
 
+    clearCache('ads_all');
+    clearCache('ads_active');
     return transformAd(data);
   },
 
@@ -115,7 +119,7 @@ export const adsService = {
       return null;
     }
 
-    const { data, error } = await (supabase as any)
+    const fetchPromise = (supabase as any)
       .from('ads')
       .update({
         title: updates.title,
@@ -132,11 +136,15 @@ export const adsService = {
       .select()
       .single();
 
+    const { data, error } = await withTimeout(fetchPromise, 15000);
+
     if (error) {
       console.error('Error updating ad:', error);
       throw new Error(error.message);
     }
 
+    clearCache('ads_all');
+    clearCache('ads_active');
     return transformAd(data);
   },
 
@@ -145,16 +153,20 @@ export const adsService = {
       return false;
     }
 
-    const { error } = await (supabase as any)
+    const fetchPromise = (supabase as any)
       .from('ads')
       .delete()
       .eq('id', id);
+
+    const { error } = await withTimeout(fetchPromise, 15000);
 
     if (error) {
       console.error('Error deleting ad:', error);
       return false;
     }
 
+    clearCache('ads_all');
+    clearCache('ads_active');
     return true;
   },
 };

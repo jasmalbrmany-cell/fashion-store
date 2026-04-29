@@ -55,6 +55,7 @@ export const categoriesService = {
           icon: category.icon,
           parent_id: category.parentId || null,
           order: category.order || 0,
+          whatsapp_number: category.whatsappNumber || null,
         })
         .select()
         .single();
@@ -85,6 +86,7 @@ export const categoriesService = {
           icon: updates.icon,
           parent_id: updates.parentId !== undefined ? (updates.parentId || null) : undefined,
           order: updates.order,
+          whatsapp_number: updates.whatsappNumber !== undefined ? (updates.whatsappNumber || null) : undefined,
         })
         .eq('id', id)
         .select()

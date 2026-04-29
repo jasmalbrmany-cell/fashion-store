@@ -21,6 +21,7 @@ const AdsPage: React.FC = () => {
     type: 'image' as AdType,
     content: '',
     imageUrl: '',
+    videoUrl: '',
     link: '',
     position: 'top' as AdPosition,
     isActive: true,
@@ -61,6 +62,7 @@ const AdsPage: React.FC = () => {
         type: ad.type,
         content: ad.content,
         imageUrl: ad.imageUrl || '',
+        videoUrl: ad.videoUrl || '',
         link: ad.link || '',
         position: ad.position,
         isActive: ad.isActive,
@@ -72,6 +74,7 @@ const AdsPage: React.FC = () => {
         type: 'image',
         content: '',
         imageUrl: '',
+        videoUrl: '',
         link: '',
         position: 'top',
         isActive: true,
@@ -90,11 +93,26 @@ const AdsPage: React.FC = () => {
     setIsSubmitting(true);
 
     try {
+      const payload = {
+        ...formData,
+        content: formData.type === 'text' ? formData.content : '',
+        imageUrl: formData.type === 'image' ? formData.imageUrl : '',
+        videoUrl: formData.type === 'video' ? formData.videoUrl : '',
+        link: formData.link || undefined,
+      };
+
+      if (payload.type === 'image' && !payload.imageUrl) {
+        throw new Error(isRTL ? 'يرجى رفع صورة أو وضع رابط صورة' : 'Please upload an image or provide image URL');
+      }
+      if (payload.type === 'video' && !payload.videoUrl && !payload.link) {
+        throw new Error(isRTL ? 'يرجى رفع فيديو مباشر أو وضع رابط فيديو خارجي' : 'Please upload a direct video or provide external video link');
+      }
+
       if (editingAd) {
-        await adsService.update(editingAd.id, formData);
+        await adsService.update(editingAd.id, payload);
       } else {
         await adsService.create({
-          ...formData,
+          ...payload,
           order: ads.length + 1
         });
       }
@@ -168,12 +186,12 @@ const AdsPage: React.FC = () => {
           const fileName = `ads/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
           
           const { data, error: uploadError } = await supabase.storage
-            .from('product-images') // Reusing the public bucket
+            .from('products') // Reusing the 'products' bucket as per SUPER_FIX_DB.sql
             .upload(fileName, file, { cacheControl: '3600', upsert: false });
 
           if (!uploadError && data) {
             const { data: publicData } = supabase.storage
-              .from('product-images')
+              .from('products')
               .getPublicUrl(data.path);
             uploadedUrl = publicData.publicUrl;
           }
@@ -192,11 +210,17 @@ const AdsPage: React.FC = () => {
         uploadedUrl = await fileToBase64(file);
       }
 
-      setFormData(prev => ({ 
-        ...prev, 
-        imageUrl: uploadedUrl,
-        type: fileType
-      }));
+      setFormData(prev => {
+        const newData = {
+          ...prev,
+          type: fileType,
+          imageUrl: fileType === 'image' ? uploadedUrl : '',
+          videoUrl: fileType === 'video' ? uploadedUrl : '',
+        };
+        // If it's a video, we might want to clear the content field
+        if (fileType === 'video') newData.content = '';
+        return newData;
+      });
       
     } catch (err) {
       console.error(err);
@@ -204,6 +228,31 @@ const AdsPage: React.FC = () => {
     } finally {
       setIsUploading(false);
     }
+  };
+
+  const handleUrlChange = (url: string) => {
+    let type: AdType = formData.type;
+    
+    // Auto-detect social media video links
+    if (url.includes('tiktok.com') || url.includes('instagram.com/reels') || url.includes('youtube.com/shorts') || url.includes('vimeo.com')) {
+      type = 'video';
+    } else if (url.match(/\.(jpeg|jpg|gif|png|webp)$/i)) {
+      type = 'image';
+    } else if (url.match(/\.(mp4|webm|ogg)$/i)) {
+      type = 'video';
+    }
+
+    const isDirectImage = !!url.match(/\.(jpeg|jpg|gif|png|webp)$/i);
+    const isDirectVideo = !!url.match(/\.(mp4|webm|ogg)$/i);
+    const isSocialVideo = url.includes('tiktok.com') || url.includes('instagram.com/reels') || url.includes('youtube.com/shorts') || url.includes('youtu.be') || url.includes('youtube.com/watch') || url.includes('vimeo.com');
+
+    setFormData(prev => ({
+      ...prev,
+      type,
+      imageUrl: type === 'image' ? url : '',
+      videoUrl: type === 'video' && isDirectVideo ? url : '',
+      link: type === 'video' && (isSocialVideo || (!isDirectVideo && !isDirectImage)) ? url : prev.link,
+    }));
   };
 
   const getTypeIcon = (type: AdType) => {
@@ -292,9 +341,9 @@ const AdsPage: React.FC = () => {
             >
                 {/* Visual Preview */}
                 <div className="h-48 bg-gray-100 relative overflow-hidden group-hover:scale-[1.02] transition-transform duration-500">
-                    {ad.imageUrl ? (
+                    {(ad.type === 'video' ? ad.videoUrl : ad.imageUrl) ? (
                         ad.type === 'video' ? (
-                          <video src={ad.imageUrl} className="w-full h-full object-cover" controls muted />
+                          <video src={ad.videoUrl} className="w-full h-full object-cover" controls muted />
                         ) : (
                           <img src={ad.imageUrl} alt={ad.title} className="w-full h-full object-cover" />
                         )
@@ -406,7 +455,15 @@ const AdsPage: React.FC = () => {
                   <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 px-2">{t.adType}</label>
                   <select
                     value={formData.type}
-                    onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value as AdType }))}
+                    onChange={(e) =>
+                      setFormData(prev => ({
+                        ...prev,
+                        type: e.target.value as AdType,
+                        content: e.target.value === 'text' ? prev.content : '',
+                        imageUrl: e.target.value === 'image' ? prev.imageUrl : '',
+                        videoUrl: e.target.value === 'video' ? prev.videoUrl : '',
+                      }))
+                    }
                     className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-black outline-none font-black shadow-sm"
                   >
                     <option value="image">{t.imageType}</option>
@@ -436,16 +493,16 @@ const AdsPage: React.FC = () => {
                     {isRTL ? 'رفع صورة أو فيديو الإعلان' : 'Upload Ad Image or Video'}
                   </label>
                   
-                  {formData.imageUrl ? (
+                  {(formData.type === 'video' ? formData.videoUrl : formData.imageUrl) ? (
                     <div className="relative rounded-2xl overflow-hidden bg-gray-100 border border-gray-200">
                       {formData.type === 'video' ? (
-                        <video src={formData.imageUrl} className="w-full h-48 object-cover" controls />
+                        <video src={formData.videoUrl} className="w-full h-48 object-cover" controls />
                       ) : (
                         <img src={formData.imageUrl} alt="preview" className="w-full h-48 object-cover" />
                       )}
                       <button
                         type="button"
-                        onClick={() => setFormData(p => ({ ...p, imageUrl: '' }))}
+                        onClick={() => setFormData(p => ({ ...p, imageUrl: '', videoUrl: '' }))}
                         className="absolute top-2 right-2 bg-black/50 hover:bg-black text-white p-2 rounded-full transition"
                       >
                         <X className="w-4 h-4" />
@@ -476,17 +533,57 @@ const AdsPage: React.FC = () => {
                   
                   <div className="flex items-center gap-2">
                       <div className="h-px bg-gray-200 flex-1"></div>
+                      <span className="text-xs font-bold text-gray-400 uppercase">{isRTL ? 'معاينة مباشرة' : 'Live Preview'}</span>
+                      <div className="h-px bg-gray-200 flex-1"></div>
+                  </div>
+
+                  {/* Live Preview Card */}
+                  <div className="bg-zinc-900 rounded-[2rem] overflow-hidden aspect-video relative group shadow-2xl">
+                    {formData.imageUrl ? (
+                      formData.type === 'video' ? (
+                        formData.imageUrl.includes('tiktok.com') || formData.imageUrl.includes('instagram.com') ? (
+                          <div className="w-full h-full flex flex-col items-center justify-center text-white bg-black p-4">
+                            <Video className="w-12 h-12 mb-2 animate-pulse text-pink-500" />
+                            <p className="text-[10px] font-black uppercase text-center">{isRTL ? 'رابط تواصل اجتماعي' : 'Social Media Link'}</p>
+                            <p className="text-[8px] text-gray-500 mt-1 truncate max-w-full">{formData.imageUrl}</p>
+                          </div>
+                        ) : (
+                          <video src={formData.imageUrl} className="w-full h-full object-cover" autoPlay muted loop />
+                        )
+                      ) : (
+                        <img src={formData.imageUrl} className="w-full h-full object-cover" alt="Preview" />
+                      )
+                    ) : (
+                      <div className="w-full h-full flex flex-col items-center justify-center text-gray-700 bg-zinc-800">
+                        <ImageIcon className="w-12 h-12 mb-2 opacity-20" />
+                        <p className="text-[10px] font-black uppercase opacity-20">{isRTL ? 'بانتظار الميديا' : 'Waiting for media'}</p>
+                      </div>
+                    )}
+                    <div className="absolute top-4 left-4 bg-white/20 backdrop-blur-md px-3 py-1 rounded-full border border-white/30">
+                      <span className="text-[8px] font-black text-white uppercase tracking-widest">{getPositionLabel(formData.position)}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                      <div className="h-px bg-gray-200 flex-1"></div>
                       <span className="text-xs font-bold text-gray-400 uppercase">{isRTL ? 'أو' : 'OR'}</span>
                       <div className="h-px bg-gray-200 flex-1"></div>
                   </div>
                   
                   <input
                     type="url"
-                    value={formData.imageUrl}
-                    onChange={(e) => setFormData(prev => ({ ...prev, imageUrl: e.target.value }))}
-                    placeholder={isRTL ? 'ألصق رابط مباشر للصورة/الفيديو' : 'Paste an external Image/Video URL'}
+                    value={formData.type === 'video' ? formData.videoUrl : formData.imageUrl}
+                    onChange={(e) => handleUrlChange(e.target.value)}
+                    placeholder={formData.type === 'video'
+                      ? (isRTL ? 'رابط فيديو مباشر أو رابط يوتيوب/تيك توك/إنستغرام' : 'Direct video URL or YouTube/TikTok/Instagram link')
+                      : (isRTL ? 'ألصق رابط مباشر للصورة' : 'Paste a direct image URL')}
                     className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-black outline-none font-bold shadow-sm"
                   />
+                  {formData.type === 'video' && formData.link && (
+                    <p className="text-xs font-bold text-blue-600">
+                      {isRTL ? 'تم تسجيل رابط الفيديو الخارجي، سيُستخدم كرابط إعلان عند العرض.' : 'External video link saved and will be used as ad destination link.'}
+                    </p>
+                  )}
                 </div>
               )}
 

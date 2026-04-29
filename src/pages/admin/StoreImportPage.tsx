@@ -27,6 +27,22 @@ interface CatalogProduct {
   status: 'idle' | 'saving' | 'saved' | 'error';
 }
 
+const normalizeImportedSizes = (sizes: string[]): { id: string; name: string; stock: number; priceModifier: number; measurements?: string }[] => {
+  const normalized = sizes
+    .map(size => size.trim().toUpperCase())
+    .filter(Boolean)
+    .map((name, index) => ({
+      id: `s${index}`,
+      name,
+      stock: 10,
+      priceModifier: 0,
+      measurements: '',
+    }));
+
+  if (normalized.length > 0) return normalized;
+  return [{ id: 's0', name: 'M', stock: 10, priceModifier: 0, measurements: '' }];
+};
+
 const StoreImportPage: React.FC = () => {
   const { isRTL } = useLanguage();
   const navigate = useNavigate();
@@ -250,13 +266,14 @@ const StoreImportPage: React.FC = () => {
           // 📁 AUTO-CATEGORY LOGIC:
           let targetCategoryId = selectedCategory;
           if (prod.category && prod.category.trim()) {
-            const existing = categories.find(c => c.name.toLowerCase() === prod.category.toLowerCase());
+            const normalizedCategoryName = prod.category.trim();
+            const existing = categories.find(c => c.name.toLowerCase() === normalizedCategoryName.toLowerCase());
             if (existing) {
               targetCategoryId = existing.id;
             } else {
               try {
                 const newCat = await categoriesService.create({ 
-                  name: prod.category,
+                  name: normalizedCategoryName,
                   icon: 'Package',
                   order: categories.length
                 });
@@ -276,13 +293,12 @@ const StoreImportPage: React.FC = () => {
             price: prod.price || 0,
             categoryId: targetCategoryId,
             images: processedImages,
-            sizes: prod.sizes.length > 0 
-              ? prod.sizes.map((s, i) => ({ id: `s${i}`, name: s, stock: 10, priceModifier: 0 }))
-              : [{ id: 's0', name: 'حسب الطلب', stock: 10, priceModifier: 0 }],
+            sizes: normalizeImportedSizes(prod.sizes),
             colors: prod.colors.length > 0
               ? prod.colors.map((c, i) => ({ id: `c${i}`, name: c.name, hex: c.hex, stock: 10 }))
               : [{ id: 'c0', name: 'متعدد الألوان', hex: '#888888', stock: 10 }],
-            isVisible: false,
+            // Imported products are visible by default so customers can see them immediately
+            isVisible: true,
             sourceUrl: prod.sourceUrl,
             stock: 10,
           });
@@ -498,8 +514,8 @@ const StoreImportPage: React.FC = () => {
                 <FileText className="w-8 h-8 text-white/50" />
                 <div>
                   <p className="text-sm font-black text-white">{isRTL ? 'استيراد من ملف CSV' : 'Import from CSV File'}</p>
-                  <p className="text-xs text-white/50 font-bold mt-1">
-                    {isRTL ? 'الأعمدة المدعومة: name, price, description, images, sizes' : 'Supported cols: name, price, description, images, sizes'}
+                <p className="text-xs text-white/50 font-bold mt-1">
+                    {isRTL ? 'الأعمدة المدعومة: name, price, description, images, sizes (XS|S|M...)' : 'Supported cols: name, price, description, images, sizes (XS|S|M...)'}
                   </p>
                 </div>
               </div>

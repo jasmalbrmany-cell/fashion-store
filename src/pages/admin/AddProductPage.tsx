@@ -12,6 +12,8 @@ import { useLanguage } from '@/context/LanguageContext';
 import { useNotificationContext } from '@/context/NotificationContext';
 import { ImageUploader } from '@/components/Admin/ImageUploader';
 
+const STANDARD_SIZE_NAMES = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'];
+
 const AddProductPage: React.FC = () => {
   const { id } = useParams<{ id?: string }>();
   const isEditMode = !!id;
@@ -32,7 +34,7 @@ const AddProductPage: React.FC = () => {
     price: '',
     categoryId: '',
     stock: '0',
-    isVisible: false,
+    isVisible: true,
     sourceUrl: '',
     images: [] as { id: string; url: string; isPrimary: boolean }[],
     sizes: [] as { id: string; name: string; stock: number; priceModifier: number; measurements?: string }[],
@@ -218,6 +220,22 @@ const AddProductPage: React.FC = () => {
         { id: `size-${Date.now()}`, name: '', stock: 10, priceModifier: 0, measurements: '' },
       ],
     }));
+  };
+
+  const addStandardSizes = () => {
+    setFormData(prev => {
+      const existing = new Set(prev.sizes.map(s => s.name.trim().toUpperCase()).filter(Boolean));
+      const toAdd = STANDARD_SIZE_NAMES.filter(name => !existing.has(name)).map(name => ({
+        id: `size-${Date.now()}-${name}`,
+        name,
+        stock: 10,
+        priceModifier: 0,
+        measurements: '',
+      }));
+
+      if (toAdd.length === 0) return prev;
+      return { ...prev, sizes: [...prev.sizes, ...toAdd] };
+    });
   };
 
   const updateSize = (index: number, field: string, value: string | number) => {
@@ -475,14 +493,19 @@ const AddProductPage: React.FC = () => {
 
         {/* Variants Block */}
         <div className="bg-white rounded-3xl shadow-sm border p-6 md:p-8 space-y-8">
-           <div className="flex items-center justify-between border-b pb-4">
+          <div className="flex items-center justify-between border-b pb-4">
               <h2 className="text-xl font-black text-gray-900 flex items-center gap-2">
                 <Package className="w-5 h-5 text-black" />
                 {t.sizesAndVariants}
               </h2>
-              <button type="button" onClick={addSize} className="px-4 py-2 bg-gray-50 hover:bg-black hover:text-white rounded-xl text-xs font-black transition-all border">
-                {t.addSize}
-              </button>
+              <div className="flex items-center gap-2">
+                <button type="button" onClick={addStandardSizes} className="px-4 py-2 bg-gray-50 hover:bg-black hover:text-white rounded-xl text-xs font-black transition-all border">
+                  {isRTL ? 'إضافة مقاسات حرفية' : 'Add Letter Sizes'}
+                </button>
+                <button type="button" onClick={addSize} className="px-4 py-2 bg-gray-50 hover:bg-black hover:text-white rounded-xl text-xs font-black transition-all border">
+                  {t.addSize}
+                </button>
+              </div>
            </div>
 
            <div className="space-y-4">
@@ -493,9 +516,10 @@ const AddProductPage: React.FC = () => {
                         <input
                             type="text"
                             value={size.name}
-                            onChange={e => updateSize(index, 'name', e.target.value)}
-                            placeholder={isRTL ? 'المقاس' : 'Size'}
+                            onChange={e => updateSize(index, 'name', e.target.value.toUpperCase())}
+                            placeholder={isRTL ? 'مثال: S أو M' : 'e.g. S or M'}
                             className="w-full px-4 py-2 rounded-xl outline-none font-bold bg-white border border-gray-100"
+                            list="standard-size-options"
                         />
                    </div>
                    <div className="w-full md:w-32 space-y-1">
@@ -510,12 +534,12 @@ const AddProductPage: React.FC = () => {
                    </div>
                    <div className="flex-[2] space-y-1">
                         <label className="text-[10px] font-black uppercase text-gray-400 px-1">{isRTL ? 'تفاصيل القياسات (اختياري)' : 'Measurements (Optional)'}</label>
-                        <input
-                            type="text"
+                        <textarea
                             value={size.measurements || ''}
                             onChange={e => updateSize(index, 'measurements', e.target.value)}
-                            placeholder={isRTL ? 'مثال: كتف: 44.5 cm، الصدر: 104 cm' : 'e.g. Shoulder: 44.5cm, Bust: 104cm'}
-                            className="w-full px-4 py-2 rounded-xl outline-none font-bold bg-white border border-gray-100"
+                            placeholder={isRTL ? 'مثال:\nقياس الخصر: 72 cm\nحجم الورك: 106 cm\nطول الرجل الداخلي: 71 cm' : 'Example:\nWaist: 72 cm\nHip: 106 cm\nInseam: 71 cm'}
+                            rows={3}
+                            className="w-full px-4 py-2 rounded-xl outline-none font-bold bg-white border border-gray-100 resize-y"
                         />
                    </div>
                    <button type="button" onClick={() => removeSize(index)} className="self-end p-3 text-gray-400 hover:text-red-500 bg-white rounded-xl border hover:border-red-100 transition shadow-sm"><X className="w-4 h-4" /></button>
@@ -584,6 +608,11 @@ const AddProductPage: React.FC = () => {
             {isSubmitting ? t.saving : t.saveFinalProduct}
           </button>
         </div>
+        <datalist id="standard-size-options">
+          {STANDARD_SIZE_NAMES.map(sizeName => (
+            <option key={sizeName} value={sizeName} />
+          ))}
+        </datalist>
       </form>
     </div>
   );

@@ -128,6 +128,7 @@ export function transformCategory(row: CategoryRow): Category {
     icon: row.icon || undefined,
     parentId: row.parent_id || undefined,
     order: row.order,
+    whatsappNumber: row.whatsapp_number || undefined,
   };
 }
 

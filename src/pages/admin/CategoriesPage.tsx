@@ -48,6 +48,7 @@ const CategoryFormModal: React.FC<CategoryFormModalProps> = ({
   const [icon, setIcon] = useState(category?.icon || 'Tag');
   const [parentId, setParentId] = useState(category?.parentId || '');
   const [order, setOrder] = useState(category?.order || 0);
+  const [whatsappNumber, setWhatsappNumber] = useState(category?.whatsappNumber || '');
   const isEdit = !!category;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -58,6 +59,7 @@ const CategoryFormModal: React.FC<CategoryFormModalProps> = ({
       icon,
       parentId: parentId || undefined,
       order,
+      whatsappNumber: whatsappNumber.trim() || undefined,
     });
   };
 
@@ -147,6 +149,22 @@ const CategoryFormModal: React.FC<CategoryFormModalProps> = ({
             />
           </div>
 
+          {/* WhatsApp Number */}
+          <div className="space-y-2">
+            <label className="block text-xs font-black uppercase tracking-widest text-gray-400">
+              {isRTL ? 'رقم واتساب مخصص للقسم (اختياري)' : 'Category WhatsApp Number (optional)'}
+            </label>
+            <input
+              type="text"
+              value={whatsappNumber}
+              onChange={(e) => setWhatsappNumber(e.target.value)}
+              placeholder="e.g. 967777123456"
+              dir="ltr"
+              className="w-full px-5 py-3 bg-gray-50 dark:bg-zinc-800 border border-gray-100 dark:border-zinc-700 rounded-2xl focus:ring-2 focus:ring-black dark:focus:ring-white outline-none font-bold dark:text-white"
+            />
+            <p className="text-[10px] text-gray-400">{isRTL ? 'اتركه فارغاً لاستخدام رقم المتجر الافتراضي' : 'Leave empty to use store default number'}</p>
+          </div>
+
           {/* Hint when creating subcategory */}
           {parentId && (
             <div className="flex items-start gap-3 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-2xl border border-blue-100 dark:border-blue-800">
@@ -226,6 +244,7 @@ const CategoryRowItem: React.FC<CategoryRowProps> = ({
               ? `${children.length} ${isRTL ? 'قسم فرعي' : 'subcategories'}`
               : (isRTL ? 'قسم فرعي' : 'subcategory')}
             {' · '}{isRTL ? 'ترتيب' : 'order'}: {category.order}
+            {category.whatsappNumber && ` · 📱 ${category.whatsappNumber}`}
           </p>
         </div>
 
