@@ -289,11 +289,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const normalizedEmail = email.trim().toLowerCase();
       const isNetworkishError = (msg: string) => /timeout|gateway timeout|failed to fetch|network|abort/i.test(msg || '');
 
-      const attemptSignIn = async (client: any) => {
-        return withTimeout(client.auth.signInWithPassword({
-          email: normalizedEmail,
-          password,
-        }), 30000);
+      const attemptSignIn = async (client: any): Promise<{ data: any; error: { message: string } | null }> => {
+        try {
+          const result = await withTimeout(client.auth.signInWithPassword({
+            email: normalizedEmail,
+            password,
+          }), 30000);
+          return { data: result?.data ?? null, error: result?.error ?? null };
+        } catch (err: any) {
+          return {
+            data: null,
+            error: { message: err?.message || 'Timeout' },
+          };
+        }
       };
 
       let primaryResult = await attemptSignIn(supabase);
@@ -320,14 +328,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
 
         for (const client of attempts) {
-          try {
-            const result = await attemptSignIn(client);
-            if (!result?.error && result?.data?.user) {
-              primaryResult = result;
-              break;
-            }
-          } catch (fallbackErr) {
-            // Continue to next fallback
+          const result = await attemptSignIn(client);
+          if (!result?.error && result?.data?.user) {
+            primaryResult = result;
+            break;
           }
         }
       }
