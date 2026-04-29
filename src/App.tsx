@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { CartProvider } from '@/context/CartContext';
 import { AuthProvider } from '@/context/AuthContext';
@@ -50,6 +50,21 @@ const PageLoader = () => (
 );
 
 function App() {
+  useEffect(() => {
+    const warmup = () => {
+      // Warm critical route chunks after first paint to reduce page transition delay.
+      import('@/pages/LoginPage');
+      import('@/pages/admin/AdminLayout');
+      import('@/pages/admin/ProductsPage');
+    };
+
+    if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+      (window as any).requestIdleCallback(warmup, { timeout: 1500 });
+    } else {
+      setTimeout(warmup, 1200);
+    }
+  }, []);
+
   return (
     <BrowserRouter>
       <ToastProvider>

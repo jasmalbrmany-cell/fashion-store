@@ -211,15 +211,26 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   useEffect(() => {
     const initAuth = async () => {
-      // Safety timeout to prevent infinite loading (12s allows for proxy latency)
+      // Hydrate immediately from local storage so user stays logged in visually
+      // while we validate the live session in background.
+      const savedUser = localStorage.getItem('fashionHubUser');
+      if (savedUser) {
+        try {
+          setUser(JSON.parse(savedUser));
+        } catch {
+          localStorage.removeItem('fashionHubUser');
+        }
+      }
+
+      // Safety timeout to prevent long blocking on first paint.
       const timeoutId = setTimeout(() => {
         setIsLoading(false);
-      }, 12000);
+      }, 6000);
 
       try {
         if (isSupabaseConfigured()) {
           // ALWAYS check Supabase session first (source of truth)
-          const { data: { session } } = await supabase.auth.getSession();
+          const { data: { session } } = await withTimeout(supabase.auth.getSession(), 6000);
           
           if (session?.user) {
             const userData = await loadProfileFromSession(session.user.id);
@@ -227,9 +238,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               setUser(userData);
             }
           } else {
-            // No active session - clear any stale localStorage
-            localStorage.removeItem('fashionHubUser');
-            setUser(null);
+            // Do not force clear cached user on transient connectivity issues.
+            // Clear only if there's no cached user at all.
+            if (!savedUser) {
+              localStorage.removeItem('fashionHubUser');
+              setUser(null);
+            }
           }
         } else {
           // Supabase not configured - show cached user for display only
@@ -245,9 +259,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       } catch (globalError) {
         console.error('Auth initialization error:', globalError);
         // On error, try localStorage as fallback for display
-        const savedUser = localStorage.getItem('fashionHubUser');
-        if (savedUser) {
-          try { setUser(JSON.parse(savedUser)); } catch { /* ignore */ }
+        const fallbackUser = localStorage.getItem('fashionHubUser');
+        if (fallbackUser) {
+          try { setUser(JSON.parse(fallbackUser)); } catch { /* ignore */ }
         }
       } finally {
         clearTimeout(timeoutId);
@@ -264,7 +278,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           if (session?.user) {
             const userData = await loadProfileFromSession(session.user.id);
             if (userData) setUser(userData);
-          } else {
+          } else if (event === 'SIGNED_OUT') {
             setUser(null);
             setPermissions(defaultPermissions);
             localStorage.removeItem('fashionHubUser');
@@ -294,7 +308,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           const result = await withTimeout(client.auth.signInWithPassword({
             email: normalizedEmail,
             password,
-          }), 30000);
+          }), 20000);
           return { data: result?.data ?? null, error: result?.error ?? null };
         } catch (err: any) {
           return {
@@ -305,6 +319,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       };
 
       let primaryResult = await attemptSignIn(supabase);
+
+      // Normal browser may hold stale local auth token; clear local session once and retry.
+      if (primaryResult?.error && /refresh|jwt|session|expired|invalid/i.test(primaryResult.error.message || '')) {
+        try {
+          await supabase.auth.signOut({ scope: 'local' });
+        } catch {
+          // ignore local cleanup failures
+        }
+        primaryResult = await attemptSignIn(supabase);
+      }
 
       if (primaryResult?.error && isNetworkishError(primaryResult.error.message || '')) {
         const attempts: any[] = [];
