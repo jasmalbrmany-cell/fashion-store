@@ -6,19 +6,19 @@
 
 @layer base {
   :root {
-    --radius: 0.5rem;
+    --radius: 0.75rem;
 
-    /* Primary Colors */
-    --color-primary-50: 253 244 255;
-    --color-primary-100: 253 232 255;
-    --color-primary-200: 251 221 255;
-    --color-primary-300: 245 202 255;
-    --color-primary-400: 240 171 252;
-    --color-primary-500: 232 121 249;
-    --color-primary-600: 217 69 239;
-    --color-primary-700: 192 38 211;
-    --color-primary-800: 162 28 175;
-    --color-primary-900: 134 25 143;
+    /* Primary Colors - Luxurious Gold */
+    --color-primary-50: 253 251 247;
+    --color-primary-100: 251 247 235;
+    --color-primary-200: 244 235 208;
+    --color-primary-300: 235 216 173;
+    --color-primary-400: 223 190 129;
+    --color-primary-500: 212 163 91;
+    --color-primary-600: 197 136 70;
+    --color-primary-700: 165 104 57;
+    --color-primary-800: 133 83 52;
+    --color-primary-900: 107 68 45;
   }
 }
 
@@ -120,6 +120,24 @@
     -webkit-line-clamp: 1;
     -webkit-box-orient: vertical;
     overflow: hidden;
+  }
+
+  /* Luxurious Glassmorphism */
+  .glass {
+    @apply bg-white/70 dark:bg-black/40 backdrop-blur-xl border border-white/20 dark:border-white/10 shadow-xl;
+  }
+  
+  .glass-card {
+    @apply bg-white/80 dark:bg-zinc-900/80 backdrop-blur-lg border border-gray-100 dark:border-zinc-800 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.1)];
+  }
+
+  /* Text Gradients */
+  .text-gradient-gold {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary-400 via-primary-500 to-primary-600;
+  }
+  
+  .text-gradient-dark {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-zinc-900 to-zinc-500 dark:from-white dark:to-zinc-400;
   }
 }
 

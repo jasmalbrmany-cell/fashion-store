@@ -123,8 +123,8 @@ const HomePage: React.FC = () => {
           <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-8">
             
             {/* Left Content (Text & CTA) */}
-            <div className="w-full lg:w-1/2 space-y-8 animate-in slide-in-from-bottom-8 fade-in duration-1000 fill-mode-both">
-              <h1 className="text-5xl md:text-7xl font-black tracking-tight text-zinc-900 dark:text-white leading-[1.1] md:leading-[1.1]">
+            <div className="w-full lg:w-1/2 space-y-8 animate-in slide-in-from-bottom-8 fade-in duration-1000 fill-mode-both relative z-10">
+              <h1 className="text-5xl md:text-7xl font-black tracking-tight text-gradient-dark leading-[1.1] md:leading-[1.1] drop-shadow-sm">
                 {activeBanners.length > 0 
                   ? activeBanners[currentBanner].title 
                   : (t.welcomeTo + ' ' + (settings?.name || 'Fashion Hub'))}
@@ -139,10 +139,10 @@ const HomePage: React.FC = () => {
               <div className="flex flex-wrap gap-4 pt-4">
                 <Link
                   to="/products"
-                  className="group flex items-center justify-center gap-3 bg-primary text-white px-8 py-4 rounded-full font-bold text-lg hover:scale-105 transition-all duration-300 shadow-xl shadow-primary/20"
+                  className="group flex items-center justify-center gap-3 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 px-8 py-4 rounded-full font-bold text-lg hover:scale-105 transition-all duration-300 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.5)] dark:shadow-[0_10px_40px_-10px_rgba(255,255,255,0.3)] border border-transparent hover:border-primary/50 hover:bg-zinc-800"
                 >
-                  <span>{t.shopNow}</span>
-                  <span className="group-hover:translate-x-1 rtl:group-hover:-translate-x-1 transition-transform">
+                  <span className="text-gradient-gold group-hover:text-primary-400 transition-colors">{t.shopNow}</span>
+                  <span className="group-hover:translate-x-1 rtl:group-hover:-translate-x-1 transition-transform text-primary-400">
                     {isAr ? <ArrowLeft className="w-5 h-5" /> : <ArrowRight className="w-5 h-5" />}
                   </span>
                 </Link>
@@ -173,7 +173,7 @@ const HomePage: React.FC = () => {
               <div className="grid grid-cols-2 grid-rows-2 gap-4 h-full">
                 {activeBanners.length > 0 ? (
                   <>
-                    <div className="row-span-2 rounded-[2.5rem] overflow-hidden shadow-2xl relative group">
+                    <div className="row-span-2 rounded-[2.5rem] overflow-hidden shadow-2xl relative group border border-zinc-200/50 dark:border-zinc-800/50">
                       {activeBanners[currentBanner].type === 'video' ? (
                         <video src={activeBanners[currentBanner].videoUrl || activeBanners[currentBanner].imageUrl} className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700" autoPlay muted loop playsInline />
                       ) : (
@@ -185,36 +185,38 @@ const HomePage: React.FC = () => {
                           wrapperClassName="w-full h-full"
                         />
                       )}
-                      <div className="absolute inset-0 bg-gradient-to-t from-zinc-900/60 via-transparent to-transparent"></div>
+                      <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/80 via-zinc-900/20 to-transparent mix-blend-multiply"></div>
+                      <div className="absolute inset-0 border-[1px] border-white/10 rounded-[2.5rem] pointer-events-none"></div>
                     </div>
                     
-                    <div className="rounded-[2rem] overflow-hidden shadow-xl relative group bg-zinc-200 dark:bg-zinc-800">
+                    <div className="rounded-[2rem] overflow-hidden shadow-xl relative group bg-zinc-100 dark:bg-zinc-900 border border-zinc-200/50 dark:border-zinc-800/50">
                       {activeBanners.length > 1 ? (
                         <LazyLoadImage 
                           src={activeBanners[(currentBanner + 1) % activeBanners.length].imageUrl} 
                           alt="Secondary Banner" 
                           effect="blur"
-                          className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700 opacity-90" 
+                          className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700 opacity-90 saturate-50 group-hover:saturate-100" 
                           wrapperClassName="w-full h-full"
                         />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-zinc-100 to-zinc-300 dark:from-zinc-800 dark:to-zinc-900">
-                          <Shirt className="w-16 h-16 text-zinc-400 opacity-50" />
+                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-zinc-100 to-zinc-200 dark:from-zinc-800 dark:to-zinc-900">
+                          <Crown className="w-16 h-16 text-primary-400 opacity-50" />
                         </div>
                       )}
                     </div>
                     
-                    <div className="rounded-[2rem] overflow-hidden shadow-xl relative group bg-gradient-to-br from-emerald-400 to-teal-500 flex justify-center items-center overflow-hidden">
-                       <Sparkles className="w-32 h-32 text-white/20 absolute -right-8 -top-8 animate-pulse" />
-                       <h3 className="text-white font-black text-2xl z-10 text-center px-4 leading-tight max-w-[150px]">
+                    <div className="rounded-[2rem] overflow-hidden shadow-xl relative group bg-gradient-to-br from-zinc-900 to-black dark:from-zinc-950 dark:to-zinc-900 flex justify-center items-center border border-zinc-800">
+                       <Sparkles className="w-32 h-32 text-primary-500/20 absolute -right-8 -top-8 animate-pulse" />
+                       <div className="absolute inset-0 bg-[url('/noise.png')] opacity-10 mix-blend-overlay"></div>
+                       <h3 className="text-gradient-gold font-black text-2xl z-10 text-center px-4 leading-tight max-w-[150px]">
                          {isAr ? 'عروض حصرية' : 'Exclusive Deals'}
                        </h3>
                     </div>
                   </>
                 ) : (
-                  <div className="col-span-2 row-span-2 rounded-[3rem] overflow-hidden shadow-2xl relative bg-black flex items-center justify-center">
-                    <div className="absolute -top-20 -left-20 w-72 h-72 bg-primary/30 blur-[80px] rounded-full mix-blend-screen animate-pulse"></div>
-                    <div className="absolute bottom-10 right-10 w-96 h-96 bg-pink-600/20 blur-[100px] rounded-full mix-blend-screen animate-pulse" style={{ animationDelay: '1s' }}></div>
+                  <div className="col-span-2 row-span-2 rounded-[3rem] overflow-hidden shadow-2xl relative bg-zinc-950 flex items-center justify-center border border-zinc-800">
+                    <div className="absolute -top-20 -left-20 w-72 h-72 bg-primary-500/20 blur-[80px] rounded-full mix-blend-screen animate-pulse"></div>
+                    <div className="absolute bottom-10 right-10 w-96 h-96 bg-zinc-500/20 blur-[100px] rounded-full mix-blend-screen animate-pulse" style={{ animationDelay: '1s' }}></div>
                     <img src="/logo.jpg" alt="Logo" className="w-32 h-32 md:w-48 md:h-48 object-contain z-10 opacity-50 rounded-full" />
                   </div>
                 )}
@@ -247,22 +249,22 @@ const HomePage: React.FC = () => {
                     to={`/products?category=${category.id}`}
                     className="group flex flex-col items-center justify-center p-6 bg-transparent hover:bg-gray-50/50 rounded-[2.5rem] transition-all duration-500 relative overflow-hidden"
                   >
-                    <div className={`relative w-28 h-28 mb-5 rounded-full flex items-center justify-center transform group-hover:scale-110 group-hover:-translate-y-2 transition-all duration-700 shadow-2xl
+                    <div className={`relative w-28 h-28 mb-5 rounded-full flex items-center justify-center transform group-hover:scale-110 group-hover:-translate-y-2 transition-all duration-700 shadow-[0_8px_30px_rgb(0,0,0,0.08)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.4)]
                       ${[
-                        'bg-gradient-to-tr from-violet-600 to-fuchsia-500 shadow-violet-500/30', 
-                        'bg-gradient-to-tr from-cyan-500 to-blue-600 shadow-blue-500/30', 
-                        'bg-gradient-to-tr from-emerald-400 to-teal-500 shadow-teal-500/30', 
-                        'bg-gradient-to-tr from-orange-400 to-rose-500 shadow-orange-500/30', 
-                        'bg-gradient-to-tr from-amber-400 to-orange-500 shadow-amber-500/30', 
-                        'bg-gradient-to-tr from-pink-500 to-rose-500 shadow-pink-500/30'
+                        'bg-gradient-to-tr from-zinc-800 to-zinc-950 text-primary-400', 
+                        'bg-gradient-to-tr from-primary-400 to-primary-600 text-white', 
+                        'bg-gradient-to-tr from-zinc-100 to-zinc-300 dark:from-zinc-800 dark:to-zinc-700 text-zinc-900 dark:text-zinc-100', 
+                        'bg-gradient-to-tr from-primary-900 to-black text-primary-300', 
+                        'bg-gradient-to-tr from-zinc-300 to-zinc-400 dark:from-zinc-900 dark:to-black text-zinc-800 dark:text-zinc-300', 
+                        'bg-gradient-to-tr from-amber-200 to-primary-500 text-zinc-900'
                       ][index % 6]}
                     `}>
-                      <div className="absolute inset-0 bg-white/20 backdrop-blur-md border border-white/40 rounded-full scale-[0.80] group-hover:scale-90 transition-transform duration-700"></div>
-                      <span className="relative z-10 text-white transform group-hover:rotate-12 transition-transform duration-500 drop-shadow-md">
+                      <div className="absolute inset-0 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full scale-[0.80] group-hover:scale-95 transition-transform duration-700"></div>
+                      <span className="relative z-10 transform group-hover:rotate-12 transition-transform duration-500 drop-shadow-md">
                         {getCategoryIcon(index)}
                       </span>
                     </div>
-                    <h3 className="font-extrabold text-lg text-gray-800 group-hover:text-black transition tracking-tight">
+                    <h3 className="font-extrabold text-lg text-zinc-800 dark:text-zinc-200 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition tracking-tight">
                       {translateCategory(category.id, category.name, language)}
                     </h3>
                   </Link>

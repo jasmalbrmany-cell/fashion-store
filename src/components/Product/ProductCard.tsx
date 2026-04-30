@@ -119,19 +119,19 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
           </div>
 
           {/* Quick Actions Slide-up */}
-          <div className={`absolute inset-x-2 bottom-2 p-2 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-lg rounded-2xl border border-zinc-200/50 dark:border-zinc-700/50 shadow-xl transition-all duration-500 ease-out z-10 ${isHovered ? 'translate-y-0 opacity-100 visible' : 'translate-y-full opacity-0 invisible'}`}>
+          <div className={`absolute inset-x-2 bottom-2 p-2 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-lg rounded-2xl border border-zinc-100 dark:border-zinc-800 shadow-[0_8px_30px_rgba(0,0,0,0.12)] transition-all duration-500 ease-out z-10 ${isHovered ? 'translate-y-0 opacity-100 visible' : 'translate-y-full opacity-0 invisible'}`}>
             <div className="flex gap-2">
               <button
                 onClick={handleQuickBuy}
                 disabled={product.stock === 0}
-                className="flex-1 py-2.5 bg-primary text-white rounded-xl font-bold uppercase tracking-wider hover:bg-primary/90 transition shadow-md active:scale-95 disabled:opacity-50 text-[10px] md:text-xs"
+                className="flex-1 py-2.5 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-xl font-bold uppercase tracking-wider hover:bg-zinc-700 dark:hover:bg-zinc-100 transition shadow-md active:scale-95 disabled:opacity-50 text-[10px] md:text-xs"
               >
-                {t.buyNow}
+                <span className="text-gradient-gold">{t.buyNow}</span>
               </button>
               <button
                 onClick={handleAddToCart}
                 disabled={product.stock === 0}
-                className="w-10 h-10 shrink-0 bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 rounded-xl flex items-center justify-center hover:bg-zinc-200 dark:hover:bg-zinc-700 transition shadow-sm active:scale-95 disabled:opacity-50"
+                className="w-10 h-10 shrink-0 bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400 border border-primary-100 dark:border-primary-800 rounded-xl flex items-center justify-center hover:bg-primary-100 dark:hover:bg-primary-900/30 transition shadow-sm active:scale-95 disabled:opacity-50"
               >
                 <ShoppingCart className="w-4 h-4" />
               </button>
@@ -147,7 +147,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
           <div className="mt-auto pt-2">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-baseline gap-1">
-                <span className="text-lg md:text-xl font-black text-zinc-900 dark:text-white">
+                <span className="text-lg md:text-xl font-black text-primary-600 dark:text-primary-400">
                   {formatPrice(product.price)}
                 </span>
                 <span className="text-xs text-zinc-500 dark:text-zinc-400 font-medium pb-1">

@@ -109,14 +109,14 @@ const Header: React.FC = () => {
   return (
     <header className="bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md sticky top-0 z-50 border-b border-zinc-200 dark:border-zinc-800 transition-colors duration-300">
       {/* Ticker / Announcement Bar */}
-      <div className="bg-primary text-white text-xs font-semibold py-1.5 overflow-hidden flex">
+      <div className="bg-zinc-900 dark:bg-black text-primary-300 text-xs font-semibold py-1.5 overflow-hidden flex border-b border-zinc-800">
         <div className="animate-marquee gap-8 w-max">
-          <span>{isRTL ? '🚀 التوصيل مجاني للطلبات فوق 500 ريال!' : '🚀 Free shipping on orders over 500 SAR!'}</span>
-          <span className="mx-8">{isRTL ? '✨ خصم 10% للمستخدمين الجدد استخدم كود: NEW10' : '✨ 10% off for new users using code: NEW10'}</span>
-          <span className="mx-8">{isRTL ? '🔥 عروض الصيف بدأت الآن' : '🔥 Summer Sale is here'}</span>
-          <span className="mx-8">{isRTL ? '🚀 التوصيل مجاني للطلبات فوق 500 ريال!' : '🚀 Free shipping on orders over 500 SAR!'}</span>
-          <span className="mx-8">{isRTL ? '✨ خصم 10% للمستخدمين الجدد استخدم كود: NEW10' : '✨ 10% off for new users using code: NEW10'}</span>
-          <span className="mx-8">{isRTL ? '🔥 عروض الصيف بدأت الآن' : '🔥 Summer Sale is here'}</span>
+          <span>✦ {isRTL ? 'التوصيل مجاني للطلبات فوق 500 ريال' : 'Free shipping on orders over 500 SAR'}</span>
+          <span className="mx-8">✦ {isRTL ? 'خصم 10% للمستخدمين الجدد — كود: NEW10' : '10% off for new users — code: NEW10'}</span>
+          <span className="mx-8">✦ {isRTL ? 'عروض الصيف بدأت الآن' : 'Summer Sale is now live'}</span>
+          <span className="mx-8">✦ {isRTL ? 'التوصيل مجاني للطلبات فوق 500 ريال' : 'Free shipping on orders over 500 SAR'}</span>
+          <span className="mx-8">✦ {isRTL ? 'خصم 10% للمستخدمين الجدد — كود: NEW10' : '10% off for new users — code: NEW10'}</span>
+          <span className="mx-8">✦ {isRTL ? 'عروض الصيف بدأت الآن' : 'Summer Sale is now live'}</span>
         </div>
       </div>
 
@@ -284,7 +284,7 @@ const Header: React.FC = () => {
                 >
                   <Link
                     to={`/products?category=${cat.id}`}
-                    className={`flex items-center gap-1 px-4 py-2 rounded-lg whitespace-nowrap transition hover:bg-white hover:text-black dark:hover:bg-zinc-800 dark:hover:text-white ${megaMenuOpen === cat.id ? 'bg-white text-black dark:bg-zinc-800 dark:text-white shadow-sm' : ''}`}
+                    className={`flex items-center gap-1.5 px-4 py-2 rounded-lg whitespace-nowrap transition hover:bg-primary-50 hover:text-primary-700 dark:hover:bg-zinc-800 dark:hover:text-primary-300 ${megaMenuOpen === cat.id ? 'bg-primary-50 text-primary-700 dark:bg-zinc-800 dark:text-primary-300 shadow-sm' : ''}`}
                   >
                     <span>{iconEmoji[cat.icon || ''] || '📁'}</span>
                     <span>{translateCategory(cat.id, cat.name, language)}</span>
