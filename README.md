@@ -71,7 +71,7 @@ pnpm build
 1. Go to **Settings** → **API**
 2. Copy the following values:
    - **Project URL**: `https://your-project-id.supabase.co`
-   - **anon/public key**: The long string starting with `eyJ...`
+  - **anon/public key**: (REDACTED) — do not commit secrets to the repository
 
 ### Step 3: Configure Environment Variables
 
@@ -341,7 +341,7 @@ VITE_APP_URL=https://your-domain.com
 cat .env
 # Should show:
 # VITE_SUPABASE_URL=https://your-project.supabase.co
-# VITE_SUPABASE_ANON_KEY=eyJ...
+# VITE_SUPABASE_ANON_KEY=REDACTED_ANON_KEY
 
 # Restart dev server
 pnpm dev

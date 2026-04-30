@@ -4,6 +4,17 @@ import type { Database } from '@/types/database';
 // Supabase configuration
 const originalSupabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+// Detect dangerous service role key in client env
+const supabaseServiceRoleKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY || import.meta.env.VITE_SUPABASE_SERVICE_ROLE || '';
+if (typeof window !== 'undefined' && supabaseServiceRoleKey) {
+  // Fail fast in the browser to prevent accidental destructive operations
+  // and force the developer to rotate keys and remove the secret from client env.
+  // This is an intentional hard stop for security.
+  // See IMMEDIATE_ACTIONS.md for remediation steps.
+  // eslint-disable-next-line no-console
+  console.error('⚠️ SECURITY: Detected Supabase service_role key in frontend environment. Remove it from client env and rotate keys immediately.');
+  throw new Error('Supabase service_role key detected in frontend environment — application halted for security.');
+}
 const forceProxy = String(import.meta.env.VITE_SUPABASE_FORCE_PROXY || '').toLowerCase() === 'true';
 
 const PROXY_PATH = '/api/sb';
