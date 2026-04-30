@@ -195,17 +195,46 @@ const ProductsPage: React.FC = () => {
     ? (translateCategory(selectedCategory, categories.find(c => c.id === selectedCategory)?.name || '', language))
     : t.allProducts;
 
+  const activeFilterCount = [selectedCategory, searchQuery, selectedSizes.length > 0, selectedColors.length > 0, priceRange.min > 0, priceRange.max < 1000000].filter(Boolean).length;
+
   return (
-    <div className="bg-gray-50 dark:bg-black min-h-screen py-8 transition-colors duration-500" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+    <div className="bg-zinc-50 dark:bg-black min-h-screen py-8 transition-colors duration-500" dir={language === 'ar' ? 'rtl' : 'ltr'}>
       <div className="container mx-auto px-4">
         <div className="mb-8">
-          <h1 className="text-3xl md:text-4xl font-black text-gray-900 dark:text-white mb-2 uppercase tracking-tighter">
+          <h1 className="text-3xl md:text-4xl font-black text-zinc-900 dark:text-white mb-2 uppercase tracking-tighter text-gradient-dark">
             {selectedCategory ? selectedCategoryName : t.allProducts}
           </h1>
-          <p className="text-gray-500 font-bold uppercase tracking-widest text-xs">
+          <p className="text-zinc-500 font-bold uppercase tracking-widest text-xs">
             {filteredProducts.length} {t.productCount}
           </p>
         </div>
+
+        {/* Active Filter Chips */}
+        {activeFilterCount > 0 && (
+          <div className="flex flex-wrap gap-2 mb-4">
+            {selectedCategory && (
+              <span className="flex items-center gap-1.5 px-3 py-1.5 bg-primary-50 border border-primary-200 text-primary-700 dark:bg-primary-900/20 dark:border-primary-700 dark:text-primary-300 rounded-full text-xs font-bold">
+                {selectedCategoryName}
+                <button onClick={() => handleCategoryChange('')} className="hover:text-primary-900 dark:hover:text-white transition"><X className="w-3 h-3" /></button>
+              </span>
+            )}
+            {searchQuery && (
+              <span className="flex items-center gap-1.5 px-3 py-1.5 bg-primary-50 border border-primary-200 text-primary-700 dark:bg-primary-900/20 dark:border-primary-700 dark:text-primary-300 rounded-full text-xs font-bold">
+                "{searchQuery}"
+                <button onClick={() => setSearchQuery('')} className="hover:text-primary-900 dark:hover:text-white transition"><X className="w-3 h-3" /></button>
+              </span>
+            )}
+            {selectedSizes.map(s => (
+              <span key={s} className="flex items-center gap-1.5 px-3 py-1.5 bg-primary-50 border border-primary-200 text-primary-700 dark:bg-primary-900/20 dark:border-primary-700 dark:text-primary-300 rounded-full text-xs font-bold">
+                {s}
+                <button onClick={() => setSelectedSizes(prev => prev.filter(x => x !== s))} className="hover:text-primary-900 dark:hover:text-white transition"><X className="w-3 h-3" /></button>
+              </span>
+            ))}
+            <button onClick={clearFilters} className="px-3 py-1.5 bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 rounded-full text-xs font-bold hover:scale-105 transition-transform">
+              {t.clearAll}
+            </button>
+          </div>
+        )}
 
         <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-sm p-4 mb-8 border border-gray-100 dark:border-gray-800 transition-colors">
           <div className="flex flex-col md:flex-row gap-4">
@@ -258,19 +287,30 @@ const ProductsPage: React.FC = () => {
 
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className="md:hidden flex items-center justify-center gap-2 px-6 py-3 bg-black text-white rounded-2xl font-bold shadow-xl active:scale-95 transition-all"
+              className="md:hidden flex items-center justify-center gap-2 px-6 py-3 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-2xl font-bold shadow-xl active:scale-95 transition-all relative"
             >
               <Filter className="w-5 h-5" />
-              <span>{t.filters}</span>
+              <span className="text-gradient-gold">{t.filters}</span>
+              {activeFilterCount > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-primary-500 text-white text-[10px] font-black rounded-full flex items-center justify-center">{activeFilterCount}</span>
+              )}
             </button>
           </div>
         </div>
 
         <div className="flex gap-8">
           <aside className="hidden md:block w-64 flex-shrink-0">
-            <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-3xl p-6 sticky top-24 transition-colors">
+            <div className="glass-card rounded-3xl p-6 sticky top-24 transition-colors">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="font-black text-gray-900 dark:text-white uppercase tracking-widest text-xs">{t.filters}</h3>
+                <h3 className="font-black text-zinc-900 dark:text-white uppercase tracking-widest text-xs flex items-center gap-2">
+                  {t.filters}
+                  {activeFilterCount > 0 && (
+                    <span className="w-5 h-5 bg-primary-500 text-white text-[10px] font-black rounded-full flex items-center justify-center">{activeFilterCount}</span>
+                  )}
+                </h3>
+                {activeFilterCount > 0 && (
+                  <button onClick={clearFilters} className="text-[10px] text-primary-600 dark:text-primary-400 font-bold hover:underline">{t.clearAll}</button>
+                )}
               </div>
 
               <div className="mb-8">
@@ -279,7 +319,7 @@ const ProductsPage: React.FC = () => {
                   <button
                     onClick={() => handleCategoryChange('')}
                     className={`w-full text-start py-2.5 px-4 rounded-xl transition-all font-bold text-sm ${
-                      !selectedCategory ? 'bg-black text-white shadow-lg' : 'text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800'
+                      !selectedCategory ? 'bg-zinc-900 dark:bg-white text-primary-300 dark:text-primary-600 shadow-lg' : 'text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800'
                     }`}
                   >
                     {t.allProducts}
@@ -294,7 +334,7 @@ const ProductsPage: React.FC = () => {
                         <button
                           onClick={() => handleCategoryChange(parent.id)}
                           className={`w-full text-start py-2.5 px-4 rounded-xl transition-all font-bold text-sm flex items-center justify-between gap-2 ${
-                            isParentSelected ? 'bg-black text-white shadow-lg' : 'text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800'
+                            isParentSelected ? 'bg-zinc-900 dark:bg-white text-primary-300 dark:text-primary-600 shadow-lg' : 'text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800'
                           }`}
                         >
                           <span>{translateCategory(parent.id, parent.name, language)}</span>
@@ -371,8 +411,8 @@ const ProductsPage: React.FC = () => {
                         }}
                         className={`px-3 py-1.5 rounded-lg border-2 text-[10px] font-black transition-all ${
                           selectedSizes.includes(size) 
-                            ? 'bg-black text-white border-black' 
-                            : 'bg-white dark:bg-gray-800 text-gray-400 border-gray-100 dark:border-gray-700 hover:border-black'
+                            ? 'bg-zinc-900 dark:bg-white text-primary-300 dark:text-primary-600 border-zinc-900 dark:border-white shadow-md scale-105' 
+                            : 'bg-white dark:bg-zinc-800 text-zinc-400 border-zinc-100 dark:border-zinc-700 hover:border-primary-400 hover:text-primary-600'
                         }`}
                       >
                         {size}
