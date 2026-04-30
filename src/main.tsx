@@ -4,6 +4,12 @@ import { ErrorBoundary } from './components/ErrorBoundary.tsx'
 import './index.css'
 import App from './App.tsx'
 
+// معالجة مشكلة (Chunk Load Error) تلقائياً عند وجود تحديث جديد للموقع
+window.addEventListener('vite:preloadError', (event) => {
+  console.warn('Vite preload error (chunk failed to load). Reloading page...', event);
+  window.location.reload();
+});
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ErrorBoundary>
