@@ -124,20 +124,49 @@
 
   /* Luxurious Glassmorphism */
   .glass {
-    @apply bg-white/70 dark:bg-black/40 backdrop-blur-xl border border-white/20 dark:border-white/10 shadow-xl;
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+  }
+  .dark .glass {
+    background: rgba(0, 0, 0, 0.4);
+    border-color: rgba(255, 255, 255, 0.1);
   }
   
   .glass-card {
-    @apply bg-white/80 dark:bg-zinc-900/80 backdrop-blur-lg border border-gray-100 dark:border-zinc-800 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.1)];
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(229, 231, 235, 1);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.04);
+  }
+  .dark .glass-card {
+    background: rgba(24, 24, 27, 0.9);
+    border-color: rgba(39, 39, 42, 1);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
   }
 
   /* Text Gradients */
   .text-gradient-gold {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary-400 via-primary-500 to-primary-600;
+    background: linear-gradient(90deg, #dfbe81, #d4a35b, #c58846);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
   }
   
   .text-gradient-dark {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-zinc-900 to-zinc-500 dark:from-white dark:to-zinc-400;
+    background: linear-gradient(90deg, #18181b, #71717a);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .dark .text-gradient-dark {
+    background: linear-gradient(90deg, #ffffff, #a1a1aa);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
   }
 }
 
