@@ -4,7 +4,6 @@ import { Minus, Plus, Trash2, ShoppingBag, ArrowLeft, MessageCircle, User, LogIn
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
-import { mockStoreSettings } from '@/data/mockData';
 import { productsService, storeSettingsService } from '@/services';
 import { Product, StoreSettings } from '@/types';
 

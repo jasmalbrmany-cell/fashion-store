@@ -492,7 +492,61 @@ const ProductDetailPage: React.FC = () => {
           </div>
         )}
 
+        {/* Mobile Sticky Bar */}
+        <StickyMobileBar 
+          onBuy={handleBuyNow}
+          onWhatsApp={handleWhatsAppOrder}
+          onAddToCart={handleAddToCart}
+          isInCart={isInCart}
+          isRTL={isRTL}
+          t={t}
+          disabled={totalStock === 0}
+        />
       </div>
+    </div>
+  );
+};
+
+// ─── Sticky Mobile Bar Component ─────────────────────────────────────
+const StickyMobileBar: React.FC<{
+  onBuy: () => void;
+  onWhatsApp: () => void;
+  onAddToCart: () => void;
+  isInCart: boolean;
+  isRTL: boolean;
+  t: any;
+  disabled: boolean;
+}> = ({ onBuy, onWhatsApp, onAddToCart, isInCart, isRTL, t, disabled }) => {
+  return (
+    <div className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-xl border-t border-gray-100 p-4 z-40 md:hidden animate-in slide-in-from-bottom duration-500 flex gap-3 shadow-[0_-10px_30px_rgba(0,0,0,0.05)]">
+      <button
+        onClick={onWhatsApp}
+        className="w-14 h-14 bg-green-600 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-green-500/20 active:scale-90 transition-transform shrink-0"
+      >
+        <span className="text-2xl">💬</span>
+      </button>
+      
+      <button
+        onClick={onAddToCart}
+        disabled={disabled || isInCart}
+        className={`w-14 h-14 rounded-2xl border-2 flex items-center justify-center transition-all shrink-0 active:scale-90 ${
+          isInCart 
+            ? 'bg-green-50 border-green-100 text-green-500' 
+            : disabled 
+            ? 'bg-gray-50 border-gray-100 text-gray-300' 
+            : 'bg-white border-black text-black'
+        }`}
+      >
+        {isInCart ? <Check className="w-6 h-6" /> : <ShoppingCart className="w-6 h-6" />}
+      </button>
+
+      <button
+        onClick={onBuy}
+        disabled={disabled}
+        className="flex-1 bg-black text-white rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl active:scale-95 transition-all disabled:bg-gray-200 disabled:text-gray-400"
+      >
+        {t.buyNow}
+      </button>
     </div>
   );
 };

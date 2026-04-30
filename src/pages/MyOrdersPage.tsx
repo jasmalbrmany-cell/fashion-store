@@ -3,7 +3,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Package, MapPin, Clock, LogOut, ChevronLeft, CreditCard, ChevronDown, ChevronUp } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
-import { mockOrders } from '@/data/mockData';
 import { Order, OrderStatus } from '@/types';
 import { useLanguage } from '@/context/LanguageContext';
 
@@ -28,10 +27,7 @@ const MyOrdersPage: React.FC = () => {
       setIsLoading(true);
       
       if (!isSupabaseConfigured()) {
-        const myMockOrders = mockOrders.filter(o => 
-          o.customerPhone === user.phone || o.customerName === user.name
-        );
-        setOrders(myMockOrders);
+        setOrders([]);
         setIsLoading(false);
         return;
       }

@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard,
   Package,
@@ -167,7 +166,12 @@ const AdminLayout: React.FC = () => {
                 <Store className="w-8 h-8 text-black" />
                 <span className="text-xl font-bold text-gray-900">FashionHub</span>
               </div>
-              <button onClick={() => setIsSidebarOpen(false)} className="p-2 hover:bg-gray-100 rounded-lg">
+              <button
+                onClick={() => setIsSidebarOpen(false)}
+                className="p-2 hover:bg-gray-100 rounded-lg"
+                aria-label={isRTL ? 'إغلاق القائمة' : 'Close menu'}
+                title={isRTL ? 'إغلاق القائمة' : 'Close menu'}
+              >
                 <X className="w-6 h-6" />
               </button>
             </div>
@@ -222,16 +226,7 @@ const AdminLayout: React.FC = () => {
       {/* Main Content */}
       <main className={`transition-all duration-300 ${isRTL ? 'lg:mr-64' : 'lg:ml-64'} pt-16 lg:pt-0 min-h-screen relative`}>
         <div className="p-4 md:p-8">
-          <AnimatePresence>
-            <motion.div
-              key={location.pathname}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.15 }}
-            >
-              <Outlet />
-            </motion.div>
-          </AnimatePresence>
+          <Outlet />
         </div>
       </main>
     </div>

@@ -15,9 +15,9 @@ const AdminProductsPage: React.FC = () => {
   const { t, language, isRTL } = useLanguage();
   const { showSuccess, showError } = useNotificationContext();
   
-  const [products, setProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [products, setProducts] = useState<Product[]>(getCachedSync<Product[]>('products_admin_all') || []);
+  const [categories, setCategories] = useState<Category[]>(getCachedSync<Category[]>('categories_all') || []);
+  const [isLoading, setIsLoading] = useState(!hasValidCache('products_admin_all') || !hasValidCache('categories_all'));
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -35,7 +35,9 @@ const AdminProductsPage: React.FC = () => {
   const [pricingPercentage, setPricingPercentage] = useState<string>('');
 
   const loadData = async () => {
-    setIsLoading(true);
+    if (!hasValidCache('products_admin_all') || !hasValidCache('categories_all')) {
+      setIsLoading(true);
+    }
     try {
       const [prods, cats] = await Promise.all([
         productsService.getAllAdmin(),
@@ -295,6 +297,8 @@ const AdminProductsPage: React.FC = () => {
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
             className="px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-black outline-none font-bold appearance-none min-w-[200px]"
+            aria-label={t.productCategory}
+            title={t.productCategory}
           >
             <option value="">{t.allCategories}</option>
             {categories.map(category => (
@@ -354,6 +358,8 @@ const AdminProductsPage: React.FC = () => {
           <button
             onClick={() => setSelectedIds([])}
             className="p-2 hover:bg-white/10 rounded-full transition-colors"
+            aria-label={isRTL ? 'إلغاء التحديد' : 'Clear selection'}
+            title={isRTL ? 'إلغاء التحديد' : 'Clear selection'}
           >
             <X className="w-5 h-5" />
           </button>
@@ -379,6 +385,8 @@ const AdminProductsPage: React.FC = () => {
                        checked={selectedIds.length === filteredProducts.length && filteredProducts.length > 0}
                        onChange={handleSelectAll}
                        className="w-5 h-5 rounded border-gray-300 text-black focus:ring-black cursor-pointer"
+                       aria-label={isRTL ? 'تحديد كل المنتجات' : 'Select all products'}
+                       title={isRTL ? 'تحديد كل المنتجات' : 'Select all products'}
                      />
                    </div>
                 </th>
@@ -402,6 +410,8 @@ const AdminProductsPage: React.FC = () => {
                          checked={selectedIds.includes(product.id)}
                          onChange={() => handleSelectOne(product.id)}
                          className="w-5 h-5 rounded border-gray-300 text-black focus:ring-black cursor-pointer"
+                         aria-label={(isRTL ? 'تحديد المنتج' : 'Select product') + ` ${product.name}`}
+                         title={(isRTL ? 'تحديد المنتج' : 'Select product') + ` ${product.name}`}
                        />
                     </td>
                     <td className="px-6 py-4">
@@ -459,6 +469,8 @@ const AdminProductsPage: React.FC = () => {
                              value={editPrice}
                              onChange={e => setEditPrice(e.target.value)}
                              className="w-24 px-3 py-2 bg-white border-2 border-black rounded-xl font-black text-sm outline-none"
+                             aria-label={isRTL ? 'سعر المنتج' : 'Product price'}
+                             title={isRTL ? 'سعر المنتج' : 'Product price'}
                            />
                            <span className="text-xs font-bold text-gray-400">{t.rial}</span>
                         </div>
@@ -479,6 +491,8 @@ const AdminProductsPage: React.FC = () => {
                              value={editStock}
                              onChange={e => setEditStock(e.target.value)}
                              className="w-20 px-3 py-2 bg-white border-2 border-black rounded-xl font-black text-sm outline-none"
+                             aria-label={isRTL ? 'كمية المخزون' : 'Stock quantity'}
+                             title={isRTL ? 'كمية المخزون' : 'Stock quantity'}
                            />
                         </div>
                       ) : (
@@ -572,7 +586,12 @@ const AdminProductsPage: React.FC = () => {
                    <Percent className="w-6 h-6 text-blue-600" />
                    {isRTL ? 'تعديل الأسعار جماعياً' : 'Bulk Pricing Update'}
                 </h3>
-                <button onClick={() => setIsPricingModalOpen(false)} className="p-2 bg-gray-100 rounded-full hover:bg-gray-200">
+                <button
+                  onClick={() => setIsPricingModalOpen(false)}
+                  className="p-2 bg-gray-100 rounded-full hover:bg-gray-200"
+                  aria-label={isRTL ? 'إغلاق النافذة' : 'Close modal'}
+                  title={isRTL ? 'إغلاق النافذة' : 'Close modal'}
+                >
                   <X className="w-5 h-5" />
                 </button>
              </div>

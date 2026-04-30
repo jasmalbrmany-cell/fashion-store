@@ -29,14 +29,20 @@ const DashboardPage: React.FC = () => {
         setIsLoading(true);
     }
     try {
-      const [statsData, productsData, orders, categories] = await Promise.all([
+      // Load critical widgets first for faster first render
+      const [statsData, productsData] = await Promise.all([
         statisticsService.get(),
         productsService.getAllAdmin(),
-        ordersService.getAll(),
-        categoriesService.getAll()
       ]);
       setStats(statsData);
       setProducts(productsData || []);
+      setIsLoading(false);
+
+      // Load chart data in background (can be heavier)
+      const [orders, categories] = await Promise.all([
+        ordersService.getAll(),
+        categoriesService.getAll()
+      ]);
       
       // Compute Sales Data (Last 7 Days)
       const last7Days = Array.from({ length: 7 }, (_, i) => {
@@ -155,6 +161,8 @@ const DashboardPage: React.FC = () => {
             onClick={fetchStats}
             disabled={isLoading}
             className="p-4 bg-white border-2 border-gray-100 rounded-2xl hover:border-black transition-all group shadow-sm active:scale-95"
+            aria-label={t.refresh}
+            title={t.refresh}
           >
             <RefreshCw className={`w-5 h-5 ${isLoading ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'}`} />
           </button>

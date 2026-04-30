@@ -7,7 +7,7 @@ import {
 import { User, UserRole } from '@/types';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
-import { usersService, hasValidCache, getCachedSync, clearCache } from '@/services/api';
+import { usersService, ordersService, hasValidCache, getCachedSync, clearCache } from '@/services/api';
 import { useLanguage } from '@/context/LanguageContext';
 import { useToast } from '@/components/Common/Toast';
 
@@ -46,6 +46,7 @@ const UsersPage: React.FC = () => {
   const { toast } = useToast();
   const [showPassword, setShowPassword] = useState(false);
   const [permissions, setPermissions] = useState<UserPermissions>(defaultPermissions);
+  const isVirtualCustomer = (userId: string) => userId.startsWith('guest:');
 
   const [formData, setFormData] = useState({
     name: '',
@@ -73,8 +74,58 @@ const UsersPage: React.FC = () => {
         setIsLoading(true);
     }
     try {
-      const data = await usersService.getAll();
-      setUsers(data || []);
+      const [profileUsers, orders] = await Promise.all([
+        usersService.getAll(),
+        ordersService.getAll(),
+      ]);
+
+      const baseUsers = profileUsers || [];
+      const customersByKey = new Map<string, User>();
+
+      baseUsers
+        .filter((u) => u.role === 'customer')
+        .forEach((u) => {
+          const emailKey = (u.email || '').trim().toLowerCase();
+          const phoneKey = (u.phone || '').trim();
+          if (emailKey) customersByKey.set(`email:${emailKey}`, u);
+          if (phoneKey) customersByKey.set(`phone:${phoneKey}`, u);
+        });
+
+      // Include real customers who placed orders as guests and are not in profiles
+      (orders || []).forEach((order) => {
+        const emailInNotesMatch = (order.notes || '').match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
+        const inferredEmail = (emailInNotesMatch?.[0] || '').trim().toLowerCase();
+        const phone = (order.customerPhone || '').trim();
+        const hasExisting =
+          (inferredEmail && customersByKey.has(`email:${inferredEmail}`)) ||
+          (phone && customersByKey.has(`phone:${phone}`));
+
+        if (hasExisting) return;
+
+        const syntheticId = `guest:${phone || inferredEmail || order.orderNumber}`;
+        const guestCustomer: User = {
+          id: syntheticId,
+          name: (order.customerName || 'Guest Customer').trim(),
+          email: inferredEmail || `guest-${order.orderNumber.toLowerCase()}@local.customer`,
+          phone: phone || undefined,
+          role: 'customer',
+          created_at: order.createdAt,
+        };
+
+        if (inferredEmail) customersByKey.set(`email:${inferredEmail}`, guestCustomer);
+        if (phone) customersByKey.set(`phone:${phone}`, guestCustomer);
+      });
+
+      const dedupedGuestCustomers = Array.from(customersByKey.values()).filter(
+        (u, index, arr) => arr.findIndex((x) => x.id === u.id) === index
+      );
+
+      const nonCustomerUsers = baseUsers.filter((u) => u.role !== 'customer');
+      const combinedUsers = [...nonCustomerUsers, ...dedupedGuestCustomers].sort(
+        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+
+      setUsers(combinedUsers);
     } catch (err) {
       console.error('Error fetching users:', err);
       setUsers([]);
@@ -104,6 +155,10 @@ const UsersPage: React.FC = () => {
   };
 
   const handleOpenModal = async (user?: User) => {
+    if (user && isVirtualCustomer(user.id)) {
+      toast.error(isRTL ? 'تنبيه' : 'Notice', isRTL ? 'هذا عميل ضيف من الطلبات ولا يمكن تعديل حسابه قبل التسجيل.' : 'This is a guest customer from orders and cannot be edited before registration.');
+      return;
+    }
     if (user) {
       setEditingUser(user);
       setFormData({
@@ -252,6 +307,10 @@ const UsersPage: React.FC = () => {
   };
 
   const handleDelete = async (user: User) => {
+    if (isVirtualCustomer(user.id)) {
+      toast.error(isRTL ? 'تنبيه' : 'Notice', isRTL ? 'لا يمكن حذف عميل ضيف من صفحة المستخدمين.' : 'Guest customers cannot be deleted from users list.');
+      return;
+    }
     if (user.id === currentUser?.id) {
       toast.error(isRTL ? 'خطأ' : 'Error', t.cannotDeleteSelf);
       return;
@@ -392,6 +451,7 @@ const UsersPage: React.FC = () => {
           {filteredUsers.map((user) => {
             const badge = getRoleBadge(user.role);
             const isCurrentUser = user.id === currentUser?.id;
+            const isGuest = isVirtualCustomer(user.id);
             return (
               <div
                 key={user.id}
@@ -421,6 +481,11 @@ const UsersPage: React.FC = () => {
                     <span className={`px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-widest ${badge.color}`}>
                         {badge.label}
                     </span>
+                    {isGuest && (
+                      <span className="px-3 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded-xl text-[10px] font-black uppercase tracking-widest">
+                        {isRTL ? 'عميل ضيف (من الطلبات)' : 'Guest customer (from orders)'}
+                      </span>
+                    )}
                     {user.phone && (
                         <span className="px-3 py-1 bg-gray-50 border border-gray-100 rounded-xl text-[10px] font-black text-gray-600" dir="ltr">{user.phone}</span>
                     )}
@@ -429,6 +494,7 @@ const UsersPage: React.FC = () => {
                 <div className="mt-auto pt-6 border-t border-gray-50 flex gap-2">
                   <button
                     onClick={() => handleOpenModal(user)}
+                    disabled={isGuest}
                     className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gray-50 text-gray-700 rounded-2xl hover:bg-black hover:text-white transition-all text-[10px] font-black uppercase tracking-widest border border-transparent hover:border-black"
                   >
                     <Edit className="w-4 h-4" />
@@ -438,6 +504,8 @@ const UsersPage: React.FC = () => {
                     <button
                       onClick={() => handleDelete(user)}
                       className="px-4 py-3 bg-red-50 text-red-600 rounded-2xl hover:bg-red-600 hover:text-white transition-all border border-transparent hover:border-red-100"
+                      aria-label={t.delete}
+                      title={t.delete}
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -469,7 +537,12 @@ const UsersPage: React.FC = () => {
                 </div>
                 {editingUser ? t.editUser : t.addUser}
               </h2>
-              <button onClick={handleCloseModal} className="p-3 hover:bg-white rounded-2xl transition-all border border-transparent hover:border-gray-100">
+              <button
+                onClick={handleCloseModal}
+                className="p-3 hover:bg-white rounded-2xl transition-all border border-transparent hover:border-gray-100"
+                aria-label={isRTL ? 'إغلاق النافذة' : 'Close modal'}
+                title={isRTL ? 'إغلاق النافذة' : 'Close modal'}
+              >
                 <X className="w-6 h-6 text-gray-400" />
               </button>
             </div>
@@ -537,6 +610,8 @@ const UsersPage: React.FC = () => {
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
                         className={`absolute ${isRTL ? 'left-4' : 'right-4'} top-1/2 -translate-y-1/2 text-gray-400 hover:text-black transition`}
+                        aria-label={showPassword ? (isRTL ? 'إخفاء كلمة المرور' : 'Hide password') : (isRTL ? 'إظهار كلمة المرور' : 'Show password')}
+                        title={showPassword ? (isRTL ? 'إخفاء كلمة المرور' : 'Hide password') : (isRTL ? 'إظهار كلمة المرور' : 'Show password')}
                       >
                         {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                       </button>
@@ -550,6 +625,8 @@ const UsersPage: React.FC = () => {
                       value={formData.role}
                       onChange={(e) => setFormData(prev => ({ ...prev, role: e.target.value as UserRole }))}
                       className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-black outline-none font-black shadow-sm"
+                      aria-label={t.roleLabel}
+                      title={t.roleLabel}
                     >
                       <option value="customer">{isRTL ? '📦 عميل (طلب فقط)' : '📦 Customer'}</option>
                       <option value="viewer">{isRTL ? '👁️ مشاهد (قراءة فقط)' : '👁️ Viewer'}</option>

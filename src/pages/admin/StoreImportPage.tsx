@@ -9,7 +9,6 @@ import {
 import { useLanguage } from '@/context/LanguageContext';
 import { productsService, categoriesService } from '@/services/api';
 import { supabase } from '@/lib/supabase';
-import { mockCategories } from '@/data/mockData';
 import { Category } from '@/types';
 
 interface CatalogProduct {
@@ -55,7 +54,7 @@ const StoreImportPage: React.FC = () => {
   const [savedStores, setSavedStores] = useState<{id:string;name:string;url:string}[]>([]);
 
   // Step 2
-  const [categories, setCategories] = useState<Category[]>(mockCategories);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategory, setSelectedCategory] = useState('');
   const [isLoadingCategories, setIsLoadingCategories] = useState(true);
 

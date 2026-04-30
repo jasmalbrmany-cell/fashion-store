@@ -10,7 +10,7 @@ export const productsService = {
     if (cached) return cached;
 
     if (!isSupabaseConfigured()) {
-      return [].filter((p: any) => p.isVisible);
+      return [];
     }
 
     const fetchPromise = (supabase as any)
@@ -37,7 +37,7 @@ export const productsService = {
 
   async getByCategory(categoryId: string): Promise<Product[]> {
     if (!isSupabaseConfigured()) {
-      return [].filter((p: any) => p.categoryId === categoryId && p.isVisible);
+      return [];
     }
 
     const fetchPromise = (supabase as any)

@@ -86,11 +86,20 @@ const ProductsPage: React.FC = () => {
     }
 
     if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      result = result.filter(p =>
-        p.name.toLowerCase().includes(query) ||
-        (p.description || '').toLowerCase().includes(query)
-      );
+      const query = searchQuery.toLowerCase().trim();
+      const normalizedQuery = query.replace(/[أإآ]/g, 'ا');
+      
+      result = result.filter(p => {
+        const name = p.name.toLowerCase();
+        const desc = (p.description || '').toLowerCase();
+        const normalizedName = name.replace(/[أإآ]/g, 'ا');
+        const normalizedDesc = desc.replace(/[أإآ]/g, 'ا');
+        
+        return name.includes(query) || 
+               desc.includes(query) || 
+               normalizedName.includes(normalizedQuery) || 
+               normalizedDesc.includes(normalizedQuery);
+      });
     }
 
     if (selectedSizes.length > 0) {
@@ -207,9 +216,17 @@ const ProductsPage: React.FC = () => {
                   placeholder={t.searchPlaceholder}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full px-5 py-3 pr-12 bg-gray-50 dark:bg-gray-800 border-0 rounded-2xl focus:ring-2 focus:ring-black dark:focus:ring-white transition-all font-bold outline-none dark:text-white"
+                  className="w-full px-5 py-3 pr-12 pl-12 bg-gray-50 dark:bg-gray-800 border-0 rounded-2xl focus:ring-2 focus:ring-black dark:focus:ring-white transition-all font-bold outline-none dark:text-white"
                 />
                 <Search className={`absolute ${language === 'ar' ? 'left-4' : 'right-4'} top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5`} />
+                {searchQuery && (
+                  <button 
+                    onClick={() => setSearchQuery('')}
+                    className={`absolute ${language === 'ar' ? 'right-4' : 'left-4'} top-1/2 -translate-y-1/2 text-gray-400 hover:text-black dark:hover:text-white transition-colors`}
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
               </div>
             </div>
 

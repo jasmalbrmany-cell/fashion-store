@@ -4,7 +4,7 @@ import { Eye, EyeOff, User, Mail, Lock, Phone, ShoppingBag, CheckCircle, AlertCi
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
-import { usersService, withTimeout } from '@/services/api';
+import { withTimeout } from '@/services/api';
 
 // Auto-format name: add space between words if typed without spaces
 const formatName = (value: string): string => {
@@ -102,17 +102,7 @@ const RegisterPage: React.FC = () => {
 
     try {
       if (!isSupabaseConfigured()) {
-        await new Promise(r => setTimeout(r, 800));
-        // Add user to the persistent mock data
-        await usersService.create({
-          email: formData.email.trim().toLowerCase(),
-          name: formData.name.trim(),
-          phone: formData.phone,
-          role: 'customer'
-        });
-        
-        setSuccess(true);
-        setTimeout(() => navigate('/login'), 2000); // Navigate to login so they can sign in
+        setError(isAr ? 'النظام غير مهيأ حالياً: بيانات Supabase غير مكتملة.' : 'System is not configured: Supabase environment variables are missing.');
         return;
       }
 

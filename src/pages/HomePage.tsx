@@ -35,16 +35,23 @@ const HomePage: React.FC = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [productsData, categoriesData, adsData, settingsData] = await Promise.all([
-          productsService.getAll(),
+
+        // Load critical data first to render page frame faster
+        const [categoriesData, settingsData] = await Promise.all([
           categoriesService.getAll(),
-          adsService.getAll(),
           storeSettingsService.get()
         ]);
-        setProducts(productsData);
         setCategories(categoriesData);
-        setAds(adsData);
         setSettings(settingsData);
+        setLoading(false);
+
+        // Load heavier data in background to reduce first paint delay
+        const [productsData, adsData] = await Promise.all([
+          productsService.getAll(),
+          adsService.getAll(),
+        ]);
+        setProducts(productsData);
+        setAds(adsData);
       } catch (error) {
         console.error('Failed to fetch homepage data:', error);
       } finally {

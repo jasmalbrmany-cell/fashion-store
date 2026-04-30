@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { load } from 'cheerio';
 import { createClient } from '@supabase/supabase-js';
-import { scrapeWithFirecrawl } from './_lib/firecrawl';
+import { scrapeWithFirecrawl } from './_lib/firecrawl.js';
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '';
