@@ -25,19 +25,9 @@ export const citiesService = {
       }
 
       const results = (data || []).map(transformCity);
-      const uniqueResults: City[] = [];
-      const seenNames = new Set<string>();
-
-      for (const city of results) {
-        const nameKey = city.name.trim().toLowerCase();
-        if (!seenNames.has(nameKey)) {
-          seenNames.add(nameKey);
-          uniqueResults.push(city);
-        }
-      }
-
-      setToCache('cities_all', uniqueResults);
-      return uniqueResults;
+      console.log(`[cities-service] Fetched ${results.length} total cities`);
+      setToCache('cities_all', results);
+      return results;
     } catch (e) {
       return [];
     }
@@ -66,19 +56,9 @@ export const citiesService = {
       }
 
       const results = (data || []).map(transformCity);
-      const uniqueResults: City[] = [];
-      const seenNames = new Set<string>();
-
-      for (const city of results) {
-        const nameKey = city.name.trim().toLowerCase();
-        if (!seenNames.has(nameKey)) {
-          seenNames.add(nameKey);
-          uniqueResults.push(city);
-        }
-      }
-
-      setToCache('cities_active', uniqueResults);
-      return uniqueResults;
+      console.log(`[cities-service] Fetched ${results.length} active cities`);
+      setToCache('cities_active', results);
+      return results;
     } catch (e) {
       return [];
     }

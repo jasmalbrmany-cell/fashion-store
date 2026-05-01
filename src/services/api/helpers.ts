@@ -16,7 +16,7 @@ export const withTimeout = (promise: Promise<any>, timeoutMs = 15000): Promise<a
 
 // --- Caching Logic ---
 const CACHE_TTL_SHORT = 3 * 60 * 1000;
-const CACHE_TTL_LONG = 10 * 60 * 1000;
+const CACHE_TTL_LONG = 1 * 60 * 1000; // 1 minute for common data
 const CACHE_TTL_SETTINGS = 30 * 1000; // 30 seconds for settings
 const LONG_TTL_KEYS = ['categories_all', 'cities_all', 'cities_active', 'currencies_all', 'statistics_main'];
 
