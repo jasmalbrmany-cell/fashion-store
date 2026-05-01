@@ -4,8 +4,8 @@ import { MapPin, Phone, User, MessageCircle, ChevronLeft, ChevronRight, Loader2 
 import { useCart } from '@/context/CartContext';
 import { useLanguage, translateText } from '@/context/LanguageContext';
 import { useAuth } from '@/context/AuthContext';
-import { citiesService, storeSettingsService, ordersService } from '@/services/api';
-import { City, StoreSettings } from '@/types';
+import { citiesService, storeSettingsService, ordersService, categoriesService } from '@/services/api';
+import { City, StoreSettings, Category } from '@/types';
 
 const CheckoutPage: React.FC = () => {
   const navigate = useNavigate();
@@ -15,6 +15,7 @@ const CheckoutPage: React.FC = () => {
 
   const [loading, setLoading] = useState(true);
   const [cities, setCities] = useState<City[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [settings, setSettings] = useState<StoreSettings | null>(null);
   const [formData, setFormData] = useState({
     name: '',
@@ -27,23 +28,32 @@ const CheckoutPage: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    const fetchData = async () => {
+    const loadData = async () => {
       try {
-        setLoading(true);
-        const [citiesData, settingsData] = await Promise.all([
+        const [citiesData, settingsData, categoriesData] = await Promise.all([
           citiesService.getActive(),
-          storeSettingsService.get()
+          storeSettingsService.get(),
+          categoriesService.getAll()
         ]);
         setCities(citiesData);
         setSettings(settingsData);
+        setCategories(categoriesData || []);
+        
+        if (user) {
+          setFormData(prev => ({
+            ...prev,
+            name: user.name || '',
+            phone: user.phone || '',
+          }));
+        }
       } catch (error) {
-        console.error('Failed to fetch checkout data:', error);
+        console.error('Failed to load checkout data:', error);
       } finally {
         setLoading(false);
       }
     };
-    fetchData();
-  }, []);
+    loadData();
+  }, [user]);
 
   const subtotal = getSubtotal();
   const selectedCity = cities.find(c => c.id === formData.city);
@@ -136,13 +146,27 @@ ${formData.notes ? `\n📝 *${t.additionalNotes}:*\n${formData.notes}` : ''}
     // Try to find the first category with a specific WhatsApp number
     let whatsappNumber = settings?.socialLinks.whatsapp || '';
     
-    // Check if any product category has a specific number
+    // Check if any product category has a specific number (Priority: Category Record > Parent > Settings Map > Global Default)
     for (const item of items) {
       const catId = item.product.categoryId;
-      if (settings?.socialLinks.whatsappCategory?.[catId]) {
-        whatsappNumber = settings.socialLinks.whatsappCategory[catId];
-        break; // Priority to the first specialized number found
+      let currentCat = categories.find(c => c.id === catId);
+      
+      // Look up the hierarchy (up to 2 levels)
+      while (currentCat) {
+        if (currentCat.whatsappNumber) {
+          whatsappNumber = currentCat.whatsappNumber;
+          break;
+        }
+        // If not found, check settings map as well for this specific ID
+        if (settings?.socialLinks.whatsappCategory?.[currentCat.id]) {
+          whatsappNumber = settings.socialLinks.whatsappCategory[currentCat.id];
+          break;
+        }
+        // Move to parent
+        currentCat = currentCat.parentId ? categories.find(c => c.id === currentCat?.parentId) : undefined;
       }
+      
+      if (whatsappNumber !== (settings?.socialLinks.whatsapp || '')) break;
     }
 
     const encodedMessage = encodeURIComponent(message);

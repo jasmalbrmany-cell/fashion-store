@@ -17,11 +17,15 @@ export const withTimeout = (promise: Promise<any>, timeoutMs = 15000): Promise<a
 // --- Caching Logic ---
 const CACHE_TTL_SHORT = 3 * 60 * 1000;
 const CACHE_TTL_LONG = 10 * 60 * 1000;
-const LONG_TTL_KEYS = ['categories_all', 'cities_all', 'cities_active', 'currencies_all', 'settings_main', 'statistics_main'];
+const CACHE_TTL_SETTINGS = 30 * 1000; // 30 seconds for settings
+const LONG_TTL_KEYS = ['categories_all', 'cities_all', 'cities_active', 'currencies_all', 'statistics_main'];
 
 const memoryCache: Record<string, { data: any; timestamp: number }> = {};
 
-const getCacheTTL = (key: string) => LONG_TTL_KEYS.includes(key) ? CACHE_TTL_LONG : CACHE_TTL_SHORT;
+const getCacheTTL = (key: string) => {
+  if (key === 'settings_main') return CACHE_TTL_SETTINGS;
+  return LONG_TTL_KEYS.includes(key) ? CACHE_TTL_LONG : CACHE_TTL_SHORT;
+};
 
 const getStorageItem = <T>(key: string, defaultValue: T): T => {
   if (typeof window === 'undefined') return defaultValue;
