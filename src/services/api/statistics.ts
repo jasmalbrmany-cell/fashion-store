@@ -27,29 +27,41 @@ export const statisticsService = {
       const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
       const monthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
-      const [productsRes, ordersRes, customersRes, todayOrdersRes, weekOrdersRes, monthOrdersRes, revenueRes, recentActivities] =
+      // Fetch each stat individually to prevent one failure from breaking everything
+      const fetchCount = async (table: string, queryModifier?: (q: any) => any) => {
+        try {
+          let q = (supabase as any).from(table).select('id', { count: 'exact', head: true });
+          if (queryModifier) q = queryModifier(q);
+          const { count, error } = await q;
+          if (error) throw error;
+          return count || 0;
+        } catch (err) {
+          console.warn(`[Stats] Failed to fetch count for ${table}:`, err);
+          return 0;
+        }
+      };
+
+      const [totalProducts, totalOrders, totalCustomers, todayOrders, weekOrders, monthOrders, revenueRes, recentActivities] =
         await Promise.all([
-          (supabase as any).from('products').select('id', { count: 'exact', head: true }),
-          (supabase as any).from('orders').select('id', { count: 'exact', head: true }),
-          (supabase as any).from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'customer'),
-          (supabase as any).from('orders').select('id', { count: 'exact', head: true }).gte('created_at', today),
-          (supabase as any).from('orders').select('id', { count: 'exact', head: true }).gte('created_at', weekAgo),
-          (supabase as any).from('orders').select('id', { count: 'exact', head: true }).gte('created_at', monthAgo),
-          // Only fetch last 1000 orders for revenue to avoid massive payload
-          (supabase as any).from('orders').select('total').eq('status', 'completed').order('created_at', { ascending: false }).limit(1000),
-          activityLogsService.getRecent(5),
+          fetchCount('products'),
+          fetchCount('orders'),
+          fetchCount('profiles', q => q.eq('role', 'customer')),
+          fetchCount('orders', q => q.gte('created_at', today)),
+          fetchCount('orders', q => q.gte('created_at', weekAgo)),
+          fetchCount('orders', q => q.gte('created_at', monthAgo)),
+          (supabase as any).from('orders').select('total').eq('status', 'completed').order('created_at', { ascending: false }).limit(1000).then((r: any) => r.data || []),
+          activityLogsService.getRecent(5).catch(() => []),
         ]);
 
-      // Calculate revenue from fetched data
-      const totalRevenue = (revenueRes.data || []).reduce((sum: number, o: any) => sum + (Number(o.total) || 0), 0);
+      const totalRevenue = revenueRes.reduce((sum: number, o: any) => sum + (Number(o.total) || 0), 0);
 
       const transformed = {
-        totalProducts: productsRes.count || 0,
-        totalOrders: ordersRes.count || 0,
-        todayOrders: todayOrdersRes.count || 0,
-        weekOrders: weekOrdersRes.count || 0,
-        monthOrders: monthOrdersRes.count || 0,
-        totalCustomers: customersRes.count || 0,
+        totalProducts,
+        totalOrders,
+        todayOrders,
+        weekOrders,
+        monthOrders,
+        totalCustomers: totalCustomers || 0,
         totalRevenue,
         topProducts: [],
         recentActivities,

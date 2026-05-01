@@ -4,7 +4,7 @@ import { ArrowLeft, ArrowRight, ChevronLeft, ChevronRight, Loader2, Shirt, Watch
 import { motion, AnimatePresence } from 'framer-motion';
 import { ProductCard } from '@/components/Product';
 import { productsService, categoriesService, adsService, storeSettingsService } from '@/services/api';
-import { useLanguage, categoryNames, translateCategory } from '@/context/LanguageContext';
+import { useLanguage, categoryNames, translateCategory, translateText } from '@/context/LanguageContext';
 import { Skeleton } from '@/components/Common/Skeleton';
 import { LazyLoadImage } from 'react-lazy-load-image-component';
 import 'react-lazy-load-image-component/src/effects/blur.css';
@@ -126,13 +126,13 @@ const HomePage: React.FC = () => {
             <div className="w-full lg:w-1/2 space-y-8 animate-in slide-in-from-bottom-8 fade-in duration-1000 fill-mode-both relative z-10">
               <h1 className="text-5xl md:text-7xl font-black tracking-tight text-gradient-dark leading-[1.1] md:leading-[1.1] drop-shadow-sm">
                 {activeBanners.length > 0 
-                  ? activeBanners[currentBanner].title 
+                  ? translateText(activeBanners[currentBanner].title, language)
                   : (t.welcomeTo + ' ' + (settings?.name || 'Fashion Hub'))}
               </h1>
               
               <p className="text-lg md:text-xl text-zinc-600 dark:text-zinc-400 max-w-lg leading-relaxed font-medium">
                 {activeBanners.length > 0 
-                  ? activeBanners[currentBanner].content 
+                  ? translateText(activeBanners[currentBanner].content, language)
                   : (isAr ? 'اكتشف أحدث صيحات الموضة والأزياء العصرية مع تشكيلة واسعة وأسعار لا تقبل المنافسة' : 'Discover the latest fashion trends and modern styles with a wide collection and unbeatable prices')}
               </p>
               

@@ -249,7 +249,7 @@ const StoreImportPage: React.FC = () => {
         while (retryCount <= maxRetries && !success) {
           try {
             // Upload images to Supabase Storage permanently IN PARALLEL
-            const rawImages = prod.images.slice(0, 8); // Limit to 8 images
+            const rawImages = prod.images.slice(0, 15); // Increased to 15 images
             const uploadPromises = rawImages.map(async (imgUrl, i) => {
               try {
                 // Check if it's already a Supabase URL (e.g. from a previous failed attempt that partially succeeded)
@@ -305,7 +305,7 @@ const StoreImportPage: React.FC = () => {
 
             const ok = await productsService.create({
               name: prod.name,
-              description: prod.description || (isRTL ? 'منتج مستورد' : 'Imported product'),
+              description: prod.description || '',
               price: prod.price || 0,
               categoryId: targetCategoryId,
               images: processedImages,

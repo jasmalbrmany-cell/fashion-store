@@ -4,6 +4,25 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script>
+    // نظام التطهير الذاتي لضمان عمل الموقع على المتصفحات العادية
+    (function() {
+      try {
+        var version = '3.0.0';
+        var lastVersion = localStorage.getItem('app_version');
+        if (lastVersion !== version) {
+          // مسح شامل لكل ما قد يسبب تعليق في المتصفح العادي
+          for (var key in localStorage) {
+            if (key.indexOf('cache_v2_') === 0 || key === 'supabase_use_direct') {
+              localStorage.removeItem(key);
+            }
+          }
+          localStorage.setItem('app_version', version);
+          console.log('Clean start for version ' + version);
+        }
+      } catch (e) {}
+    })();
+  </script>
   <meta name="description" content="فاشن هاب - متجر أزياء عصري. اكتشف أحدث صيحات الموضة مع تشكيلة واسعة من الملابس والأحذية والإكسسوارات بأسعار منافسة." />
   <title>FashionHub | فاشن هاب</title>
   

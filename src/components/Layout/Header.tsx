@@ -3,11 +3,11 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Search, ShoppingCart, User, Heart, Menu, X, LayoutDashboard, Store, Languages, Download, Moon, Sun, ChevronDown } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
-import { useLanguage, translateCategory } from '@/context/LanguageContext';
+import { useLanguage, translateCategory, translateText } from '@/context/LanguageContext';
 import type { Language } from '@/context/LanguageContext';
 import { useTheme } from '@/context/ThemeContext';
-import { categoriesService, getCachedSync } from '@/services/api';
-import { Category } from '@/types';
+import { categoriesService, getCachedSync, storeSettingsService } from '@/services/api';
+import { Category, StoreSettings } from '@/types';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 
 const Header: React.FC = () => {
@@ -22,6 +22,7 @@ const Header: React.FC = () => {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [categories, setCategories] = useState<Category[]>(getCachedSync<Category[]>('categories_all') || []);
+  const [settings, setSettings] = useState<StoreSettings | null>(getCachedSync<StoreSettings>('settings_main'));
   const [notification, setNotification] = useState<{ title: string; body: string; type: 'product' | 'ad' } | null>(null);
   const [megaMenuOpen, setMegaMenuOpen] = useState<string | null>(null); // parentId of open mega menu
   const [megaMenuTimeout, setMegaMenuTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
@@ -69,6 +70,9 @@ const Header: React.FC = () => {
     categoriesService.getAll().then(data => {
       if (data && data.length > 0) setCategories(data);
     });
+    storeSettingsService.get().then(data => {
+      if (data) setSettings(data);
+    });
   }, []);
 
   const handleInstallApp = () => {
@@ -111,12 +115,22 @@ const Header: React.FC = () => {
       {/* Ticker / Announcement Bar */}
       <div className="bg-zinc-900 dark:bg-black text-primary-300 text-xs font-semibold py-1.5 overflow-hidden flex border-b border-zinc-800">
         <div className="animate-marquee gap-8 w-max">
-          <span>✦ {isRTL ? 'التوصيل مجاني للطلبات فوق 500 ريال' : 'Free shipping on orders over 500 SAR'}</span>
-          <span className="mx-8">✦ {isRTL ? 'خصم 10% للمستخدمين الجدد — كود: NEW10' : '10% off for new users — code: NEW10'}</span>
-          <span className="mx-8">✦ {isRTL ? 'عروض الصيف بدأت الآن' : 'Summer Sale is now live'}</span>
-          <span className="mx-8">✦ {isRTL ? 'التوصيل مجاني للطلبات فوق 500 ريال' : 'Free shipping on orders over 500 SAR'}</span>
-          <span className="mx-8">✦ {isRTL ? 'خصم 10% للمستخدمين الجدد — كود: NEW10' : '10% off for new users — code: NEW10'}</span>
-          <span className="mx-8">✦ {isRTL ? 'عروض الصيف بدأت الآن' : 'Summer Sale is now live'}</span>
+          {settings?.socialLinks?.topBarText ? (
+            // If admin provided custom text, repeat it and translate it if needed
+            Array.from({ length: 6 }).map((_, i) => (
+              <span key={i} className="mx-8">✦ {translateText(settings.socialLinks.topBarText, language)}</span>
+            ))
+          ) : (
+            // Default texts if nothing is set
+            <>
+              <span>✦ {isRTL ? 'التوصيل مجاني للطلبات فوق 500 ريال' : 'Free shipping on orders over 500 SAR'}</span>
+              <span className="mx-8">✦ {isRTL ? 'خصم 10% للمستخدمين الجدد — كود: NEW10' : '10% off for new users — code: NEW10'}</span>
+              <span className="mx-8">✦ {isRTL ? 'عروض الصيف بدأت الآن' : 'Summer Sale is now live'}</span>
+              <span className="mx-8">✦ {isRTL ? 'التوصيل مجاني للطلبات فوق 500 ريال' : 'Free shipping on orders over 500 SAR'}</span>
+              <span className="mx-8">✦ {isRTL ? 'خصم 10% للمستخدمين الجدد — كود: NEW10' : '10% off for new users — code: NEW10'}</span>
+              <span className="mx-8">✦ {isRTL ? 'عروض الصيف بدأت الآن' : 'Summer Sale is now live'}</span>
+            </>
+          )}
         </div>
       </div>
 
@@ -126,8 +140,8 @@ const Header: React.FC = () => {
            onClick={() => { setNotification(null); navigate(notification.type === 'product' ? '/products' : '/'); }}>
            <div className={`w-2 h-full absolute top-0 ${isRTL ? 'right-0' : 'left-0'} ${notification.type === 'product' ? 'bg-primary' : 'bg-yellow-400'} animate-pulse`}></div>
            <div className="flex-1 ml-2 mr-2">
-              <p className="font-black text-sm uppercase tracking-widest text-primary-200 mb-0.5">{notification.title}</p>
-              <p className="font-semibold text-xs text-zinc-300 leading-relaxed">{notification.body}</p>
+              <p className="font-black text-sm uppercase tracking-widest text-primary-200 mb-0.5">{translateText(notification.title, language)}</p>
+              <p className="font-semibold text-xs text-zinc-300 leading-relaxed">{translateText(notification.body, language)}</p>
            </div>
            <button onClick={(e) => { e.stopPropagation(); setNotification(null); }} className="p-2 hover:bg-white/10 rounded-full transition shrink-0">
              <X className="w-4 h-4 text-zinc-400 hover:text-white" />

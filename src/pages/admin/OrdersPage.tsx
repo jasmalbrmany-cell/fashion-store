@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { ordersService, storeSettingsService, hasValidCache, getCachedSync } from '@/services/api';
 import { Order, OrderStatus, StoreSettings } from '@/types';
-import { useLanguage } from '@/context/LanguageContext';
+import { useLanguage, translateText } from '@/context/LanguageContext';
 import { useToast } from '@/components/Common/Toast';
 import { downloadInvoice } from '@/lib/pdfGenerator';
 
@@ -399,7 +399,7 @@ const AdminOrdersPage: React.FC = () => {
                       </div>
                       <div className="flex-1 flex flex-col justify-between">
                         <div>
-                            <p className="font-black text-gray-900 text-lg leading-tight">{item.productName}</p>
+                            <p className="font-black text-gray-900 text-lg leading-tight">{translateText(item.productName, language)}</p>
                             <div className="flex flex-wrap gap-2 mt-2">
                                 {item.size && <span className="text-[10px] font-black bg-gray-100 px-2 py-0.5 rounded uppercase">{t.size}: {item.size}</span>}
                                 {item.color && <span className="text-[10px] font-black bg-gray-100 px-2 py-0.5 rounded uppercase">{t.color}: {item.color}</span>}

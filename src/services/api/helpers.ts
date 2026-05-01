@@ -45,7 +45,7 @@ export const getFromCache = (key: string) => {
     const isStale = Date.now() - memoryCache[key].timestamp > ttl;
     if (!isStale) return memoryCache[key].data;
   }
-  const stored = getStorageItem<{ data: any; timestamp: number } | null>(`cache_v2_${key}`, null);
+  const stored = getStorageItem<{ data: any; timestamp: number } | null>(`cache_v3_${key}`, null);
   if (stored) {
     const isStale = Date.now() - stored.timestamp > ttl;
     if (!isStale) {
@@ -59,13 +59,13 @@ export const getFromCache = (key: string) => {
 export const setToCache = (key: string, data: any) => {
   const cacheEntry = { data, timestamp: Date.now() };
   memoryCache[key] = cacheEntry;
-  setStorageItem(`cache_v2_${key}`, cacheEntry);
+  setStorageItem(`cache_v3_${key}`, cacheEntry);
 };
 
 export const clearCache = (key: string) => {
   delete memoryCache[key];
   if (typeof window !== 'undefined') {
-    localStorage.removeItem(`cache_v2_${key}`);
+    localStorage.removeItem(`cache_v3_${key}`);
   }
 };
 
@@ -75,7 +75,7 @@ export const hasValidCache = (key: string): boolean => {
     const isStale = Date.now() - memoryCache[key].timestamp > ttl;
     return !isStale;
   }
-  const stored = getStorageItem<{ data: any; timestamp: number } | null>(`cache_v2_${key}`, null);
+  const stored = getStorageItem<{ data: any; timestamp: number } | null>(`cache_v3_${key}`, null);
   if (stored) {
     const isStale = Date.now() - stored.timestamp > ttl;
     return !isStale;

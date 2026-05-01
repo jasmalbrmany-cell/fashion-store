@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Minus, Plus, Trash2, ShoppingBag, ArrowLeft, MessageCircle, User, LogIn, Flame, Star } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
-import { useLanguage } from '@/context/LanguageContext';
+import { useLanguage, translateText } from '@/context/LanguageContext';
 import { productsService, storeSettingsService } from '@/services';
 import { Product, StoreSettings } from '@/types';
 
@@ -48,7 +48,7 @@ const CartPage: React.FC = () => {
     const itemsList = items
       .map(
         item =>
-          `- ${item.product.name}\n  ${t.size}: ${item.size?.name || '-'}\n  ${t.color}: ${item.color?.name || '-'}\n  ${t.quantityLabel}: ${item.quantity}\n  ${t.price}: ${formatPrice(item.price * item.quantity)} ${currencySymbol}`
+          `- ${translateText(item.product.name, language)}\n  ${t.size}: ${item.size?.name || '-'}\n  ${t.color}: ${item.color?.name || '-'}\n  ${t.quantityLabel}: ${item.quantity}\n  ${t.price}: ${formatPrice(item.price * item.quantity)} ${currencySymbol}`
       )
       .join('\n\n');
 
@@ -154,7 +154,7 @@ const CartPage: React.FC = () => {
                     />
                   </div>
                   <div className="p-3">
-                    <p className="text-sm font-medium text-gray-900 line-clamp-2 mb-1">{product.name}</p>
+                    <p className="text-sm font-medium text-gray-900 line-clamp-2 mb-1">{translateText(product.name, language)}</p>
                     <p className="text-sm font-bold text-gray-900">
                       {formatPrice(product.price)} {currencySymbol}
                     </p>
@@ -191,7 +191,7 @@ const CartPage: React.FC = () => {
                   <div className="flex-1">
                     <div className="flex justify-between">
                       <Link to={`/product/${item.productId}`} className="font-semibold text-gray-900 hover:text-black">
-                        {item.product.name}
+                        {translateText(item.product.name, language)}
                       </Link>
                       <button onClick={() => removeItem(item.id)} className="text-gray-400 hover:text-red-500 transition">
                         <Trash2 className="w-5 h-5" />

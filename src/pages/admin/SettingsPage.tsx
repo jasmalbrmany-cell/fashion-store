@@ -199,6 +199,47 @@ const SettingsPage: React.FC = () => {
           </div>
         </div>
 
+        {/* Site Content (Top Bar & Footer) */}
+        <div className="bg-white rounded-3xl shadow-sm border p-6 md:p-8 space-y-8">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 bg-amber-500 text-white rounded-xl flex items-center justify-center shadow-lg shadow-amber-100">
+              <Palette className="w-6 h-6" />
+            </div>
+            <h2 className="text-xl font-black text-gray-900">{isRTL ? 'نصوص الموقع والتنبيهات' : 'Site Content & Announcements'}</h2>
+          </div>
+
+          <div className="grid gap-8">
+            {/* Top Bar Marquee */}
+            <div className="space-y-3">
+              <label className="block text-xs font-black uppercase tracking-widest text-gray-400 px-2">
+                {isRTL ? 'نص شريط التنبيهات العلوي (المتحرك)' : 'Top Bar Announcement (Marquee)'}
+              </label>
+              <textarea
+                value={finalSettings.socialLinks?.topBarText || ''}
+                onChange={(e) => updateSocialLink('topBarText', e.target.value)}
+                placeholder={isRTL ? 'مثال: التوصيل مجاني للطلبات فوق 500 ريال | خصم 10% بمناسبة الافتتاح' : 'Example: Free shipping on orders over 500 SAR | 10% off for opening'}
+                className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-black focus:bg-white transition-all outline-none font-bold resize-none h-24"
+              />
+              <p className="text-[10px] text-gray-400 font-bold px-2 italic">
+                {isRTL ? '* سيظهر هذا النص بشكل متحرك في أعلى المتجر.' : '* This text will scroll at the very top of the store.'}
+              </p>
+            </div>
+
+            {/* Footer Description */}
+            <div className="space-y-3">
+              <label className="block text-xs font-black uppercase tracking-widest text-gray-400 px-2">
+                {isRTL ? 'وصف المتجر في الأسفل (Footer)' : 'Footer Description'}
+              </label>
+              <textarea
+                value={finalSettings.socialLinks?.footerText || ''}
+                onChange={(e) => updateSocialLink('footerText', e.target.value)}
+                placeholder={isRTL ? 'اكتب نبذة قصيرة عن متجرك تظهر في أسفل كل صفحة...' : 'Write a short bio about your store that appears at the bottom of every page...'}
+                className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-black focus:bg-white transition-all outline-none font-medium resize-none h-32"
+              />
+            </div>
+          </div>
+        </div>
+
         {/* Global Connections */}
         <div className="bg-white rounded-3xl shadow-sm border p-6 md:p-8 space-y-8">
           <div className="flex items-center gap-3">

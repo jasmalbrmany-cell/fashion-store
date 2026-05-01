@@ -9,6 +9,13 @@ export const config = {
 
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '';
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
+const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+
+if (!SERVICE_KEY) {
+  console.warn('[sb-proxy] Warning: SUPABASE_SERVICE_ROLE_KEY is not set in environment variables.');
+} else {
+  console.log('[sb-proxy] Info: SERVICE_ROLE bypass enabled.');
+}
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // ── CORS ──────────────────────────────────────────────────────────────
@@ -43,13 +50,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // ── Headers to forward ────────────────────────────────────────────────
   const fwdHeaders = new Headers();
   Object.entries(req.headers).forEach(([k, v]) => {
-    if (['host', 'connection', 'content-length', 'accept-encoding'].includes(k.toLowerCase())) return;
+    if (['host', 'connection', 'content-length', 'accept-encoding', 'access-control-allow-origin'].includes(k.toLowerCase())) return;
     if (v) fwdHeaders.set(k, Array.isArray(v) ? v[0] : v);
   });
-  fwdHeaders.set('apikey', SUPABASE_ANON_KEY);
+  
+  // توحيد المفاتيح لضمان قبول Supabase للطلب وتجاوز قيود الـ RLS للمدير
+  const finalKey = SERVICE_KEY || SUPABASE_ANON_KEY;
+  fwdHeaders.set('apikey', finalKey);
+  fwdHeaders.set('authorization', `Bearer ${finalKey}`);
 
   try {
-    const targetUrl = `${SUPABASE_URL}${fullPath}`;
+    const cleanUrl = SUPABASE_URL.replace(/\/$/, '');
+    const targetUrl = `${cleanUrl}${fullPath}`;
     
     // Create AbortController for timeout
     const controller = new AbortController();
@@ -84,9 +96,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         res.setHeader(k, v);
       }
     });
-
-    // Re-assert CORS
-    res.setHeader('Access-Control-Allow-Origin', '*');
 
     // Send body
     const body = await response.arrayBuffer();

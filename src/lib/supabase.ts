@@ -23,6 +23,14 @@ const DIRECT_MODE_KEY = 'supabase_use_direct';
 // Clear old poisoned state if it exists
 if (typeof window !== 'undefined') {
   localStorage.removeItem(DIRECT_MODE_KEY);
+  localStorage.removeItem('supabase.auth.token'); // Force fresh session check if needed
+  // Clean up any v2 cache items if they exist
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && key.startsWith('cache_v2_')) {
+      localStorage.removeItem(key);
+    }
+  }
 }
 
 const getProxyUrl = (): string => {
@@ -31,10 +39,15 @@ const getProxyUrl = (): string => {
 };
 
 const getInitialClientUrl = (): string => {
+  // الحل الجذري: في الإنتاج، نستخدم الـ Proxy دائماً لضمان استقرار الاتصال وتجاوز مشاكل الشبكة
+  if (import.meta.env.PROD) {
+    return getProxyUrl();
+  }
+
   if (!originalSupabaseUrl) return getProxyUrl();
   if (forceProxy) return getProxyUrl();
 
-  // Prefer direct by default; fallback logic in auth/service handles network failures.
+  // في التطوير المحلي، نفضل الاتصال المباشر إذا كان متاحاً
   return originalSupabaseUrl;
 };
 

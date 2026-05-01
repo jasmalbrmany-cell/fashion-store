@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Heart, ShoppingCart } from 'lucide-react';
 import { Product } from '@/types';
 import { useCart } from '@/context/CartContext';
-import { useLanguage } from '@/context/LanguageContext';
+import { useLanguage, translateText } from '@/context/LanguageContext';
 import { LazyLoadImage } from 'react-lazy-load-image-component';
 import 'react-lazy-load-image-component/src/effects/blur.css';
 
@@ -58,7 +58,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
 
   return (
     <div
-      className="bg-white dark:bg-zinc-950 rounded-[2rem] border border-transparent hover:border-zinc-200 dark:border-zinc-900 dark:hover:border-zinc-800 shadow-sm hover:shadow-2xl transition-all duration-500 h-full flex flex-col group animate-fadeIn"
+      className="bg-white dark:bg-zinc-950 rounded-[2rem] border border-transparent hover:border-zinc-200 dark:border-zinc-900 dark:hover:border-zinc-800 shadow-sm hover:shadow-2xl hover:-translate-y-1.5 transition-all duration-500 h-full flex flex-col group animate-fadeIn"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       dir={isRTL ? 'rtl' : 'ltr'}
@@ -73,7 +73,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
             src={primaryImage?.url}
             alt={product.name}
             effect="blur"
-            wrapperClassName={`w-full h-full object-cover transition-all duration-700 ease-out z-0 ${isHovered && secondaryImage ? 'scale-110 opacity-0' : 'scale-100 opacity-100'} ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
+            wrapperClassName={`w-full h-full object-cover transition-all duration-700 ease-out z-0 ${isHovered && secondaryImage ? 'opacity-0' : 'opacity-100'} ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
             className="w-full h-full object-cover"
             afterLoad={() => setImageLoaded(true)}
             placeholder={<div className="absolute inset-0 bg-zinc-200 dark:bg-zinc-800 animate-pulse" />}
@@ -84,19 +84,13 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
                src={secondaryImage.url}
                alt={`${product.name} - view`}
                effect="blur"
-               wrapperClassName={`absolute inset-0 w-full h-full object-cover transition-all duration-700 ease-out z-0 ${isHovered ? 'scale-105 opacity-100' : 'scale-100 opacity-0'}`}
+               wrapperClassName={`absolute inset-0 w-full h-full object-cover transition-all duration-700 ease-out z-0 ${isHovered ? 'opacity-100' : 'opacity-0'}`}
                className="w-full h-full object-cover"
                useIntersectionObserver={true}
             />
           )}
 
-          {/* Badges - Flat Badges */}
           <div className={`absolute top-4 ${isRTL ? 'right-4' : 'left-4'} flex flex-col gap-2.5 z-10`}>
-            {product.sourceUrl && (
-              <span className="bg-zinc-100/90 dark:bg-zinc-800/90 text-zinc-900 dark:text-zinc-100 backdrop-blur-md text-[10px] md:text-xs px-3 py-1.5 rounded-full font-bold shadow-sm">
-                {t.imported}
-              </span>
-            )}
             {product.stock <= 3 && product.stock > 0 && (
               <span className="bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-400 backdrop-blur-md text-[10px] md:text-xs px-3 py-1.5 rounded-full font-bold shadow-sm">
                 {t.onlyLeft.replace('{count}', product.stock.toString())}
@@ -142,7 +136,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
         {/* Info Area */}
         <div className="p-5 flex-1 flex flex-col bg-transparent transition-colors z-20">
           <h3 className="font-bold text-zinc-800 dark:text-zinc-100 mb-2 line-clamp-2 group-hover:text-primary transition-colors text-sm md:text-base leading-relaxed tracking-tight">
-            {product.name}
+            {translateText(product.name, language)}
           </h3>
           <div className="mt-auto pt-2">
             <div className="flex items-center justify-between mb-3">

@@ -62,19 +62,42 @@ serve(async (req) => {
     const price = priceMatch ? priceMatch[1].replace(/,/g, '') : '';
 
     // 3. Images
-    const images: string[] = [];
+    const imageSet = new Set<string>();
+    
+    // OG Image (usually the best primary image)
     const ogImage = html.match(/<meta property="og:image" content="(.*?)"/i);
-    if (ogImage) images.push(ogImage[1]);
+    if (ogImage) imageSet.add(ogImage[1]);
 
-    // Secondary images (common patterns)
-    const imgMatches = html.matchAll(/<img[^>]+src="([^">]+\.(?:jpg|jpeg|png|webp)[^">]*)"/gi);
-    for (const match of imgMatches) {
-      const src = match[1];
-      if (src && !src.includes('logo') && !src.includes('icon') && !images.includes(src)) {
-        images.push(src.startsWith('//') ? `https:${src}` : src);
-      }
-      if (images.length > 10) break;
+    // JSON-LD or JSON data in scripts (Common in modern stores)
+    const jsonMatches = html.matchAll(/"(?:image|images|gallery)":\s*["'\[](.*?)["'\]]/gi);
+    for (const match of jsonMatches) {
+        const content = match[1];
+        const urls = content.match(/https?:\/\/[^"'\s,]+?\.(?:jpg|jpeg|png|webp)/gi);
+        if (urls) urls.forEach(u => imageSet.add(u));
     }
+
+    // Standard IMG tags with data-src, srcset support
+    const imgMatches = html.matchAll(/<(?:img|source)[^>]+(?:src|data-src|srcset|data-lazy-src)="([^">]+)"/gi);
+    for (const match of imgMatches) {
+      const srcStr = match[1];
+      // Handle srcset (take the largest image usually at the end)
+      const srcs = srcStr.split(',').map(s => s.trim().split(' ')[0]);
+      
+      for (let src of srcs) {
+        if (!src) continue;
+        if (src.startsWith('//')) src = `https:${src}`;
+        
+        // Filter out obvious noise
+        const lowerSrc = src.toLowerCase();
+        if (lowerSrc.includes('logo') || lowerSrc.includes('icon') || lowerSrc.includes('banner') || lowerSrc.includes('avatar')) continue;
+        if (!lowerSrc.match(/\.(?:jpg|jpeg|png|webp)/)) continue;
+        
+        imageSet.add(src);
+      }
+      if (imageSet.size > 20) break;
+    }
+
+    const images = Array.from(imageSet).filter(img => img.startsWith('http'));
 
     // 4. Description
     const descMatch = html.match(/<meta name="description" content="(.*?)"/i) ||

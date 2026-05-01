@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { MapPin, Phone, User, MessageCircle, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
-import { useLanguage } from '@/context/LanguageContext';
+import { useLanguage, translateText } from '@/context/LanguageContext';
 import { useAuth } from '@/context/AuthContext';
 import { citiesService, storeSettingsService, ordersService } from '@/services/api';
 import { City, StoreSettings } from '@/types';
@@ -92,7 +92,7 @@ const CheckoutPage: React.FC = () => {
         items: items.map(item => ({
           id: item.id,
           productId: item.productId,
-          productName: item.product.name,
+          productName: translateText(item.product.name, language),
           productImage: item.product.images[0]?.url || '',
           size: item.size?.name,
           color: item.color?.name,
@@ -121,7 +121,7 @@ const CheckoutPage: React.FC = () => {
 • *${t.detailedAddress}:* ${formData.address || '-'}
 
 🛒 *${t.products}:*
-${items.map((item, i) => `\n${i + 1}. *${item.product.name}*\n   📏 ${t.size}: ${item.size?.name || '-'}\n   🎨 ${t.color}: ${item.color?.name || '-'}\n   🔢 ${t.quantity}: ${item.quantity}\n   💰 ${t.price}: ${formatPrice(item.price * item.quantity)} ${t.rial}`).join('\n')}
+${items.map((item, i) => `\n${i + 1}. *${translateText(item.product.name, language)}*\n   📏 ${t.size}: ${item.size?.name || '-'}\n   🎨 ${t.color}: ${item.color?.name || '-'}\n   🔢 ${t.quantity}: ${item.quantity}\n   💰 ${t.price}: ${formatPrice(item.price * item.quantity)} ${t.rial}`).join('\n')}
 
 ---------------------------
 📊 *${t.orderSummary}:*
@@ -352,7 +352,7 @@ ${formData.notes ? `\n📝 *${t.additionalNotes}:*\n${formData.notes}` : ''}
                       className="w-16 h-16 object-cover rounded-xl shadow-sm border border-gray-100"
                     />
                     <div className="flex-1 min-w-0">
-                      <h4 className="font-bold text-gray-900 text-sm line-clamp-1">{item.product.name}</h4>
+                      <h4 className="font-bold text-gray-900 text-sm line-clamp-1">{translateText(item.product.name, language)}</h4>
                       <div className="flex gap-2 mt-1">
                         <span className="text-[10px] text-gray-500">{item.size?.name || '-'} / {item.color?.name || '-'}</span>
                       </div>

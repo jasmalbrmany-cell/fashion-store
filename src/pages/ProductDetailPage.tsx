@@ -4,7 +4,7 @@ import { Heart, ShoppingCart, Minus, Plus, Star, Check, ChevronLeft, ChevronRigh
 import { useCart } from '@/context/CartContext';
 import { productsService, categoriesService, storeSettingsService } from '@/services/api';
 import { Product, ProductSize, ProductColor, Category } from '@/types';
-import { useLanguage, categoryNames } from '@/context/LanguageContext';
+import { useLanguage, categoryNames, translateText } from '@/context/LanguageContext';
 import { ProductCard } from '@/components/Product';
 
 const ProductDetailPage: React.FC = () => {
@@ -192,12 +192,12 @@ const ProductDetailPage: React.FC = () => {
                 </>
               )}
               <button onClick={() => navigate(`/products?category=${category.id}`)} className="hover:text-black whitespace-nowrap font-bold">
-                {categoryNames[category.id]?.[language] || category.name}
+                {categoryNames[category.id]?.[language] || translateText(category.name, language)}
               </button>
               <BreadcrumbIcon className="w-4 h-4 flex-shrink-0" />
             </>
           )}
-          <span className="text-gray-900 font-black whitespace-nowrap truncate max-w-[200px]">{product.name}</span>
+          <span className="text-gray-900 font-black whitespace-nowrap truncate max-w-[200px]">{translateText(product.name, language)}</span>
         </nav>
 
         <div className="bg-white rounded-3xl shadow-sm overflow-hidden border">
@@ -216,14 +216,8 @@ const ProductDetailPage: React.FC = () => {
                 <img
                   src={product.images[selectedImage]?.url}
                   alt={product.name}
-                  className="w-full h-full object-cover transition-transform duration-200 ease-out group-hover:scale-[1.7]"
-                  style={{ transformOrigin: `${zoomPos.x}% ${zoomPos.y}%` }}
+                  className="w-full h-full object-cover"
                 />
-                {product.sourceUrl && (
-                  <span className={`absolute top-4 ${isRTL ? 'right-4' : 'left-4'} bg-black text-white text-[10px] font-bold px-4 py-1.5 rounded-full uppercase tracking-widest`}>
-                    {t.imported}
-                  </span>
-                )}
               </div>
 
               {/* Thumbnails */}
@@ -248,7 +242,7 @@ const ProductDetailPage: React.FC = () => {
             <div className="p-6 lg:p-12 flex flex-col">
               <div className="flex-1">
                 <div className="mb-8">
-                  <h1 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">{product.name}</h1>
+                  <h1 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">{translateText(product.name, language)}</h1>
                   <div className="flex items-center gap-4">
                     <div className="flex text-yellow-500">
                       {[...Array(5)].map((_, i) => (
@@ -452,7 +446,7 @@ const ProductDetailPage: React.FC = () => {
             </div>
             <div className="p-8 lg:p-12">
               {activeTab === 'description' ? (
-                <p className="text-gray-600 text-lg leading-relaxed max-w-4xl">{product.description}</p>
+                <p className="text-gray-600 text-lg leading-relaxed max-w-4xl">{translateText(product.description, language)}</p>
               ) : (
                 <div className="grid sm:grid-cols-2 gap-8 max-w-4xl">
                   <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">

@@ -97,16 +97,37 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (!url) return res.status(400).json({ success: false, error: 'URL is required' });
 
     const urlL = url.toLowerCase();
-    const html = await fetchHTML(url);
+    let html = await fetchHTML(url);
     if (!html) throw new Error('Could not fetch website content');
 
     let products: any[] = [];
     let strategy = 'generic';
 
+    // ─── 1. Specialized Scrapers ──────────────────────────────────────────────
+    
+    // Shein logic
     if (urlL.includes('shein.com')) {
       products = scrapeSheinCategory(html, url);
       strategy = 'shein';
-    } else if (FIRECRAWL_API_KEY) {
+    } 
+    // Salla (Zahraah) / Zid stores detection
+    else if (html.includes('salla.sa') || html.includes('salla-cdn.com') || urlL.includes('zahraah')) {
+      const $ = load(html);
+      strategy = 'salla-specialized';
+      $('.product-block, .product-card, .s-product-card').each((_, el) => {
+        const $el = $(el);
+        const name = $el.find('.product-title, .title, h3').text().trim();
+        const price = parseFloat($el.find('.product-price, .price').text().replace(/[^\d.]/g, '')) || 0;
+        const img = $el.find('img').first().attr('data-src') || $el.find('img').first().attr('src');
+        const href = $el.find('a').first().attr('href');
+        if (name && href) {
+          products.push({ name, price, image: img, href });
+        }
+      });
+    }
+
+    // ─── 2. AI Fallback (Firecrawl) ──────────────────────────────────────────
+    if (products.length === 0 && FIRECRAWL_API_KEY) {
       const firecrawlProds = await scrapeWithFirecrawl(url, FIRECRAWL_API_KEY);
       if (firecrawlProds.length > 0) {
         products = firecrawlProds;
@@ -114,62 +135,61 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
-    if (products.length === 0 && !urlL.includes('shein.com')) {
-      // Use Cheerio for all other sites (Zahraah, WooCommerce, Shopify, etc.)
+    // ─── 3. Generic Scraper (Cheerio) ─────────────────────────────────────────
+    if (products.length === 0) {
       const $ = load(html);
       const base = new URL(url).origin;
       const seen = new Set();
 
-      // 1. JSON-LD
+      // 1. JSON-LD (Common for Shopify/Woo/Salla)
       $('script[type="application/ld+json"]').each((_, el) => {
         try {
-          const data = JSON.parse($(el).html() || '');
+          const content = $(el).html() || '';
+          const data = JSON.parse(content);
           const items = data.itemListElement || data.mainEntity?.itemListElement || (Array.isArray(data) ? data : []);
+          
           items.forEach((item: any) => {
             const p = item.item || item;
-            if (p.url && p.name && !seen.has(p.url)) {
-              seen.add(p.url);
-              products.push({
-                name: p.name,
-                price: parseFloat(p.offers?.price || p.offers?.[0]?.price || '0'),
-                image: p.image || (Array.isArray(p.image) ? p.image[0] : ''),
-                href: p.url.startsWith('/') ? base + p.url : p.url
-              });
+            if (p['@type'] === 'Product' || p.name) {
+              const pUrl = p.url || p.mainEntityOfPage || '';
+              if (p.name && !seen.has(pUrl)) {
+                if (pUrl) seen.add(pUrl);
+                products.push({
+                  name: p.name,
+                  price: parseFloat(p.offers?.price || p.offers?.[0]?.price || '0'),
+                  image: p.image || (Array.isArray(p.image) ? p.image[0] : ''),
+                  href: pUrl
+                });
+              }
             }
           });
-        } catch (e) { console.debug('[Catalog] JSON-LD parse failed:', e); }
+        } catch (e) {}
       });
 
-      // 2. CSS Selectors (Zahraah/Salla/Woo)
+      // 2. CSS Selectors (Fallback)
       if (products.length < 5) {
         const cardSelectors = [
-          '.s-product-card', '.product-card', '.product-item', 
-          '[class*="product-card"]', '.product', '.item',
-          '.product-block', '.product-thumb', '.product-grid-item',
-          '.s-block-product-item'
+          '.product-card', '.product-item', '.product', '.item',
+          '.s-product-card', '.s-block-product-item'
         ];
         
         for (const selector of cardSelectors) {
           $(selector).each((_, el) => {
             const $el = $(el);
-            // Look for any link that might be a product
-            const link = $el.find('a[href*="/p/"], a[href*="/product/"], a[href*="/products/"], a[href*="/item/"]').first();
-            const name = $el.find('h2, h3, h4, .title, .name, [class*="title"], [class*="name"]').first().text().trim();
-            const img = $el.find('img').first().attr('src') || $el.find('img').first().attr('data-src') || $el.find('img').first().attr('srcset');
-            const priceText = $el.find('.price, [class*="price"], [class*="amount"]').text();
-            const priceMatch = priceText.match(/(\d[\d,.]+)/);
-            const price = priceMatch ? parseFloat(priceMatch[1].replace(/,/g, '')) : 0;
+            const link = $el.find('a').filter((_, a) => {
+              const h = $(a).attr('href') || '';
+              return h.includes('/p/') || h.includes('/product') || h.includes('/item');
+            }).first();
+            
+            const name = $el.find('h2, h3, h4, .title, .name').first().text().trim();
+            const img = $el.find('img').first().attr('src') || $el.find('img').first().attr('data-src');
+            const priceText = $el.find('.price, .amount, [class*="price"]').text();
+            const price = parseFloat(priceText.replace(/[^\d.]/g, '')) || 0;
 
             let pUrl = link.attr('href');
             if (name && pUrl && !seen.has(pUrl)) {
-              if (pUrl.startsWith('/')) pUrl = base + pUrl;
               seen.add(pUrl);
-              products.push({
-                name,
-                price,
-                image: img || '',
-                href: pUrl
-              });
+              products.push({ name, price, image: img || '', href: pUrl });
             }
           });
           if (products.length >= 10) break;

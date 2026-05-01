@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Store, Phone, MessageCircle, Facebook, Instagram } from 'lucide-react';
 import { storeSettingsService } from '@/services/api';
 import { StoreSettings } from '@/types';
-import { useLanguage, categoryNames } from '@/context/LanguageContext';
+import { useLanguage, categoryNames, translateCategory, translateText } from '@/context/LanguageContext';
 
 const Footer: React.FC = () => {
   const currentYear = new Date().getFullYear();
@@ -38,7 +38,7 @@ const Footer: React.FC = () => {
               <Store className="w-8 h-8 text-primary-400" />
               <span className="text-xl font-bold">{settings.name}</span>
             </div>
-            <p className="text-gray-400 mb-4">{t.footerAbout}</p>
+            <p className="text-gray-400 mb-4">{settings.socialLinks?.footerText ? translateText(settings.socialLinks.footerText, language) : t.footerAbout}</p>
             <div className="flex gap-3">
               {settings.socialLinks?.facebook && (
                 <a href={settings.socialLinks.facebook} target="_blank" rel="noopener noreferrer"
@@ -77,7 +77,7 @@ const Footer: React.FC = () => {
               {quickCategories.map(cat => (
                 <li key={cat.id}>
                   <Link to={`/products?category=${cat.id}`} className="text-gray-400 hover:text-white transition">
-                    {cat.name}
+                    {translateCategory(cat.id, cat.name, language)}
                   </Link>
                 </li>
               ))}
@@ -93,7 +93,7 @@ const Footer: React.FC = () => {
               {topCategories.length > 0 ? topCategories.map(cat => (
                 <li key={cat.id}>
                   <Link to={`/products?category=${cat.id}`} className="text-gray-400 hover:text-white transition">
-                    {cat.name}
+                    {translateCategory(cat.id, cat.name, language)}
                   </Link>
                 </li>
               )) : (

@@ -163,6 +163,8 @@ export interface SocialLinks {
   tiktok?: string;
   website?: string;
   email?: string;
+  topBarText?: string;
+  footerText?: string;
 }
 
 // Activity Log Types

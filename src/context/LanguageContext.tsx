@@ -1392,6 +1392,8 @@ export const categoryNames: Record<string, Record<'ar' | 'en', string>> = {
 
 // Heuristic map for Arabic names to English
 export const arabicToEnglishMap: Record<string, string> = {
+  // الأقسام (Categories)
+  'ولادي': "Boys",
   'ملابس نسائية': "Women's Clothing",
   'ملابس رجالية': "Men's Clothing",
   'أحذية': "Shoes",
@@ -1401,11 +1403,72 @@ export const arabicToEnglishMap: Record<string, string> = {
   'ملابس أطفال': "Kids Clothes",
   'الكل': "All",
   'عادي': "Standard",
+
+  // كلمات شائعة في أسماء المنتجات (Product Names & Terms)
+  'فستان': "Dress",
+  'قميص': "Shirt",
+  'بنطلون': "Pants",
+  'جاكيت': "Jacket",
+  'بلوزة': "Blouse",
+  'تيشيرت': "T-Shirt",
+  'ساعة': "Watch",
+  'نظارة': "Glasses",
+  'شنطة': "Bag",
+  'محفظة': "Wallet",
+  'عطر': "Perfume",
+  'شوز': "Shoes",
+  'جينز': "Jeans",
+  'قطن': "Cotton",
+  'طقم': "Set",
+  'رياضي': "Sport",
+  'جلد': "Leather",
+  'أسود': "Black",
+  'أبيض': "White",
+  'أحمر': "Red",
+  'أزرق': "Blue",
+  'أخضر': "Green",
+  'بني': "Brown",
+  'رمادي': "Grey",
+  'بيج': "Beige",
+  'ذهبي': "Gold",
+  'فضي': "Silver",
+  'طويل': "Long",
+  'قصير': "Short",
+  'سهرة': "Evening",
+  'ناعم': "Soft",
+  'فاخر': "Premium",
+  'عرض': "Sale",
+  'جديد': "New",
+  'توصيل': "Shipping",
+  'مجاني': "Free",
+  'ريال': "SAR",
+};
+
+/**
+ * يقوم بترجمة النص كلمة بكلمة إذا لم يجد ترجمة كاملة للجملة
+ * لضمان ترجمة أسماء المنتجات والأقسام حتى لو لم تكن في قاعدة البيانات
+ */
+export const translateText = (text: string, lang: Language) => {
+  if (lang === 'ar' || !text) return text;
+  
+  // 1. محاولة البحث عن الجملة كاملة أولاً
+  if (arabicToEnglishMap[text]) return arabicToEnglishMap[text];
+  
+  // 2. تقسيم الجملة وترجمة كل كلمة على حدة (للأسماء المركبة مثل: فستان أسود)
+  const words = text.split(/\s+/);
+  const translatedWords = words.map(word => {
+    // إزالة الحركات أو ال التعريف للبحث بشكل أفضل
+    const cleanWord = word.replace(/^(ال)/, ''); 
+    return arabicToEnglishMap[word] || arabicToEnglishMap[cleanWord] || word;
+  });
+  
+  return translatedWords.join(' ');
 };
 
 export const translateCategory = (id: string, name: string, lang: Language) => {
   if (lang === 'ar') return name;
-  return categoryNames[id]?.en || arabicToEnglishMap[name] || name;
+  // استخدام المحرك الجديد للترجمة
+  return categoryNames[id]?.en || translateText(name, lang);
 };
 
 interface LanguageContextType {
