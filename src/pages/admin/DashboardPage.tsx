@@ -10,9 +10,11 @@ import { Statistics, Product, Order, Category } from '@/types';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { Skeleton, CardSkeleton, TableSkeleton } from '@/components/Common/Skeleton';
+import { isSupabaseConfigured } from '@/lib/supabase';
 const SalesChart = lazy(() => import('@/components/Admin/DashboardCharts').then(module => ({ default: module.SalesChart })));
 const CategoryChart = lazy(() => import('@/components/Admin/DashboardCharts').then(module => ({ default: module.CategoryChart })));
 import { LowStockAlerts } from '@/components/Admin/LowStockAlerts';
+
 
 const DashboardPage: React.FC = () => {
   const { user } = useAuth();
@@ -141,6 +143,27 @@ const DashboardPage: React.FC = () => {
 
   return (
     <div className="space-y-8 pb-12" dir={isRTL ? 'rtl' : 'ltr'}>
+
+      {/* ⚠️ تشخيص: تحذير عند غياب مفاتيح Supabase */}
+      {!isSupabaseConfigured() && (
+        <div className="bg-amber-50 border-2 border-amber-300 rounded-3xl p-6 flex flex-col gap-4" dir="rtl">
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 bg-amber-100 rounded-2xl flex items-center justify-center flex-shrink-0 text-2xl">⚠️</div>
+            <div>
+              <h3 className="font-black text-amber-900 text-lg">لم يتم الاتصال بقاعدة البيانات</h3>
+              <p className="text-amber-700 font-bold text-sm mt-1">البيانات لن تظهر. يجب إضافة المفاتيح التالية في <strong>Vercel → Settings → Environment Variables</strong>:</p>
+              <div className="mt-3 space-y-1 font-mono text-sm">
+                {!import.meta.env.VITE_SUPABASE_URL && <div className="bg-red-100 text-red-800 px-3 py-1 rounded-lg">❌ VITE_SUPABASE_URL مفقود</div>}
+                {!import.meta.env.VITE_SUPABASE_ANON_KEY && <div className="bg-red-100 text-red-800 px-3 py-1 rounded-lg">❌ VITE_SUPABASE_ANON_KEY مفقود</div>}
+                {import.meta.env.VITE_SUPABASE_URL && <div className="bg-green-100 text-green-800 px-3 py-1 rounded-lg">✅ VITE_SUPABASE_URL موجود</div>}
+                {import.meta.env.VITE_SUPABASE_ANON_KEY && <div className="bg-green-100 text-green-800 px-3 py-1 rounded-lg">✅ VITE_SUPABASE_ANON_KEY موجود</div>}
+              </div>
+              <p className="text-amber-600 text-xs mt-3 font-bold">بعد الإضافة، قم بعمل Redeploy في Vercel لكي تأخذ المفاتيح مفعولها.</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Welcome Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
