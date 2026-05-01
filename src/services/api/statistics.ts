@@ -29,17 +29,19 @@ export const statisticsService = {
 
       const [productsRes, ordersRes, customersRes, todayOrdersRes, weekOrdersRes, monthOrdersRes, revenueRes, recentActivities] =
         await Promise.all([
-          (supabase as any).from('products').select('id', { count: 'exact', head: true }).eq('is_visible', true),
+          (supabase as any).from('products').select('id', { count: 'exact', head: true }),
           (supabase as any).from('orders').select('id', { count: 'exact', head: true }),
           (supabase as any).from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'customer'),
           (supabase as any).from('orders').select('id', { count: 'exact', head: true }).gte('created_at', today),
           (supabase as any).from('orders').select('id', { count: 'exact', head: true }).gte('created_at', weekAgo),
           (supabase as any).from('orders').select('id', { count: 'exact', head: true }).gte('created_at', monthAgo),
-          (supabase as any).from('orders').select('total').eq('status', 'completed'),
+          // Only fetch last 1000 orders for revenue to avoid massive payload
+          (supabase as any).from('orders').select('total').eq('status', 'completed').order('created_at', { ascending: false }).limit(1000),
           activityLogsService.getRecent(5),
         ]);
 
-      const totalRevenue = (revenueRes.data || []).reduce((sum: number, o: any) => sum + (o.total || 0), 0);
+      // Calculate revenue from fetched data
+      const totalRevenue = (revenueRes.data || []).reduce((sum: number, o: any) => sum + (Number(o.total) || 0), 0);
 
       const transformed = {
         totalProducts: productsRes.count || 0,

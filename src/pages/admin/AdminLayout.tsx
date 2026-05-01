@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
+import { ConnectionGuard } from '@/components/Admin/ConnectionGuard';
 
 const AdminLayout: React.FC = () => {
   const location = useLocation();
@@ -226,7 +227,9 @@ const AdminLayout: React.FC = () => {
       {/* Main Content */}
       <main className={`transition-all duration-300 ${isRTL ? 'lg:mr-64' : 'lg:ml-64'} pt-16 lg:pt-0 min-h-screen relative`}>
         <div className="p-4 md:p-8">
-          <Outlet />
+          <ConnectionGuard>
+            <Outlet />
+          </ConnectionGuard>
         </div>
       </main>
     </div>

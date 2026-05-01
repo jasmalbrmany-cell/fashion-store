@@ -29,20 +29,19 @@ const DashboardPage: React.FC = () => {
         setIsLoading(true);
     }
     try {
-      // Load critical widgets first for faster first render
-      const [statsData, productsData] = await Promise.all([
+      const [statsData, productsData, ordersData, categoriesData] = await Promise.all([
         statisticsService.get(),
         productsService.getAllAdmin(),
+        ordersService.getAll(),
+        categoriesService.getAll()
       ]);
+      
       setStats(statsData);
       setProducts(productsData || []);
       setIsLoading(false);
 
-      // Load chart data in background (can be heavier)
-      const [orders, categories] = await Promise.all([
-        ordersService.getAll(),
-        categoriesService.getAll()
-      ]);
+      const orders = ordersData || [];
+      const categories = categoriesData || [];
       
       // Compute Sales Data (Last 7 Days)
       const last7Days = Array.from({ length: 7 }, (_, i) => {

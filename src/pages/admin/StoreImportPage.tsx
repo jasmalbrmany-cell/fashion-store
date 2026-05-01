@@ -223,104 +223,120 @@ const StoreImportPage: React.FC = () => {
   const handleSaveAll = async () => {
     setIsSaving(true);
     setSavedCount(0);
+    
+    // Get auth token once for all products
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData?.session?.access_token;
+    
     let count = 0;
+    const totalToSave = selectedProds.length;
+    
+    // Process products in batches to avoid overwhelming the server while being much faster than sequential
+    const batchSize = 3; 
+    const batches = [];
+    for (let i = 0; i < selectedProds.length; i += batchSize) {
+      batches.push(selectedProds.slice(i, i + batchSize));
+    }
 
-    for (const prod of selectedProds) {
-      setProducts(prev => prev.map(p => p.id === prod.id ? { ...p, status: 'saving' } : p));
-      let retryCount = 0;
-      const maxRetries = 2;
-      let success = false;
+    for (const batch of batches) {
+      await Promise.all(batch.map(async (prod) => {
+        setProducts(prev => prev.map(p => p.id === prod.id ? { ...p, status: 'saving' } : p));
+        
+        let retryCount = 0;
+        const maxRetries = 1; // Reduced retries for faster overall progress
+        let success = false;
 
-      while (retryCount <= maxRetries && !success) {
-        try {
-          // Get auth token for RLS
-          const { data: sessionData } = await supabase.auth.getSession();
-          const token = sessionData?.session?.access_token;
-
-          // Upload images to Supabase Storage permanently IN PARALLEL
-          const rawImages = prod.images.slice(0, 8); // Limit to 8 images
-          const uploadPromises = rawImages.map(async (imgUrl, i) => {
-            try {
-              const res = await fetch('/api/upload-external-image', {
-                method: 'POST',
-                headers: { 
-                  'Content-Type': 'application/json',
-                  ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-                },
-                body: JSON.stringify({ url: imgUrl })
-              });
-              const data = await res.json();
-              if (data.success && data.supabaseUrl) {
-                return { id: `img-${Date.now()}-${i}`, url: data.supabaseUrl, isPrimary: i === 0 };
-              }
-            } catch (imgErr) {
-              console.warn(`Failed to upload image ${i} to Supabase:`, imgErr);
-            }
-            // Fallback to original URL if upload fails
-            return { id: `img-${Date.now()}-${i}`, url: imgUrl, isPrimary: i === 0 };
-          });
-
-          const processedImages = await Promise.all(uploadPromises);
-
-          // 📁 AUTO-CATEGORY LOGIC:
-          let targetCategoryId = selectedCategory;
-          if (prod.category && prod.category.trim()) {
-            const normalizedCategoryName = prod.category.trim();
-            const existing = categories.find(c => c.name.toLowerCase() === normalizedCategoryName.toLowerCase());
-            if (existing) {
-              targetCategoryId = existing.id;
-            } else {
+        while (retryCount <= maxRetries && !success) {
+          try {
+            // Upload images to Supabase Storage permanently IN PARALLEL
+            const rawImages = prod.images.slice(0, 8); // Limit to 8 images
+            const uploadPromises = rawImages.map(async (imgUrl, i) => {
               try {
-                const newCat = await categoriesService.create({ 
-                  name: normalizedCategoryName,
-                  icon: 'Package',
-                  order: categories.length
-                });
-                if (newCat) {
-                  targetCategoryId = newCat.id;
-                  setCategories(prev => [...prev, newCat]);
+                // Check if it's already a Supabase URL (e.g. from a previous failed attempt that partially succeeded)
+                if (imgUrl.includes('supabase.co')) {
+                   return { id: `img-${Date.now()}-${i}`, url: imgUrl, isPrimary: i === 0 };
                 }
-              } catch (catErr) {
-                console.warn('Failed to auto-create category:', catErr);
+
+                const res = await fetch('/api/upload-external-image', {
+                  method: 'POST',
+                  headers: { 
+                    'Content-Type': 'application/json',
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                  },
+                  body: JSON.stringify({ url: imgUrl })
+                });
+                
+                const data = await res.json();
+                if (data.success && data.supabaseUrl) {
+                  return { id: `img-${Date.now()}-${i}`, url: data.supabaseUrl, isPrimary: i === 0 };
+                }
+              } catch (imgErr) {
+                console.warn(`Failed to upload image ${i} for ${prod.name}:`, imgErr);
+              }
+              // Fallback to original URL if upload fails
+              return { id: `img-${Date.now()}-${i}`, url: imgUrl, isPrimary: i === 0 };
+            });
+
+            const processedImages = await Promise.all(uploadPromises);
+
+            // 📁 AUTO-CATEGORY LOGIC:
+            let targetCategoryId = selectedCategory;
+            if (prod.category && prod.category.trim()) {
+              const normalizedCategoryName = prod.category.trim();
+              const existing = categories.find(c => c.name.toLowerCase() === normalizedCategoryName.toLowerCase());
+              if (existing) {
+                targetCategoryId = existing.id;
+              } else {
+                try {
+                  const newCat = await categoriesService.create({ 
+                    name: normalizedCategoryName,
+                    icon: 'Package',
+                    order: categories.length
+                  });
+                  if (newCat) {
+                    targetCategoryId = newCat.id;
+                    setCategories(prev => [...prev, newCat]);
+                  }
+                } catch (catErr) {
+                  console.warn('Failed to auto-create category:', catErr);
+                }
               }
             }
-          }
 
-          const ok = await productsService.create({
-            name: prod.name,
-            description: prod.description || (isRTL ? 'منتج مستورد' : 'Imported product'),
-            price: prod.price || 0,
-            categoryId: targetCategoryId,
-            images: processedImages,
-            sizes: normalizeImportedSizes(prod.sizes),
-            colors: prod.colors.length > 0
-              ? prod.colors.map((c, i) => ({ id: `c${i}`, name: c.name, hex: c.hex, stock: 10 }))
-              : [{ id: 'c0', name: 'متعدد الألوان', hex: '#888888', stock: 10 }],
-            // Imported products are visible by default so customers can see them immediately
-            isVisible: true,
-            sourceUrl: prod.sourceUrl,
-            stock: 10,
-          });
+            const ok = await productsService.create({
+              name: prod.name,
+              description: prod.description || (isRTL ? 'منتج مستورد' : 'Imported product'),
+              price: prod.price || 0,
+              categoryId: targetCategoryId,
+              images: processedImages,
+              sizes: normalizeImportedSizes(prod.sizes),
+              colors: prod.colors.length > 0
+                ? prod.colors.map((c, i) => ({ id: `c${i}`, name: c.name, hex: c.hex, stock: 10 }))
+                : [{ id: 'c0', name: 'متعدد الألوان', hex: '#888888', stock: 10 }],
+              isVisible: true,
+              sourceUrl: prod.sourceUrl,
+              stock: 10,
+            });
 
-          if (ok) {
-            count++;
-            setSavedCount(count);
-            setProducts(prev => prev.map(p => p.id === prod.id ? { ...p, status: 'saved', selected: false } : p));
-            success = true;
-          } else {
-            throw new Error('save failed');
-          }
-        } catch (err) {
-          console.error(`Error saving product ${prod.name} (attempt ${retryCount + 1}):`, err);
-          retryCount++;
-          if (retryCount > maxRetries) {
-            setProducts(prev => prev.map(p => p.id === prod.id ? { ...p, status: 'error' } : p));
-          } else {
-            // Wait a bit before retry
-            await new Promise(r => setTimeout(r, 1000));
+            if (ok) {
+              count++;
+              setSavedCount(count);
+              setProducts(prev => prev.map(p => p.id === prod.id ? { ...p, status: 'saved', selected: false } : p));
+              success = true;
+            } else {
+              throw new Error('save failed');
+            }
+          } catch (err) {
+            console.error(`Error saving product ${prod.name} (attempt ${retryCount + 1}):`, err);
+            retryCount++;
+            if (retryCount > maxRetries) {
+              setProducts(prev => prev.map(p => p.id === prod.id ? { ...p, status: 'error' } : p));
+            } else {
+              await new Promise(r => setTimeout(r, 500)); // Shorter wait for retry
+            }
           }
         }
-      }
+      }));
     }
 
     setIsSaving(false);
@@ -329,6 +345,7 @@ const StoreImportPage: React.FC = () => {
       setStep(4);
     }
   };
+
 
   const filteredProducts = products.filter(p =>
     !filterText || p.name.toLowerCase().includes(filterText.toLowerCase()) || p.category.toLowerCase().includes(filterText.toLowerCase())
@@ -789,20 +806,27 @@ const StoreImportPage: React.FC = () => {
           {/* Save Footer */}
           {selectedProds.length > 0 && (
             <div className="fixed bottom-4 left-4 right-4 z-50 max-w-2xl mx-auto">
-              <div className="bg-black rounded-2xl p-4 flex items-center gap-3 shadow-2xl shadow-black/40">
-                <div className="flex-1">
+              <div className="bg-black rounded-2xl p-4 flex items-center gap-3 shadow-2xl shadow-black/40 overflow-hidden relative">
+                {/* Progress Background */}
+                {isSaving && (
+                  <div 
+                    className="absolute inset-0 bg-blue-600/20 transition-all duration-500 ease-out"
+                    style={{ width: `${(savedCount / selectedProds.length) * 100}%` }}
+                  />
+                )}
+
+                <div className="flex-1 relative z-10">
                   <p className="text-white font-black text-sm">
-                    {isRTL ? `${selectedProds.length} منتج محدد` : `${selectedProds.length} selected`}
+                    {isSaving 
+                      ? (isRTL ? `جاري الحفظ... (${savedCount}/${selectedProds.length})` : `Saving... (${savedCount}/${selectedProds.length})`)
+                      : (isRTL ? `${selectedProds.length} منتج محدد` : `${selectedProds.length} selected`)
+                    }
                   </p>
                   <p className="text-green-400 text-xs font-bold">
                     → {selectedCategoryName}
                   </p>
                 </div>
-                {isSaving && (
-                  <span className="text-white/60 text-sm font-bold">
-                    {savedCount}/{selectedProds.length}
-                  </span>
-                )}
+                
                 <button
                   onClick={handleSaveAll}
                   disabled={isSaving}

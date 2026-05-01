@@ -6,8 +6,8 @@ import type {
   ProductRow, CategoryRow, CityRow, CurrencyRow, OrderRow, AdRow, ProfileRow 
 } from './types';
 
-// Helper to prevent infinite hangs
-export const withTimeout = (promise: Promise<any>, timeoutMs = 30000): Promise<any> => {
+// Helper to prevent infinite hangs - reduced to 15s for faster response
+export const withTimeout = (promise: Promise<any>, timeoutMs = 15000): Promise<any> => {
   return Promise.race([
     promise,
     new Promise<any>((_, reject) => setTimeout(() => reject(new Error('Timeout after ' + timeoutMs + 'ms')), timeoutMs))
@@ -17,7 +17,7 @@ export const withTimeout = (promise: Promise<any>, timeoutMs = 30000): Promise<a
 // --- Caching Logic ---
 const CACHE_TTL_SHORT = 3 * 60 * 1000;
 const CACHE_TTL_LONG = 10 * 60 * 1000;
-const LONG_TTL_KEYS = ['categories_all', 'cities_all', 'cities_active', 'currencies_all', 'settings_main'];
+const LONG_TTL_KEYS = ['categories_all', 'cities_all', 'cities_active', 'currencies_all', 'settings_main', 'statistics_main'];
 
 const memoryCache: Record<string, { data: any; timestamp: number }> = {};
 

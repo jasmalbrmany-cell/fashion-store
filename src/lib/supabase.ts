@@ -76,18 +76,17 @@ if (typeof window !== 'undefined' && originalSupabaseUrl) {
 
 // Check if Supabase is properly configured
 export const isSupabaseConfigured = (): boolean => {
-  return Boolean(
-    originalSupabaseUrl &&
-    supabaseAnonKey &&
-    originalSupabaseUrl !== '' &&
-    supabaseAnonKey !== '' &&
-    !originalSupabaseUrl.includes('placeholder')
-  );
+  const hasKey = Boolean(supabaseAnonKey && supabaseAnonKey !== '' && !supabaseAnonKey.includes('placeholder'));
+  const hasUrl = Boolean(originalSupabaseUrl && originalSupabaseUrl !== '' && !originalSupabaseUrl.includes('placeholder'));
+  
+  // In production, we might rely solely on the proxy (/api/sb) if the URL is missing
+  // but we absolutely need the Anon Key for the proxy to work or for direct connection.
+  return hasKey && (hasUrl || typeof window !== 'undefined');
 };
 
 // Create Supabase client
 export const supabase = createClient<Database>(
-  clientSupabaseUrl || 'https://placeholder.supabase.co',
+  clientSupabaseUrl || originalSupabaseUrl || (typeof window !== 'undefined' ? `${window.location.origin}/api/sb` : 'https://placeholder.supabase.co'),
   supabaseAnonKey || 'placeholder-key',
   {
     auth: {
