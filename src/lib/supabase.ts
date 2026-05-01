@@ -76,12 +76,14 @@ if (typeof window !== 'undefined' && originalSupabaseUrl) {
 
 // Check if Supabase is properly configured
 export const isSupabaseConfigured = (): boolean => {
-  const hasKey = Boolean(supabaseAnonKey && supabaseAnonKey !== '' && !supabaseAnonKey.includes('placeholder'));
-  const hasUrl = Boolean(originalSupabaseUrl && originalSupabaseUrl !== '' && !originalSupabaseUrl.includes('placeholder'));
-  
-  // In production, we might rely solely on the proxy (/api/sb) if the URL is missing
-  // but we absolutely need the Anon Key for the proxy to work or for direct connection.
-  return hasKey && (hasUrl || typeof window !== 'undefined');
+  // إذا كنا في المتصفح، يكون الـ Proxy (/api/sb) متاحاً دائماً عبر Vercel
+  // الـ Proxy يستخدم مفاتيح الخادم (SUPABASE_URL, SUPABASE_ANON_KEY) ويحقن الاعتمادات تلقائياً
+  // لذلك لا نحتاج VITE_ vars في الـ Frontend لكي يعمل الاتصال
+  if (typeof window !== 'undefined') {
+    return true; // الـ Proxy متاح دائماً - يمرر الطلبات لـ Supabase مع المفاتيح الصحيحة
+  }
+  // في بيئة الخادم (SSR / API functions) نتحقق من المفاتيح المباشرة
+  return Boolean(originalSupabaseUrl && supabaseAnonKey);
 };
 
 // Create Supabase client
