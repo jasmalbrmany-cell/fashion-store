@@ -57,7 +57,7 @@ export const storeSettingsService = {
       return null;
     }
 
-    const updates = {
+    const updates: any = {
       id: SETTINGS_ID,
       name: settings.name,
       logo: settings.logo,
@@ -76,28 +76,46 @@ export const storeSettingsService = {
 
       const { data, error } = await withTimeout(fetchPromise, 8000);
       
-      if (error || !data) {
+      if (error) {
+        // SELF-HEALING: If column is missing, retry without it
+        if (error.message?.includes('column') && error.message?.includes('is_maintenance_mode')) {
+          console.warn('⚠️ Column is_maintenance_mode missing, retrying without it...');
+          delete updates.is_maintenance_mode;
+          const retryPromise = (supabase as any)
+            .from('store_settings')
+            .upsert(updates)
+            .select()
+            .single();
+          const { data: retryData, error: retryError } = await withTimeout(retryPromise, 8000);
+          
+          if (retryError) throw new Error(retryError.message);
+          return this.transform(retryData);
+        }
+        
         const errorMsg = error?.message || 'فشل تحديث إعدادات المتجر';
-        console.error('❌ Error updating store settings:', error);
         throw new Error(errorMsg);
       }
       
-      const transformed: StoreSettings = {
-        id: data.id,
-        name: data.name,
-        logo: data.logo || '',
-        currency: data.currency,
-        socialLinks: data.social_links || { whatsapp: '' },
-        isMaintenanceMode: data.is_maintenance_mode ?? false,
-      };
-      
-      clearCache('settings_main');
-      setToCache('settings_main', transformed);
-      return transformed;
+      return this.transform(data);
     } catch (e: any) {
       const errorMessage = e?.message || 'خطأ غير متوقع عند تحديث الإعدادات - تحقق من الاتصال';
       console.error('❌ Exception updating settings:', errorMessage);
       throw new Error(errorMessage);
     }
   },
+
+  transform(data: any): StoreSettings {
+    const transformed: StoreSettings = {
+      id: data.id,
+      name: data.name,
+      logo: data.logo || '',
+      currency: data.currency,
+      socialLinks: data.social_links || { whatsapp: '' },
+      isMaintenanceMode: data.is_maintenance_mode ?? false,
+    };
+    
+    clearCache('settings_main');
+    setToCache('settings_main', transformed);
+    return transformed;
+  }
 };
